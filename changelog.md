@@ -1,4 +1,6 @@
 ### Revision History
+* 4.6.7-SNAPSHOT
+  *
 * 4.6.6
   * Added `BusinessRule.init()` for setting appId, input, output.
 * 4.6.5
