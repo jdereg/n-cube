@@ -1,6 +1,6 @@
 ### Revision History
-* 4.6.6-SNAPSHOT
-  * 
+* 4.6.6
+  * Added `BusinessRule.init()` for setting appId, input, output.
 * 4.6.5
   * `RulesEngine` now allows each rule group to be declared to throw or not throw an exception if an error is added during that rule groups execution.
   * Bug fix: Groovy/Java doc was not publishing correctly.

@@ -116,10 +116,7 @@ class RulesEngine
             }
 
             BusinessRule rule = (BusinessRule) Class.forName(className).newInstance(root)
-            input['rule'] = rule
-            rule.input = input
-            rule.output = output
-            rule.appId = appId
+            rule.init(appId, input, output)
 
             NCube ncube = ncubeRuntime.getCube(appId, ncubeName)
             verifyOrchestration(ncube)

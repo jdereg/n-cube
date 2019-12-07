@@ -26,6 +26,14 @@ class BusinessRule
         this.root = root
     }
 
+    void init(ApplicationID appId, Map input, Map output)
+    {
+        input['rule'] = this
+        this.appId = appId
+        this.input = input
+        this.output = output
+    }
+
     Object getRoot()
     {
         return root
