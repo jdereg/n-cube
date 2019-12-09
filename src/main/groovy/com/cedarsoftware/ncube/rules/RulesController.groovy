@@ -24,7 +24,7 @@ class RulesController
         this.rulesConfiguration = rulesConfiguration
     }
 
-    @GetMapping(path = ['ui/info'])
+    @GetMapping(path = ['ui/rulesInfo'])
     ResponseEntity<Map> getInfo()
     {
         Map info = rulesConfiguration.info

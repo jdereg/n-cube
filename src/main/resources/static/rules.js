@@ -140,7 +140,7 @@ var RULES = (function ($)
 
     function getInfo()
     {
-        callServer('GET', 'ui/info', null, buildPage)
+        callServer('GET', 'ui/rulesInfo', null, buildPage)
     }
 
     var buildPage = function buildPage(data)

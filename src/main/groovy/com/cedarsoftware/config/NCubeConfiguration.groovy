@@ -77,7 +77,7 @@ class NCubeConfiguration
     // Location for generated source (optional) and compiled classes (optional)
     @Value('${ncube.sources.dir:#{null}}') String sourcesDirectory
     @Value('${ncube.classes.dir:#{null}}') String classesDirectory
-    
+
     // Limit size of coordinate displayed in each CommandCell exception list (--> [coordinate])
     @Value('${ncube.stackEntry.coordinate.value.max:1000}') int stackEntryCoordinateValueMaxSize
 
@@ -95,6 +95,7 @@ class NCubeConfiguration
     }
 
     @Bean(name = 'ncubeCacheManager')
+    @Profile(['ncube-client', 'combined-client', 'ncube-runtime', 'combined-server'])
     GCacheManager getNcubeCacheManager()
     {
         GCacheManager cacheManager = new GCacheManager(ncubeRemoval, maxSizeNCubeCache, typeNCubeCache, durationNCubeCache, unitsNCubeCache, concurrencyNCubeCache)
@@ -107,7 +108,7 @@ class NCubeConfiguration
         GCacheManager cacheManager = new GCacheManager(null, maxSizePermCache, typePermCache, durationPermCache, unitsPermCache, concurrencyPermCache)
         return cacheManager
     }
-    
+
     @Bean(name = 'ncubeHost')
     @Profile(['ncube-client','runtime-server'])
     HttpHost getHttpHost()
@@ -172,7 +173,7 @@ class NCubeConfiguration
     {
         return new NCubeControllerAdvice(getNCubeController2())
     }
-    
+
     @Bean('ncubeController')
     @Profile('runtime-server')
     NCubeController getNCubeController2()
@@ -197,7 +198,7 @@ class NCubeConfiguration
     }
 
     // v========== combined-server ==========v
-    
+
     @Bean('ncubeControllerAdvice')
     @Profile('combined-server')
     NCubeControllerAdvice getNCubeControllerAdvice4()
@@ -211,10 +212,11 @@ class NCubeConfiguration
     {
         return new NCubeController(getNCubeRuntimeLocal(), true)
     }
-    
+
     // ========== Persistance Configuration ==========
-    
+
     @Bean('persister')
+    @Profile(['storage-server', 'combined-server', 'combined-client'])
     NCubePersister getNCubePersister()
     {
         return new NCubeJdbcPersisterAdapter()

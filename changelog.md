@@ -1,6 +1,11 @@
 ### Revision History
-* 4.6.7-SNAPSHOT
-  *
+* 4.6.7
+  * Configured NCube's spring beans to only make `NCubePersister` available to profiles that use it: `storage-server`, `combined-server`, `combined-client`.
+  * Configured NCube's spring beans to remove `NCubeCacheManager` from `storage-server` profile.
+  * Updated to consume `json-command-servlet 1.9.0` (Gradle build version).
+  * Added missing `implementation 'org.springframework:spring-web:5.2.2.RELEASE'` which transitively being included from `json-command-servlet`.
+  * Updated to consume `Spring Framework 5.2.2`
+  * Updated to consume `Spring Boot 2.2.2`    
 * 4.6.6
   * Added `BusinessRule.init()` for setting appId, input, output.
 * 4.6.5
