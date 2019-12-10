@@ -1,6 +1,7 @@
 .gradle
 /build/
 !gradle/wrapper/gradle-wrapper.jar
+gradle.properties
 .DS_Store
 .svn/
 CVS/
@@ -11,4 +12,3 @@ CVS/
 .classpath
 .project
 .settings/
-gradle.properties
