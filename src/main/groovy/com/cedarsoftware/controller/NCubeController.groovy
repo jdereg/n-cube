@@ -32,6 +32,7 @@ import groovy.transform.CompileStatic
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.actuate.info.InfoEndpoint
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.RestController
 
 import javax.management.MBeanServer
@@ -101,15 +102,25 @@ class NCubeController implements NCubeConstants
     protected String getUserForDatabase()
     {
         String user = null
-        HttpServletRequest request = JsonCommandServlet.servletRequest.get()
-        Enumeration e = request.headerNames
-        while (e.hasMoreElements())
+        String principal = SecurityContextHolder.context?.authentication?.principal
+
+        if (!isEmpty(principal))
         {
-            String headerName = (String) e.nextElement()
-            if ('smuser'.equalsIgnoreCase(headerName))
+            user = principal.split('@').first()
+        }
+
+        if (isEmpty(user))
+        {
+            HttpServletRequest request = JsonCommandServlet.servletRequest.get()
+            Enumeration e = request.headerNames
+            while (e.hasMoreElements())
             {
-                user = request.getHeader(headerName)
-                break
+                String headerName = (String) e.nextElement()
+                if ('smuser'.equalsIgnoreCase(headerName))
+                {
+                    user = request.getHeader(headerName)
+                    break
+                }
             }
         }
 
