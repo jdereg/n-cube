@@ -1,4 +1,6 @@
 ### Revision History
+* 4.6.9-SNAPSHOT
+  *
 * 4.6.8
   * Added Spring OAuth2 authentication support.
   * Updated `RulesEngine` to use `ReflectionUtils.getMethod()` from `java-util`
