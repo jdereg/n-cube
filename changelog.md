@@ -1,6 +1,7 @@
 ### Revision History
 * 4.6.8
   * Added Spring OAuth2 user support
+  * Updated `RulesEngine` to use `ReflectionUtils.getMethod()` from `java-util`
 * 4.6.7
   * Configured NCube's spring beans to only make `NCubePersister` available to profiles that use it: `storage-server`, `combined-server`, `combined-client`.
   * Configured NCube's spring beans to remove `NCubeCacheManager` from `storage-server` profile.
