@@ -35,7 +35,7 @@ repositories {
 }
 
 dependencies {
-    api 'org.codehaus.groovy:groovy-all:2.4.17'
+    api 'org.codehaus.groovy:groovy-all:2.4.18'
     api 'com.cedarsoftware:java-util:1.38.0'
     api 'com.cedarsoftware:json-io:4.11.1'
     api 'org.jetbrains.intellij.deps:trove4j:1.0.20190514'
