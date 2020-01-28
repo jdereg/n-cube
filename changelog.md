@@ -8,7 +8,7 @@
   * Updated to consume `jackson-databind 2.10.2`
   * Updated to consume `httpclient 4.5.11`
 * 4.6.9
-  * Faild to release to Maven Central  
+  * Failed to release to Maven Central  
 * 4.6.8
   * Added Spring OAuth2 authentication support.
   * Updated `RulesEngine` to use `ReflectionUtils.getMethod()` from `java-util`
