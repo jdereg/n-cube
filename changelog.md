@@ -1,6 +1,6 @@
 ### Revision History
 * 4.6.9-SNAPSHOT
-  *
+  * Updated `RulesEngine` documentation to provide better exception messages and to call new `java-util` `ReflectionUtils.getNonOverloadedMethod()`.
 * 4.6.8
   * Added Spring OAuth2 authentication support.
   * Updated `RulesEngine` to use `ReflectionUtils.getMethod()` from `java-util`

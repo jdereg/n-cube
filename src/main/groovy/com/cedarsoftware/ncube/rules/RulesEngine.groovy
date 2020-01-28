@@ -417,10 +417,10 @@ class RulesEngine
     {
         String methodName = findStringAgainstPattern(PATTERN_METHOD_NAME, cmd)
         Map methodInfo = [methodName: methodName, condition: condition] as Map
-        Method method = ReflectionUtils.getMethod(rule, methodName)
+        Method method = ReflectionUtils.getNonOverloadedMethod(rule, methodName)
         if (!method)
         {
-            throw new IllegalStateException("Method: ${name} does not exist on class: ${rule.name}")
+            throw new IllegalStateException("Method: ${methodName} does not exist on class: ${rule.name}")
         }
         Documentation documentation = (Documentation) ReflectionUtils.getMethodAnnotation(method, Documentation)
         if (!documentation)
