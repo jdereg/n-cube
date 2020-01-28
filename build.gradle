@@ -9,12 +9,13 @@ plugins {
 
 group = 'com.cedarsoftware'
 description = 'n-cube'
-version = '4.6.9'
+version = '4.6.10'
 
 // Example builds
 //gradle clean build 
 //gradle clean build publishToMavenLocal
 //gradle clean build publish upload closeAndReleaseRepository
+//gradle clean build publish -x test --warning-mode all
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -94,7 +95,7 @@ tasks.withType(Sign) {
 uploadArchives {
     repositories {
         mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+            beforeDeployment { Task deployment -> signing.sign(deployment) }
 
             repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
                 authentication(userName: ossrhUsername, password: ossrhPassword)
@@ -114,7 +115,7 @@ uploadArchives {
                 scm {
                     connection = 'scm:git:git://github.com/jdereg/n-cube.git'
                     developerConnection = 'scm:git:git@github.com:jdereg/n-cube.git'
-                    url = 'https://github.com/jdereg/n-cub'
+                    url = 'https://github.com/jdereg/n-cube'
                 }
 
                 licenses {
