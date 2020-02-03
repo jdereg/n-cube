@@ -1,6 +1,17 @@
 ### Revision History
+* 4.6.10
+  * Updated `RulesEngine` documentation to provide better exception messages and to call new `java-util` `ReflectionUtils.getNonOverloadedMethod()`.
+  * Updated to consume `java-util 1.40.0`
+  * Updated to consume `json-io 4.12.0`
+  * Updated to consume `guava 28.2-jre`
+  * Updated to consume `org.apache.ivy 2.5.0`
+  * Updated to consume `jackson-databind 2.10.2`
+  * Updated to consume `httpclient 4.5.11`
+* 4.6.9
+  * Failed to release to Maven Central  
 * 4.6.8
-  * Added Spring OAuth2 user support
+  * Added Spring OAuth2 authentication support.
+  * Updated `RulesEngine` to use `ReflectionUtils.getMethod()` from `java-util`
 * 4.6.7
   * Configured NCube's spring beans to only make `NCubePersister` available to profiles that use it: `storage-server`, `combined-server`, `combined-client`.
   * Configured NCube's spring beans to remove `NCubeCacheManager` from `storage-server` profile.

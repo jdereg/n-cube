@@ -12,3 +12,4 @@ CVS/
 .classpath
 .project
 .settings/
+/out/

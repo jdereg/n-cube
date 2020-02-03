@@ -417,7 +417,11 @@ class RulesEngine
     {
         String methodName = findStringAgainstPattern(PATTERN_METHOD_NAME, cmd)
         Map methodInfo = [methodName: methodName, condition: condition] as Map
-        Method method = getMethod(rule, methodName)
+        Method method = ReflectionUtils.getNonOverloadedMethod(rule, methodName)
+        if (!method)
+        {
+            throw new IllegalStateException("Method: ${methodName} does not exist on class: ${rule.name}")
+        }
         Documentation documentation = (Documentation) ReflectionUtils.getMethodAnnotation(method, Documentation)
         if (!documentation)
         {
@@ -462,19 +466,6 @@ class RulesEngine
             return matcher.group(1)
         }
         return ''
-    }
-
-    private static Method getMethod(Class clazz, String name)
-    {
-        Method[] methods = clazz.methods
-        for (Method method : methods)
-        {
-            if (method.name == name)
-            {
-                return method
-            }
-        }
-        throw new IllegalStateException("Method: ${name} does not exist on class: ${clazz.name}")
     }
 
     private List<String> getRuleGroupsFromClosure(Closure where)

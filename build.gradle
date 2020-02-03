@@ -4,17 +4,18 @@ plugins {
     id 'maven'
     id 'maven-publish'
     id 'signing'
-    id 'io.codearte.nexus-staging' version '0.21.1'
+    id 'io.codearte.nexus-staging' version '0.21.2'
 }
 
 group = 'com.cedarsoftware'
 description = 'n-cube'
-version = '4.6.8-SNAPSHOT'
+version = '4.6.10'
 
 // Example builds
 //gradle clean build 
 //gradle clean build publishToMavenLocal
 //gradle clean build publish upload closeAndReleaseRepository
+//gradle clean build publish -x test --warning-mode all
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -35,19 +36,19 @@ repositories {
 }
 
 dependencies {
-    api 'org.codehaus.groovy:groovy-all:2.4.17'
-    api 'com.cedarsoftware:java-util:1.38.0'
-    api 'com.cedarsoftware:json-io:4.11.1'
+    api 'org.codehaus.groovy:groovy-all:2.4.18'
+    api 'com.cedarsoftware:java-util:1.40.0'
+    api 'com.cedarsoftware:json-io:4.12.0'
     api 'org.jetbrains.intellij.deps:trove4j:1.0.20190514'
     implementation 'org.springframework.boot:spring-boot-starter-actuator:2.2.2.RELEASE'
     implementation 'org.springframework:spring-aspects:5.2.2.RELEASE'
     implementation 'org.springframework:spring-web:5.2.2.RELEASE'
     implementation 'org.springframework.security:spring-security-core:5.2.1.RELEASE'
     implementation 'com.cedarsoftware:json-command-servlet:1.9.0'
-    implementation 'org.apache.httpcomponents:httpclient:4.5.10'
-    implementation 'org.apache.ivy:ivy:2.4.0'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.10.0'
-    implementation 'com.google.guava:guava:28.1-jre'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.11'
+    implementation 'org.apache.ivy:ivy:2.5.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.10.2'
+    implementation 'com.google.guava:guava:28.2-jre'
     implementation 'javax.servlet:javax.servlet-api:4.0.1'
     implementation 'javax.annotation:javax.annotation-api:1.3.2'
     implementation 'org.hsqldb:hsqldb:2.5.0'
@@ -114,7 +115,7 @@ uploadArchives {
                 scm {
                     connection = 'scm:git:git://github.com/jdereg/n-cube.git'
                     developerConnection = 'scm:git:git@github.com:jdereg/n-cube.git'
-                    url = 'https://github.com/jdereg/n-cub'
+                    url = 'https://github.com/jdereg/n-cube'
                 }
 
                 licenses {
