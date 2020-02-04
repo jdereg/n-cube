@@ -59,6 +59,7 @@ class NCubeConfiguration
     @Value('${ncube.target.username:#{null}}') String username
     @Value('${ncube.target.password:#{null}}') String password
     @Value('${ncube.target.numConnections:200}') int numConnections
+    @Value('${ncube.target.accessTokenUri:#{null}}') String accessTokenUri
 
     // NCubeRuntime's cache
     @Value('${ncube.cache.max.size:0}') int maxSizeNCubeCache
@@ -120,7 +121,14 @@ class NCubeConfiguration
     @Profile(['ncube-client','runtime-server'])
     JsonHttpProxy getJsonHttpProxy()
     {
-        return new JsonHttpProxy(getHttpHost(), context, username, password, numConnections)
+        if (accessTokenUri)
+        {
+            return new JsonHttpProxy(getHttpHost(), context, accessTokenUri, username, password, numConnections)
+        }
+        else
+        {
+            return new JsonHttpProxy(getHttpHost(), context, username, password, numConnections)
+        }
     }
 
     @Bean(name = 'callableBean')

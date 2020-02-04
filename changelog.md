@@ -1,4 +1,6 @@
 ### Revision History
+* 4.6.11
+  * Updated `JsonHttpProxy` to add OAuth2 capability
 * 4.6.10
   * Updated `RulesEngine` documentation to provide better exception messages and to call new `java-util` `ReflectionUtils.getNonOverloadedMethod()`.
   * Updated to consume `java-util 1.40.0`

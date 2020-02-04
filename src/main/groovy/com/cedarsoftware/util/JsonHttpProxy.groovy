@@ -69,6 +69,9 @@ class JsonHttpProxy implements CallableBean
     private final String username
     private final String password
     private final int numConnections
+    private String accessTokenUri
+    private String token
+    private long expireTime = System.currentTimeMillis()
 
     JsonHttpProxy(HttpHost httpHost, String context, String username = null, String password = null, int numConnections = 100)
     {
@@ -80,6 +83,7 @@ class JsonHttpProxy implements CallableBean
         this.numConnections = numConnections
         httpClient = createClient()
         createAuthCache()
+        log.info('Started with basic authentication')
     }
 
     JsonHttpProxy(HttpHost httpHost, HttpHost proxyHost, String context, String username = null, String password = null, int numConnections = 100)
@@ -92,6 +96,20 @@ class JsonHttpProxy implements CallableBean
         this.numConnections = numConnections
         httpClient = createClient()
         createAuthCache()
+        log.info('Started with basic authentication with proxy host')
+    }
+
+    JsonHttpProxy(HttpHost httpHost, String context, String accessTokenUri, String clientId, String clientSecret, int numConnections = 100)
+    {
+        this.httpHost = httpHost
+        this.proxyHost = null
+        this.context = context
+        this.username = clientId
+        this.password = clientSecret
+        this.numConnections = numConnections
+        this.accessTokenUri = accessTokenUri
+        httpClient = createClient()
+        log.info('Started with oauth2 authentication')
     }
 
     /**
@@ -143,7 +161,12 @@ class JsonHttpProxy implements CallableBean
 
         HttpClientContext clientContext = HttpClientContext.create()
         HttpPost request = new HttpPost("${httpHost.toURI()}/${context}/cmd/${bean}/${methodName}")
-        if (username && password)
+        if (accessTokenUri)
+        {
+            String token = requestToken()
+            request.setHeader(AUTHORIZATION, "Bearer ${token}")
+        }
+        else if (username && password)
         {
             clientContext.credentialsProvider = credsProvider
             clientContext.authCache = authCache
@@ -245,5 +268,40 @@ class JsonHttpProxy implements CallableBean
             authCache = new BasicAuthCache()
             authCache.put(httpHost, new BasicScheme())
         }
+    }
+
+    private String requestToken()
+    {
+        long currentTime = System.currentTimeMillis()
+        if (currentTime >= expireTime)
+        {
+            try
+            {
+                HttpPost request = new HttpPost("${accessTokenUri}?grant_type=client_credentials")
+                String authString = "${username}:${password}".bytes.encodeBase64().toString()
+                request.setHeader(AUTHORIZATION, "Basic ${authString}")
+
+                HttpResponse response = httpClient.execute(request)
+                JsonReader reader = new JsonReader(new BufferedInputStream(response.entity.content))
+                Map envelope = reader.readObject() as Map
+                reader.close()
+
+                token = envelope.access_token
+                long expiresInSeconds = (long) envelope.expires_in
+                long expiresInMillis = (expiresInSeconds - 10) * 1000
+                expireTime = currentTime + expiresInMillis
+                log.info('Updated the oauth2 token')
+            }
+            catch (ThreadDeath t)
+            {
+                throw t
+            }
+            catch (Throwable e)
+            {
+                log.error("Failed acquire access token from ${accessTokenUri}.")
+                throw e
+            }
+        }
+        return token
     }
 }
