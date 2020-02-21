@@ -1,13 +1,7 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.config.NCubeConfiguration
 import groovy.transform.CompileStatic
-import org.junit.Ignore
 import org.junit.Test
-import org.springframework.test.annotation.DirtiesContext
-import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.ContextConfiguration
-import org.springframework.test.context.TestPropertySource
 
 import java.lang.reflect.Method
 
@@ -30,7 +24,6 @@ import java.lang.reflect.Method
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
-@Ignore // Undo to run this test by itself.  This test messes up the Spring App Context for the rests of the tests.
 @CompileStatic
 class TestRuntimeCaching extends NCubeBaseTest
 {
@@ -46,10 +39,24 @@ class TestRuntimeCaching extends NCubeBaseTest
         runtime.addCube(cube1)
         cube1 = runtime.getCube(ApplicationID.testAppId, 'TestCube')    // cube 1
 
-        Method method = NCubeRuntime.class.getDeclaredMethod('cacheCube', NCube.class, boolean.class)
-        method.accessible = true
-        NCube rogue = (NCube) method.invoke(runtime, cube2, false) // calling cacheCube(cube2, false) - but it should ignore this
+        Method allowMutable = NCubeRuntime.class.getDeclaredMethod('setAllowMutable', Boolean.class)
+        allowMutable.accessible = true
+        allowMutable.invoke(runtime, false) // allow MutableMethods false
 
-        assert cube1 == rogue
+        Method cacheCube = NCubeRuntime.class.getDeclaredMethod('cacheCube', NCube.class, boolean.class)
+        cacheCube.accessible = true
+        NCube rogue = (NCube) cacheCube.invoke(runtime, cube2, false) // calling cacheCube(cube2, false) - but it should ignore this
+
+        // With allowMutable false, cacheCube does not allow caching another cube overtop original
+        assert cube1.is(rogue)
+
+        allowMutable.invoke(runtime, true) // allow MutableMethods true
+        rogue = (NCube) cacheCube.invoke(runtime, cube2, false)
+
+        // With allowMutable true, cacheCube does allow caching another cube overtop original
+        assert !cube1.is(rogue)
+
+        // Make sure allowMutable setting is re-read from the Spring Environment.
+        allowMutable.invoke(runtime, null)
     }
 }
