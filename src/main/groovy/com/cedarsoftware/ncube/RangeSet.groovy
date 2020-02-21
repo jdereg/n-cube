@@ -63,7 +63,7 @@ class RangeSet implements Comparable<RangeSet>
     int compareTo(RangeSet that)
     {
         int size = size()
-        if (items.isEmpty() || that.items.isEmpty())
+        if (items.empty || that.items.empty)
         {
             return size - that.size()
         }

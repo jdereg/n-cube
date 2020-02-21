@@ -87,4 +87,34 @@ class TestRange
         set1.add(new Range(20, 25))
         assertFalse(set.overlap(set1))
     }
+
+    @Test
+    void testRangeEqualityWithPriority()
+    {
+        Range range1 = new Range(1, 10, 1000)
+        Range range2 = new Range(1, 10, 1000)
+        assert range1 == range2
+
+        range2 = new Range(1, 10, 999)
+        assert range1 != range2
+    }
+
+    @Test
+    void testRangeOverlap()
+    {
+        Range range1 = new Range(1, 10, 1000)
+        Range range2 = new Range(1, 100, 1000)
+        assert range1.overlap(range2)
+
+        range1 = new Range(1, 10, 900)
+        assert !range1.overlap(range2)
+    }
+
+    @Test
+    void testRangeOverlap2()
+    {
+        Range range1 = new Range(1, 10, 1000)   // [1, 10)
+        Range range2 = new Range(-10, 1, 1000)  // [-10, 1)
+        assert !range1.overlap(range2)
+    }
 }

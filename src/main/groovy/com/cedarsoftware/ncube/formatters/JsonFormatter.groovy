@@ -594,6 +594,8 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             writeObjectValue(r.low)
             comma()
             writeObjectValue(r.high)
+            comma()
+            writeObjectValue(r.priority)
             endArray()
         }
         else if (o instanceof RangeSet)

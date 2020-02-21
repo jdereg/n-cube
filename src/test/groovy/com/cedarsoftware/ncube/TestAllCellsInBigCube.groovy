@@ -181,6 +181,7 @@ class TestAllCellsInBigCube
 
         Map options = [:]
         options[NCube.MAP_REDUCE_COLUMNS_TO_SEARCH] = ['hotel'] as Set
+        options[NCube.MAP_REDUCE_SHOULD_EXECUTE] = false
         for (int i=0; i < timesToRun; i++)
         {
             start = System.nanoTime()
@@ -191,6 +192,7 @@ class TestAllCellsInBigCube
         }
 
         options.input = [row:1] as Map
+        options[NCube.MAP_REDUCE_SHOULD_EXECUTE] = false
         for (int i=0; i < timesToRun; i++)
         {
             start = System.nanoTime()

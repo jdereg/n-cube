@@ -36,6 +36,7 @@ import java.util.zip.Deflater
 import java.util.zip.GZIPInputStream
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
+import static com.cedarsoftware.util.Converter.convertToInteger
 import static com.cedarsoftware.util.Converter.convertToLong
 import static com.cedarsoftware.util.EncryptionUtilities.SHA1Digest
 import static com.cedarsoftware.util.EncryptionUtilities.calculateSHA1Hash
@@ -1201,11 +1202,11 @@ class NCube<T>
         boolean isRowDiscrete = rowAxis.type == AxisType.DISCRETE
         boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
 
-        if (rowAxis.type!=AxisType.RULE)
+        if (rowAxis.type != AxisType.RULE)
         {
             commandInput.informAdditionalUsage([rowAxisName] as Collection<Object>)
         }
-        if (colAxis.type!=AxisType.RULE)
+        if (colAxis.type != AxisType.RULE)
         {
             commandInput.informAdditionalUsage([colAxisName] as Collection<Object>)
         }
@@ -1230,6 +1231,7 @@ class NCube<T>
             rowColumns = rowAxis.columns
         }
 
+        boolean isOneParamWhere = where.maximumNumberOfParameters == 1
         for (Column row : rowColumns)
         {
             commandInput.put(rowAxisName, rowAxis.getValueToLocateColumn(row))
@@ -1255,13 +1257,42 @@ class NCube<T>
                 ids.remove(whereId)
             }
 
-            def whereResult = where.maximumNumberOfParameters == 1 ? where(whereVars) : where(whereVars, commandInput)
+            def whereResult = isOneParamWhere ? where(whereVars) : where(whereVars, commandInput)
 
             if (whereResult)
             {
-                Comparable key = getRowKey(isRowDiscrete, row, rowAxis)
-                Map resultRow = buildMapReduceResultRow(colAxis, selectList, whereVars, ids, commandInput, output, defaultValue, columnDefaultCache)
-                matchingRows.put(key, resultRow)
+                Comparable key
+                if (isRowDiscrete)
+                {
+                    key = row.value
+                }
+                else
+                {
+                    if (isEmpty(row.columnName))
+                    {
+                        throw new IllegalStateException("Non-discrete axis columns must have a meta-property 'name' set in order to use them for mapReduce().  Cube: ${name}, Axis: ${rowAxis.name}")
+                    }
+                    key = row.columnName
+                }
+
+                String axisName = colAxis.name
+                boolean isDiscrete = colAxis.type == AxisType.DISCRETE
+                Map result = new LinkedHashMap()
+                for (Column column : selectList)
+                {
+                    def colValue = isDiscrete ? column.value : column.columnName
+                    if (whereVars.containsKey(colValue))
+                    {
+                        result.put(colValue, whereVars.get(colValue))
+                        continue
+                    }
+                    commandInput.put(axisName, column.valueThatMatches)
+                    long colId = column.id
+                    ids.add(colId)
+                    result.put(colValue, shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : cells.get(ids))
+                    ids.remove(colId)
+                }
+                matchingRows.put(key, result)
             }
             ids.remove(rowId)
         }
@@ -1317,9 +1348,8 @@ class NCube<T>
         Set columnsToReturn = (Set)options[MAP_REDUCE_COLUMNS_TO_RETURN]
         final Map columnDefaultCache = new CaseInsensitiveMap()
 
-        final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input))
         Map commandOpts = new TrackingMap<>(new CaseInsensitiveMap(options))
-        commandOpts.input = commandInput
+        commandOpts.input = new TrackingMap<>(new CaseInsensitiveMap(input))
         commandOpts.selectList = selectColumns(colAxis, columnsToReturn)
         commandOpts.whereColumns = selectColumns(colAxis, columnsToSearch)
         commandOpts.put(MAP_REDUCE_SHOULD_EXECUTE, options.get(MAP_REDUCE_SHOULD_EXECUTE) == null ? true : options.get(MAP_REDUCE_SHOULD_EXECUTE))
@@ -1381,23 +1411,6 @@ class NCube<T>
         return ret
     }
 
-    private Comparable getRowKey(boolean isRowDiscrete, Column row, Axis rowAxis)
-    {
-        Comparable key
-        if (isRowDiscrete)
-        {
-            key = row.value
-        }
-        else
-        {
-            if (isEmpty(row.columnName))
-            {
-                throw new IllegalStateException("Non-discrete axis columns must have a meta-property 'name' set in order to use them for mapReduce().  Cube: ${name}, Axis: ${rowAxis.name}")
-            }
-            key = row.columnName
-        }
-        return key
-    }
 
     private Collection<Column> selectColumns(Axis axis, Set valuesMatchingColumns)
     {
@@ -1493,29 +1506,6 @@ class NCube<T>
         return boundColumns
     }
 
-    private Map buildMapReduceResultRow(Axis searchAxis, Collection<Column> selectList, Map whereVars, Set<Long> ids, Map commandInput, Map output, Object defaultValue = null, Map columnDefaultCache)
-    {
-        String axisName = searchAxis.name
-        boolean isDiscrete = searchAxis.type == AxisType.DISCRETE
-        Map result = new LinkedHashMap()
-
-        for (Column column : selectList)
-        {
-            def colValue = isDiscrete ? column.value : column.columnName
-            if (whereVars.containsKey(colValue))
-            {
-                result[colValue] = whereVars[colValue]
-                continue
-            }
-            commandInput[axisName] = column.valueThatMatches
-            long colId = column.id
-            ids.add(colId)
-            result[colValue] = getCellById(ids, commandInput, output, defaultValue, columnDefaultCache)
-            ids.remove(colId)
-        }
-
-        return result
-    }
 
     /**
      * Get / Create the RuleInfo Map stored at output[NCube.RULE_EXEC_INFO]
@@ -2968,8 +2958,17 @@ class NCube<T>
             Comparable low = (Comparable)getParserValue(parser, token)
             token = parser.nextToken()
             Comparable high = (Comparable)getParserValue(parser, token)
-            parser.nextToken()
-            return new Range(low, high)
+            token = parser.nextToken()
+            if (JsonToken.VALUE_NUMBER_INT == token)
+            {
+                Object vv = getParserValue(parser, token)
+                parser.nextToken()
+                return new Range(low, high, convertToInteger(vv))
+            }
+            else
+            {
+                return new Range(low, high)
+            }
         }
         parserValue['SET_START_ARRAY'] = { JsonParser parser ->
             RangeSet rangeSet = new RangeSet()

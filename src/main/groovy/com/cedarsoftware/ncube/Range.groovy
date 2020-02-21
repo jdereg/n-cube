@@ -26,14 +26,21 @@ class Range implements Comparable<Range>
 {
     Comparable low
     Comparable high
+    int priority
 
     Range()
     {
         low = null
         high = null
-    }	// For serialization support
+        priority = 1000
+    }
 
     Range(Comparable low, Comparable high)
+    {
+        this(low, high, 1000)
+    }
+
+    Range(Comparable low, Comparable high, int priority)
     {
         if (low == null || high == null)
         {
@@ -44,6 +51,7 @@ class Range implements Comparable<Range>
         {   // Using compareTo() because we know that it HAD to be implemented (whereas .equals() comes free)
             throw new IllegalArgumentException('Range low and high must be different')
         }
+        this.priority = priority
         this.low = low
         this.high = high
     }
@@ -60,7 +68,16 @@ class Range implements Comparable<Range>
         {
             return ret
         }
-        return high.compareTo(that.high)
+        ret = high.compareTo(that.high)
+        if (ret != 0)
+        {
+            return ret
+        }
+        if (priority == that.priority)
+        {
+            return 0
+        }
+        return priority - that.priority
     }
 
     boolean equals(Object other)
@@ -78,7 +95,7 @@ class Range implements Comparable<Range>
 
     int hashCode()
     {
-        return low.hashCode() + high.hashCode()
+        return low.hashCode() + high.hashCode() + priority
     }
 
     /**
@@ -113,6 +130,11 @@ class Range implements Comparable<Range>
      */
     boolean overlap(Range that)
     {
-        return !(high.compareTo(that.low) <= 0 || low.compareTo(that.high) >= 0)
+        boolean rangesOverlap = !(high.compareTo(that.low) <= 0 || low.compareTo(that.high) >= 0)
+        if (rangesOverlap)
+        {
+            return priority == that.priority
+        }
+        return false
     }
 }

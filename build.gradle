@@ -43,7 +43,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator:2.2.2.RELEASE'
     implementation 'org.springframework:spring-aspects:5.2.2.RELEASE'
     implementation 'org.springframework:spring-web:5.2.2.RELEASE'
-    implementation 'org.springframework.security:spring-security-core:5.2.1.RELEASE'
+    implementation 'org.springframework.security:spring-security-core:5.2.2.RELEASE'
     implementation 'com.cedarsoftware:json-command-servlet:1.9.0'
     implementation 'org.apache.httpcomponents:httpclient:4.5.11'
     implementation 'org.apache.ivy:ivy:2.5.0'
@@ -54,8 +54,8 @@ dependencies {
     implementation 'org.hsqldb:hsqldb:2.5.0'
     testImplementation 'org.springframework.boot:spring-boot-starter-web:2.2.2.RELEASE'
     testImplementation 'org.springframework.boot:spring-boot-starter-test:2.2.2.RELEASE'
-    testImplementation 'mysql:mysql-connector-java:8.0.17'
-    testImplementation 'org.openjdk.jol:jol-core:0.9'
+    testImplementation 'mysql:mysql-connector-java:8.0.19'
+    testImplementation 'org.openjdk.jol:jol-core:0.10'
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
