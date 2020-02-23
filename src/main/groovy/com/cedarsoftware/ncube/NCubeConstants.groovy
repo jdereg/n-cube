@@ -112,4 +112,12 @@ interface NCubeConstants
     final String DATA_SOURCE_BEAN = 'dataSource'
 
     final int LOG_ARG_LENGTH = 125
+
+    final String DATA_TYPE = 'data_type'
+    final String INPUT_VALUE = 'input_value'
+    final String OUTPUT_VALUE = 'output_value'
+    final String INPUT_LOW = 'input_low'
+    final String INPUT_HIGH = 'input_high'
+    final String INPUT_PRIORITY = 'input_priority'
+    final String IGNORE = 'ignore'
 }

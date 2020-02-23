@@ -23,6 +23,7 @@ import com.cedarsoftware.util.io.JsonWriter
 import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonToken
+import com.google.common.base.Splitter
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.springframework.util.FastByteArrayOutputStream
@@ -37,8 +38,16 @@ import java.util.zip.Deflater
 import java.util.zip.GZIPInputStream
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
+import static com.cedarsoftware.ncube.NCubeConstants.DATA_TYPE
+import static com.cedarsoftware.ncube.NCubeConstants.INPUT_VALUE
+import static com.cedarsoftware.ncube.NCubeConstants.INPUT_HIGH
+import static com.cedarsoftware.ncube.NCubeConstants.IGNORE
+import static com.cedarsoftware.ncube.NCubeConstants.INPUT_PRIORITY
+import static com.cedarsoftware.ncube.NCubeConstants.INPUT_LOW
 import static com.cedarsoftware.util.Converter.convertToInteger
 import static com.cedarsoftware.util.Converter.convertToLong
+import static com.cedarsoftware.util.Converter.convertToShort
+import static com.cedarsoftware.util.Converter.convertToString
 import static com.cedarsoftware.util.EncryptionUtilities.SHA1Digest
 import static com.cedarsoftware.util.EncryptionUtilities.calculateSHA1Hash
 import static com.cedarsoftware.util.ExceptionUtilities.getDeepestException
@@ -96,6 +105,9 @@ class NCube<T>
     private static final byte[] ARRAY_BYTES = 'array'.bytes
     private static final byte[] MAP_BYTES = 'map'.bytes
     private static final byte[] COL_BYTES = 'col'.bytes
+    private static final String BANG = '!'
+    private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings()
+    private static final Splitter BAR_SPLITTER = Splitter.on('|').trimResults().omitEmptyStrings()
 
     private String name
     private String sha1
@@ -2113,6 +2125,39 @@ class NCube<T>
             final String axisName = axisNames[digit]
             final int count = counters[axisName]
             final List<Column> cols = bindings[axisName]
+
+            if (count >= cols.size())
+            {   // Reach max value for given dimension (digit)
+                if (digit == 0)
+                {   // we have reached the max radix for the most significant digit - we are done
+                    return false
+                }
+                counters[axisNames[digit--]] = 1
+            }
+            else
+            {
+                counters[axisName] = count + 1  // increment counter
+                return true
+            }
+        }
+    }
+
+    /**
+     * Increment the variable radix number passed in.  The number is represented by a Map, where the keys are the
+     * digit names (axis names), and the values are the associated values for the number.
+     * @return false if more incrementing can be done, otherwise true.
+     */
+    private static boolean incrementVariableRadixCount2(final Map<String, Integer> counters,
+                                                        final Map<String, Set<Column>> bindings,
+                                                        final String[] axisNames)
+    {
+        int digit = axisNames.length - 1
+
+        while (true)
+        {
+            final String axisName = axisNames[digit]
+            final int count = counters[axisName]
+            final Set<Column> cols = bindings[axisName]
 
             if (count >= cols.size())
             {   // Reach max value for given dimension (digit)
@@ -4817,6 +4862,242 @@ class NCube<T>
                     ((GroovyBase)value).clearClassLoaderCache(appId)
                 }
             }
+        }
+    }
+
+    Set<Comparable> validateDecisionTable()
+    {
+        if (numDimensions != 2)
+        {
+            throw new IllegalStateException("Decision table: ${name} must have 2 axes.")
+        }
+
+        String rowAxisName
+        String fieldAxisName
+        Axis first = axisList.values().first()
+        Axis second = axisList.values().last()
+        Map requireProperties = [(INPUT_VALUE): true] as Map
+
+        if (first.findColumns(requireProperties).size() > 0)
+        {
+            fieldAxisName = first.name
+            rowAxisName = second.name
+        }
+        else if (second.findColumns(requireProperties).size() > 0)
+        {
+            fieldAxisName = second.name
+            rowAxisName = first.name
+        }
+        else
+        {
+            throw new IllegalStateException("Decision table: ${name} must have one axis with one or more columns with meta-property key: input_value.")
+        }
+
+        // TODO verify fieldAxis is type String
+//        System.gc()
+//        println "free: ${(Runtime.runtime.freeMemory() / (1024 * 1024))}"
+//        println "total: ${(Runtime.runtime.totalMemory() / (1024 * 1024))}"
+
+        Axis fieldAxis = getAxis(fieldAxisName)
+        Axis rowAxis = getAxis(rowAxisName)
+        List<Column> fields = fieldAxis.columnsWithoutDefault
+        List<Column> rows = rowAxis.columnsWithoutDefault
+
+        NCube blowout = createBlowout(fieldAxisName, fields, rowAxisName, rows)
+        Set<Comparable> badRows = validateDecisionTableRow(blowout, fieldAxisName, fields, rowAxisName, rows)
+
+//        println "free: ${(Runtime.runtime.freeMemory() / (1024 * 1024))}"
+//        println "total: ${(Runtime.runtime.totalMemory() / (1024 * 1024))}"
+
+        return badRows
+    }
+
+    private NCube createBlowout(String fieldAxisName, List<Column> fields, String rowAxisName, List<Column> rows)
+    {
+        NCube blowout = new NCube('blowout')
+        Map<String, Comparable> coord = [:]
+
+        for (Column field : fields)
+        {
+            String fieldValue = field.value
+            Map<String, Object> fieldProperties = field.metaProperties
+
+            if (fieldProperties.containsKey(INPUT_VALUE))
+            {
+                Axis axis = new Axis(fieldValue, AxisType.DISCRETE, AxisValueType.CISTRING, false)
+                blowout.addAxis(axis)
+
+                for (Column row : rows)
+                {
+                    String rowValue = row.value
+                    coord.put(fieldAxisName, fieldValue)
+                    coord.put(rowAxisName, rowValue)
+                    String cellValue = convertToString(getCellNoExecute(coord))
+                    if (hasContent(cellValue))
+                    {
+                        cellValue -= BANG
+                        Iterable<String> values = COMMA_SPLITTER.split(cellValue)
+
+                        for (String value : values)
+                        {
+                            if (!axis.findColumn(value))
+                            {
+                                blowout.addColumn(axis.name, value)
+                            }
+                        }
+                    }
+                }
+                blowout.addColumn(axis.name, null)
+            }
+        }
+        return blowout
+    }
+
+    private Set<Comparable> validateDecisionTableRow(NCube blowout, String fieldAxisName, List<Column> fields, String rowAxisName, List<Column> rows)
+    {
+        Axis fieldAxis = getAxis(fieldAxisName)
+        Map<String, Comparable> coord = [:]
+        Set<Comparable> badRows = []
+
+        for (Column row : rows)
+        {
+            Comparable rowValue = row.value
+            coord.put(rowAxisName, rowValue)
+
+            if (fieldAxis.findColumns([(IGNORE): true] as Map).size() > 0)
+            {
+                coord.put(fieldAxisName, IGNORE)
+                if (getCell(coord) != null)
+                {
+                    continue
+                }
+            }
+
+            Map<String, Integer> counters = [:]
+            Map<String, Set<String>> bindings = [:]
+            Range range = new Range()
+
+            for (Column field : fields)
+            {
+                String fieldValue = field.value
+                coord.put(fieldAxisName, fieldValue)
+
+                if (field.metaProperties.get(INPUT_VALUE))
+                {
+                    counters[fieldValue] = 1
+                    bindings[fieldValue] = new HashSet()
+
+                    String cellValue = convertToString(getCellNoExecute(coord))
+                    if (hasContent(cellValue))
+                    {
+                        boolean exclude = cellValue.startsWith(BANG)
+                        cellValue -= BANG
+                        Iterable<String> values = COMMA_SPLITTER.split(cellValue)
+
+                        if (exclude)
+                        {
+                            List<Column> columns = blowout.getAxis(fieldValue).columns
+                            for (Column column : columns)
+                            {
+                                String columnValue = column.value
+                                if (!values.contains(columnValue))
+                                {
+                                    bindings.get(fieldValue).add(columnValue)
+                                }
+                            }
+                        }
+                        else
+                        {
+                            for (String value : values)
+                            {
+                                bindings.get(fieldValue).add(value)
+                            }
+                        }
+                    }
+                    else
+                    {
+                        List<Column> columns = blowout.getAxis(fieldValue).columns
+                        for (Column column : columns)
+                        {
+                            String columnValue = column.value
+                            bindings.get(fieldValue).add(columnValue)
+                        }
+                    }
+                }
+
+                if (field.metaProperties.containsKey(INPUT_LOW))
+                {
+                    String type = field.metaProperties.get(DATA_TYPE) ?: 'string'
+                    range.low = (Comparable) CellInfo.parseJsonValue(getCell(coord), null, type, false)
+                }
+                else if (field.metaProperties.containsKey(INPUT_HIGH))
+                {
+                    String type = field.metaProperties.get(DATA_TYPE) ?: 'string'
+                    range.high = (Comparable) CellInfo.parseJsonValue(getCell(coord), null, type, false)
+                }
+                else if (field.metaProperties.containsKey(INPUT_PRIORITY))
+                {
+                    range.priority = convertToInteger(getCell(coord))
+                }
+            }
+
+            String[] axisNames = bindings.keySet() as String[]
+            populateCachedNCube(badRows, blowout, counters, bindings, axisNames, range, rowValue)
+
+            while (incrementVariableRadixCount2(counters, bindings, axisNames))
+            {
+                populateCachedNCube(badRows, blowout, counters, bindings, axisNames, range, rowValue)
+            }
+        }
+        return badRows
+    }
+
+    private static void populateCachedNCube(Set<Comparable> badRows, NCube blowout, Map<String, Integer> counters, Map<String, Set<String>> bindings, String[] axisNames, Range candidate, Comparable rowId)
+    {
+        Map<String, Object> coordinate = [:]
+        for (String key : axisNames)
+        {
+            int radix = counters[key]
+            String value = bindings.get(key)[radix - 1]
+            coordinate.put(key, value)
+        }
+
+        boolean goodCoordinate = true
+        String existingValue = blowout.getCell(coordinate)
+        if (existingValue != null)
+        {
+            Iterable<String> entryStrings = BAR_SPLITTER.split(existingValue)
+            for (String entryString : entryStrings)
+            {
+                Range existingEntry = new Range(entryString)
+                if (candidate.out() == existingEntry.out())
+                {
+                    goodCoordinate = false
+                }
+                else
+                {
+                    if (existingEntry.overlap(candidate) && existingEntry.priority == candidate.priority)
+                    {
+                        goodCoordinate = false
+                    }
+                }
+
+                if (!goodCoordinate)
+                {
+                    badRows.add(rowId)
+                    break
+                }
+            }
+        }
+        else
+        {
+            existingValue = ""
+        }
+
+        if (goodCoordinate)
+        {
+            String newValue = "${candidate.out()}|${existingValue}"
+            blowout.setCell(newValue, coordinate)
         }
     }
 }
