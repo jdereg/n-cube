@@ -1520,7 +1520,7 @@ class NCube<T>
      *         Map result = ncube.mapReduce('field', find, options)
      * </pre>
      */
-    Closure getDecisionTableClosure()
+    private Closure getDecisionTableClosure()
     {
         return { Map<String, ?> rowValues, Map<String, ?> input ->
             Map<String, ?> valuesToCheck = (Map<String, ?>) input.dvs
@@ -1588,6 +1588,100 @@ class NCube<T>
         }
     }
 
+    /**
+     * Main API
+     * @param input
+     * @return
+     */
+    Map<Comparable, ?> getDecision(Map<String, ?> input)
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'commission.json')
+
+        Set<String> inputColumns = new HashSet<>()
+        Set<String> outputColumns = new HashSet<>()
+        Axis field = ncube.getAxis('field')   // TODO: Steal code that figured this out.
+
+        for (Column column : field.columnsWithoutDefault)
+        {
+            Map colMetaProps = column.metaProperties
+            if (colMetaProps.containsKey('input_value') ||
+                    colMetaProps.containsKey('input_low') ||
+                    colMetaProps.containsKey('input_high') ||
+                    colMetaProps.containsKey('ignore'))
+            {
+                inputColumns.add((String) column.value)
+            }
+            if (colMetaProps.containsKey('output_value'))
+            {
+                outputColumns.add((String) column.value)
+            }
+        }
+
+        // Create input coordinate to test against decision table.  This is the input coordinate to getCommission().
+        Map additionalInput = [profitCenter: '2967',
+                               producerCode: '50',
+                               date: new Date(),
+                               foo: 75,
+                               symbol: 'CAP']
+
+        // TODO: Walk above input from getCommission() call, and build out additionalInput below.
+        Map additionalInput = [dvs:
+                                       [
+                                               profitCenter: '2967',
+                                               producerCode: '50',
+                                               ignore: null,
+                                               date: [
+                                                       low:'effectiveDate',
+                                                       high:'expirationDate',
+                                                       value: new Date()
+                                               ],
+                                               foo: [low: 0, high: 1, value: 75],
+                                               symbol: 'CAP'
+                                       ]
+        ]
+
+        Map options = [
+                (NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): inputColumns,
+                (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): outputColumns,
+                input: additionalInput
+        ]
+
+        long start = System.nanoTime()
+        Map result = ncube.mapReduce('field', ncube.decisionTableClosure, options)
+        long stop = System.nanoTime()
+
+        result = determinePriority(result)
+        println "mapReduce() took ${(stop - start) / 1000000} ms"
+        println result
+    }
+
+    private static Map determinePriority(Map<String, Object> result)
+    {
+        Map<String, Object> result2 = [:]
+        Long highestPriority = null
+        for (Map.Entry<String, Object> entry : result.entrySet())
+        {
+            Map row = (Map) entry.value
+            Long currentPriority = Converter.convertToLong(row[PRIORITY])
+            if (highestPriority == null)
+            {
+                highestPriority = currentPriority
+                result2.put(entry.key, entry.value)
+            }
+            else if (currentPriority < highestPriority)
+            {
+                highestPriority = currentPriority
+                result2.clear()
+                result2.put(entry.key, entry.value)
+            }
+            else if (currentPriority == highestPriority)
+            {
+                result2.put(entry.key, entry.value)
+            }
+        }
+        return result2
+    }
+    
     private static void throwIf(boolean throwCondition, String msg)
     {
         if (throwCondition)
