@@ -15,7 +15,6 @@ import com.cedarsoftware.util.AdjustableGZIPOutputStream
 import com.cedarsoftware.util.ByteUtilities
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.TrackingMap
@@ -1479,19 +1478,23 @@ class NCube<T>
                 String decVar = entry.key
                 if ('ignore' == decVar)
                 {
-                    if (Converter.convertToBoolean(rowValues[decVar]))
+                    if (convertToBoolean(rowValues[decVar]))
                     {
                         return false    // skip row
                     }
                     continue    // check next decision variable
                 }
 
-                String tableValue = Converter.convertToString(rowValues[decVar])
+                String tableValue = convertToString(rowValues[decVar])
                 if (tableValue == null)
                 {
                     tableValue = ''
                 }
 
+                if (tableValue == '2967')
+                {
+                    def x = 1
+                }
                 // Check range variables
                 if (valuesToCheck[decVar] instanceof Map)
                 {
@@ -1506,7 +1509,7 @@ class NCube<T>
                 }
 
                 // Check discrete decision variables
-                String inputValue = Converter.convertToString(entry.value)
+                String inputValue = convertToString(entry.value)
                 boolean exclude = tableValue.startsWith('!')
 
                 if (exclude)
