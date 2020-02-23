@@ -5877,6 +5877,17 @@ class TestNCube extends NCubeBaseTest
         }
     }
 
+    @Test
+    void testGetDecision()
+    {
+        Map input = [profitCenter: '2967',
+                       producerCode: '50',
+                       date: new Date(),
+                       symbol: 'CAP']
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'commission.json')
+        ncube.getDecision(input)
+    }
+
     // ---------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------
 

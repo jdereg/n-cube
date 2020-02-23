@@ -17,6 +17,7 @@ import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.MapUtilities
+import com.cedarsoftware.util.StringUtilities
 import com.cedarsoftware.util.TrackingMap
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonWriter
@@ -38,16 +39,8 @@ import java.util.zip.Deflater
 import java.util.zip.GZIPInputStream
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
-import static com.cedarsoftware.ncube.NCubeConstants.DATA_TYPE
-import static com.cedarsoftware.ncube.NCubeConstants.INPUT_VALUE
-import static com.cedarsoftware.ncube.NCubeConstants.INPUT_HIGH
-import static com.cedarsoftware.ncube.NCubeConstants.IGNORE
-import static com.cedarsoftware.ncube.NCubeConstants.INPUT_PRIORITY
-import static com.cedarsoftware.ncube.NCubeConstants.INPUT_LOW
-import static com.cedarsoftware.util.Converter.convertToInteger
-import static com.cedarsoftware.util.Converter.convertToLong
-import static com.cedarsoftware.util.Converter.convertToShort
-import static com.cedarsoftware.util.Converter.convertToString
+import static com.cedarsoftware.ncube.NCubeConstants.*
+import static com.cedarsoftware.util.Converter.*
 import static com.cedarsoftware.util.EncryptionUtilities.SHA1Digest
 import static com.cedarsoftware.util.EncryptionUtilities.calculateSHA1Hash
 import static com.cedarsoftware.util.ExceptionUtilities.getDeepestException
@@ -1474,63 +1467,7 @@ class NCube<T>
     }
 
     /**
-     * @return Closure to be used with the NCube.mapReduce() API for NCubes that follow the 'Decision Table' pattern.
-     * <pre>
-     * Decision Table NCubes are in the form where there is a 'row' axis and a 'fields' axis.  The columns on the 'fields'
-     * axis can be one of five kinds of column types:
-     * 
-     *     1. An informational column has no special meta-properties on it.
-     *     2. A decision variable column (discrete value matched with == and !=, supports list of values separated by
-     *        commas).  These columns must be marked with a data_type meta-property.  See below for supported types.
-     *     3. A range decision variable column (two columns with meta-property low_range and high_range specified).  The
-     *        value specified is the name of the input that will have the value that is tested to fit within the range.
-     *        These columns must also be marked with a data_type.  See below.
-     *     4. A column with the meta-property 'ignore'.  If a boolean 'true' value is found within any of this column's
-     *        rows, the row will be skipped.  The value can be any supported data type that can be coerced to a boolean.
-     *     5. A column with the meta-property 'priority.'  If this is found, then a value can be set to an integer
-     *        type value (or left blank).  If more than two (2) rows match in the Map reduced, if they have different
-     *        priority values, then the one with the priority closest to 1 will supercede the others.  This allows you
-     *        to have overlapping date ranges, for example, and give a blanket (wide) range a value of say 1000, and
-     *        give a narrower date range a value of 10.  The narrower range in this case would be chosen.
-     *
-     * In order to identify the data-type of the input(decision variable) columns, these columns should have a
-     * 'data_type' meta property.  This indicates the data type the values in this column will be coerced
-     * when compared to the input variable associated to this column.  If the 'data_type' meta property is not
-     * specified, then the data_type is defaulted to 'STRING'.  The data types supported are:
-     *
-     *     CISTRING 		// For case insensitive Java Strings.  Strings will be compared with .equalsIgnoreCase()
-     *     STRING 		    // For Java Strings.  Strings will be compared with .equals()
-     *     LONG 			// For any integral java type (byte, short, int, long).  All of those will be promoted to long internally.
-     *     BIG_DECIMAL   	// For float, double, or BigDecimal.  All of those will be promoted to BigDecimal internally.
-     *     DOUBLE 		    // For float or double.  Float will be promoted to double internally.
-     *     DATE 			// For Date.  Calendar and Long can be passed in for comparison against.
-     *     COMPARABLE		// For all other objects.  For example, Character, LatLon, or a Class that implements Comparable.
-     *
-     * In order to use this closure with mapReduce(), you must supply input to map reduce in the following format:
-     *
-     *         Map additionalInput = [
-     *             dvs: [
-     *                 profitCenter: '1234',                             // regular decision variable
-     *                 producerCode: '50',                              // regular decision variable
-     *                 symbol: 'FOO'                                    // regular decision variable
-     *                 ignore: null,                                    // need to include the 'ignore' column
-     *                 date: [                                          // Name of a range variable (right hand side of 'input_low' and 'input_high' on range colums)
-     *                     low:'effectiveDate',                         // Name of column with low range
-     *                     high:'expirationDate',                       // Name of column with high end of range
-     *                     value: new Date()                            // Value that will be tested for inclusion: low >= value < high
-     *                 ]
-     *             ]
-     *         ]
-     *
-     *         Map options = [
-     *                 (NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): inputColumns,  // List of column names (decision vars)
-     *                 (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): outputColumns, // List of column names (output values)
-     *                 input: additionalInput                               // see Structure above
-     *         ]
-     *
-     *         long start = System.nanoTime()
-     *         Map result = ncube.mapReduce('field', find, options)
-     * </pre>
+     * Closure used with mapReduce() on special 2D decision n-cubes.
      */
     private Closure getDecisionTableClosure()
     {
@@ -1600,20 +1537,71 @@ class NCube<T>
         }
     }
 
+    private void determineAxesOfDecisionTable()
+    {
+        String field = getMetaProperty(DEC_FIELD_AXIS)
+        String row = getMetaProperty(DEC_ROW_AXIS)
+        if (StringUtilities.hasContent(field) && StringUtilities.hasContent(row))
+        {
+            return
+        }
+
+        if (numDimensions != 2)
+        {
+            throw new IllegalStateException("Decision table: ${name} must have 2 axes.")
+        }
+
+        Set<String> decisionMetaPropertyKeys = [INPUT_VALUE, INPUT_LOW, INPUT_HIGH, OUTPUT_VALUE, IGNORE, PRIORITY] as Set<String>
+        Axis first = axisList.values().first()
+        Axis second = axisList.values().last()
+
+        Column any = first.columnsWithoutDefault.find { Column column ->
+            Set<String> keys = new HashSet<>(column.metaProperties.keySet())
+            keys.retainAll(decisionMetaPropertyKeys)
+            if (keys.size())
+            {
+                return column
+            }
+        }
+
+        if (any)
+        {
+            setMetaProperty(DEC_FIELD_AXIS, first.name)
+            setMetaProperty(DEC_ROW_AXIS, second.name)
+            return
+        }
+
+        any = second.columnsWithoutDefault.find { Column column ->
+            Set<String> keys = new HashSet<>(column.metaProperties.keySet())
+            keys.retainAll(decisionMetaPropertyKeys)
+            if (keys.size())
+            {
+                return column
+            }
+        }
+
+        if (any)
+        {
+            setMetaProperty(DEC_FIELD_AXIS, second.name)
+            setMetaProperty(DEC_ROW_AXIS, first.name)
+            return
+        }
+        throw new IllegalStateException("Decision Table must contain at least one axis with columns that have ${INPUT_VALUE}, ${OUTPUT_VALUE} on them.")
+    }
+
     /**
-     * Main API
-     * @param input
-     * @return
+     * Main API for querying a Decision Table.
+     * @param input Map containing key/value pairs for all the input_value columns
+     * @return List<Comparable, List<outputs>>
      */
     Map<Comparable, ?> getDecision(Map<String, ?> input)
     {
-        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'commission.json')
-
-        Set<String> inputColumns = new HashSet<>()
-        Set<String> outputColumns = new HashSet<>()
-        Axis field = ncube.getAxis('field')   // TODO: Steal code that figured this out.
-
-        for (Column column : field.columnsWithoutDefault)
+        determineAxesOfDecisionTable()
+        Set<String> inputColumns = new HashSet()
+        Set<String> outputColumns = new HashSet()
+        String fieldAxisName = (String)getMetaProperty(DEC_FIELD_AXIS)
+        
+        for (Column column : getAxis(fieldAxisName).columnsWithoutDefault)
         {
             Map colMetaProps = column.metaProperties
             if (colMetaProps.containsKey('input_value') ||
@@ -1630,12 +1618,12 @@ class NCube<T>
         }
 
         // Create input coordinate to test against decision table.  This is the input coordinate to getCommission().
-        Map additionalInput = [profitCenter: '2967',
-                               producerCode: '50',
-                               date: new Date(),
-                               foo: 75,
-                               symbol: 'CAP']
-
+//        Map additionalInput = [profitCenter: '2967',
+//                               producerCode: '50',
+//                               date: new Date(),
+//                               foo: 75,
+//                               symbol: 'CAP']
+//
         // TODO: Walk above input from getCommission() call, and build out additionalInput below.
         Map additionalInput = [dvs:
                                        [
@@ -1647,22 +1635,21 @@ class NCube<T>
                                                        high:'expirationDate',
                                                        value: new Date()
                                                ],
-                                               foo: [low: 0, high: 1, value: 75],
                                                symbol: 'CAP'
                                        ]
         ]
 
         Map options = [
-                (NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): inputColumns,
-                (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): outputColumns,
+                (MAP_REDUCE_COLUMNS_TO_SEARCH): inputColumns,
+                (MAP_REDUCE_COLUMNS_TO_RETURN): outputColumns,
                 input: additionalInput
         ]
 
         long start = System.nanoTime()
-        Map result = ncube.mapReduce('field', ncube.decisionTableClosure, options)
+        Map result = mapReduce(fieldAxisName, decisionTableClosure, options)
         long stop = System.nanoTime()
 
-        result = determinePriority(result)
+//        result = determinePriority(result)
         println "mapReduce() took ${(stop - start) / 1000000} ms"
         println result
     }
@@ -1674,7 +1661,7 @@ class NCube<T>
         for (Map.Entry<String, Object> entry : result.entrySet())
         {
             Map row = (Map) entry.value
-            Long currentPriority = Converter.convertToLong(row[PRIORITY])
+            Long currentPriority = convertToLong(row[PRIORITY])
             if (highestPriority == null)
             {
                 highestPriority = currentPriority
@@ -5035,7 +5022,7 @@ class NCube<T>
                     String type = field.metaProperties.get(DATA_TYPE) ?: 'string'
                     range.high = (Comparable) CellInfo.parseJsonValue(getCell(coord), null, type, false)
                 }
-                else if (field.metaProperties.containsKey(INPUT_PRIORITY))
+                else if (field.metaProperties.containsKey(PRIORITY))
                 {
                     range.priority = convertToInteger(getCell(coord))
                 }

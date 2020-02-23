@@ -118,6 +118,8 @@ interface NCubeConstants
     final String OUTPUT_VALUE = 'output_value'
     final String INPUT_LOW = 'input_low'
     final String INPUT_HIGH = 'input_high'
-    final String INPUT_PRIORITY = 'input_priority'
+    final String PRIORITY = 'priority'
     final String IGNORE = 'ignore'
+    final String DEC_FIELD_AXIS = 'dec_field_axis_name'
+    final String DEC_ROW_AXIS = 'dec_field_axis_name'
 }

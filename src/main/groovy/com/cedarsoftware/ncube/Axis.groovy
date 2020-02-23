@@ -1462,8 +1462,7 @@ class Axis
         while (i.hasNext())
         {
             Column column = i.next()
-            Map<String, Object> colProps = column.metaProperties
-            if (hasRequiredProps(requiredProps, colProps))
+            if (hasRequiredProps(requiredProps, column.metaProperties))
             {
                 columns.add(column)
             }
