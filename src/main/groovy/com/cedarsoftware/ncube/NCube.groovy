@@ -1586,6 +1586,10 @@ class NCube<T>
         }
     }
 
+    /**
+     * @return String name of Axis that is the 'fields' or 'attributes' of the Decision Table (main columns).
+     * An IllegalStateException will be thrown if this method is called on a non-Decision Table.
+     */
     String getDecisionAxisName()
     {
         String field = (String) getMetaProperty(DEC_FIELD_AXIS)
@@ -1596,6 +1600,10 @@ class NCube<T>
         return field
     }
 
+    /**
+     * @return String name of Axis that is the 'rows' of the Decision Table.
+     * An IllegalStateException will be thrown if this method is called on a non-Decision Table.
+     */
     String getDecisionRowName()
     {
         String row = (String) getMetaProperty(DEC_FIELD_AXIS)
@@ -1615,65 +1623,62 @@ class NCube<T>
     {
         Set<String> inputColumns = new HashSet()
         Set<String> outputColumns = new HashSet()
+        Map<String, ?> decVars = [ignore:null]
+        Map<String, ?> ranges = [:]
 
         for (Column column : getAxis(decisionAxisName).columnsWithoutDefault)
         {
             Map colMetaProps = column.metaProperties
-            if (colMetaProps.containsKey('input_value') ||
-                    colMetaProps.containsKey('input_low') ||
-                    colMetaProps.containsKey('input_high') ||
-                    colMetaProps.containsKey('ignore'))
+            if (colMetaProps.containsKey(INPUT_VALUE) || colMetaProps.containsKey(IGNORE))
             {
                 inputColumns.add((String) column.value)
             }
-            if (colMetaProps.containsKey('output_value'))
+
+            if (colMetaProps.containsKey(INPUT_LOW))
+            {
+                inputColumns.add((String) column.value)
+                String assocInputVarName = colMetaProps.get(INPUT_LOW)
+                Map<String, ?> spec = [low: column.value, value: input.get(assocInputVarName)]
+                ranges.put(assocInputVarName, spec)
+            }
+
+            if (colMetaProps.containsKey(INPUT_HIGH))
+            {
+                inputColumns.add((String) column.value)
+                String assocInputVarName = colMetaProps.get(INPUT_HIGH)
+                Map<String, ?> spec = (Map)ranges.get(assocInputVarName)
+                if (spec.size() != 2)
+                {
+                    throw new IllegalStateException("Expecting the low range value column before the high range value.  NCube: ${name}, high value column: ${column.value}")
+                }
+                spec.put('high', column.value)
+                input.put(assocInputVarName, spec)
+            }
+            
+            if (colMetaProps.containsKey(OUTPUT_VALUE))
             {
                 outputColumns.add((String) column.value)
             }
         }
-
-        // Create input coordinate to test against decision table.  This is the input coordinate to getCommission().
-//        Map additionalInput = [profitCenter: '2967',
-//                               producerCode: '50',
-//                               date: new Date(),
-//                               foo: 75,
-//                               symbol: 'CAP']
-//
-        // TODO: Walk above input from getCommission() call, and build out additionalInput below.
-        Map additionalInput = [dvs:
-                                       [
-                                               profitCenter: '2967',
-                                               producerCode: '50',
-                                               ignore: null,
-                                               date: [
-                                                       low:'effectiveDate',
-                                                       high:'expirationDate',
-                                                       value: new Date()
-                                               ],
-                                               symbol: 'CAP'
-                                       ]
-        ]
-
+        decVars.putAll(input)
         Map options = [
                 (MAP_REDUCE_COLUMNS_TO_SEARCH): inputColumns,
                 (MAP_REDUCE_COLUMNS_TO_RETURN): outputColumns,
-                input: additionalInput
+                input: [dvs:decVars]
         ]
 
-        long start = System.nanoTime()
-        Map result = mapReduce(decisionAxisName, decisionTableClosure, options)
-        long stop = System.nanoTime()
-
-//        result = determinePriority(result)
-        println "mapReduce() took ${(stop - start) / 1000000} ms"
+        Map<Comparable, ?> result = mapReduce(decisionAxisName, decisionTableClosure, options)
+        result = determinePriority(result)
         println result
+        return result
     }
 
-    private static Map determinePriority(Map<String, Object> result)
+    // TODO: Review.  Need to allow for multiple rows to return
+    private static Map<Comparable, ?> determinePriority(Map<Comparable, ?> result)
     {
-        Map<String, Object> result2 = [:]
+        Map<Comparable, ?> result2 = [:]
         Long highestPriority = null
-        for (Map.Entry<String, Object> entry : result.entrySet())
+        for (Map.Entry<Comparable, ?> entry : result.entrySet())
         {
             Map row = (Map) entry.value
             Long currentPriority = convertToLong(row[PRIORITY])
