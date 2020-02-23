@@ -1491,10 +1491,6 @@ class NCube<T>
                     tableValue = ''
                 }
 
-                if (tableValue == '2967')
-                {
-                    def x = 1
-                }
                 // Check range variables
                 if (valuesToCheck[decVar] instanceof Map)
                 {
@@ -1551,7 +1547,7 @@ class NCube<T>
 
         if (numDimensions != 2)
         {
-            throw new IllegalStateException("Decision table: ${name} must have 2 axes.")
+            return
         }
 
         Set<String> decisionMetaPropertyKeys = [INPUT_VALUE, INPUT_LOW, INPUT_HIGH, OUTPUT_VALUE, IGNORE, PRIORITY] as Set<String>
@@ -1587,11 +1583,29 @@ class NCube<T>
         {
             setMetaProperty(DEC_FIELD_AXIS, second.name)
             setMetaProperty(DEC_ROW_AXIS, first.name)
-            return
         }
-        throw new IllegalStateException("Decision Table must contain at least one axis with columns that have ${INPUT_VALUE}, ${OUTPUT_VALUE} on them.")
     }
 
+    String getDecisionAxisName()
+    {
+        String field = (String) getMetaProperty(DEC_FIELD_AXIS)
+        if (StringUtilities.isEmpty(field))
+        {
+            throw new IllegalStateException("Attemping to get Decision Table 'field' axis name, on a non-decision table ncube: ${name}")
+        }
+        return field
+    }
+
+    String getDecisionRowName()
+    {
+        String row = (String) getMetaProperty(DEC_FIELD_AXIS)
+        if (StringUtilities.isEmpty(row))
+        {
+            throw new IllegalStateException("Attemping to get Decision Table 'row' axis name, on a non-decision table ncube: ${name}")
+        }
+        return row
+    }
+    
     /**
      * Main API for querying a Decision Table.
      * @param input Map containing key/value pairs for all the input_value columns
@@ -1599,12 +1613,10 @@ class NCube<T>
      */
     Map<Comparable, ?> getDecision(Map<String, ?> input)
     {
-        determineAxesOfDecisionTable()
         Set<String> inputColumns = new HashSet()
         Set<String> outputColumns = new HashSet()
-        String fieldAxisName = (String)getMetaProperty(DEC_FIELD_AXIS)
-        
-        for (Column column : getAxis(fieldAxisName).columnsWithoutDefault)
+
+        for (Column column : getAxis(decisionAxisName).columnsWithoutDefault)
         {
             Map colMetaProps = column.metaProperties
             if (colMetaProps.containsKey('input_value') ||
@@ -1649,7 +1661,7 @@ class NCube<T>
         ]
 
         long start = System.nanoTime()
-        Map result = mapReduce(fieldAxisName, decisionTableClosure, options)
+        Map result = mapReduce(decisionAxisName, decisionTableClosure, options)
         long stop = System.nanoTime()
 
 //        result = determinePriority(result)
@@ -3778,6 +3790,7 @@ class NCube<T>
         }
 
         parser.close()
+        ncube.determineAxesOfDecisionTable()    // cache 'field' and 'row' axes
         return ncube
     }
     
