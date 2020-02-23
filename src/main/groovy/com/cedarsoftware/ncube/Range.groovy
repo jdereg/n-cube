@@ -4,6 +4,9 @@ import groovy.transform.CompileStatic
 
 /**
  * This class is used to represent a 'band' or 'range' of values (numeric, date, etc.)
+ * A priority can be assigned to a Range, in which case, two ranges that would normally
+ * be considered overlapping, are not considering overlapping if there priorities are
+ * different values.
  *
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
@@ -58,7 +61,7 @@ class Range implements Comparable<Range>
 
     String toString()
     {
-        return '[' + CellInfo.formatForDisplay(low) + ' - ' + CellInfo.formatForDisplay(high) + ')'
+        return "[${CellInfo.formatForDisplay(low)} - ${CellInfo.formatForDisplay(high)})"
     }
 
     int compareTo(Range that)

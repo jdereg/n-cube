@@ -15,6 +15,7 @@ import com.cedarsoftware.util.AdjustableGZIPOutputStream
 import com.cedarsoftware.util.ByteUtilities
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.Converter
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.TrackingMap
 import com.cedarsoftware.util.io.JsonObject
@@ -1411,7 +1412,6 @@ class NCube<T>
         return ret
     }
 
-
     private Collection<Column> selectColumns(Axis axis, Set valuesMatchingColumns)
     {
         Collection<Column> columns = []
@@ -1432,7 +1432,7 @@ class NCube<T>
                 {
                     if (isEmpty(column.columnName))
                     {
-                        throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
+                        throw new IllegalStateException("Non-discrete axis columns must have a meta-property 'name' set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
                     }
                     columns.add(axis.findColumnByName(column.columnName))
                 }
@@ -1453,12 +1453,139 @@ class NCube<T>
             {
                 if (isEmpty((String)value))
                 {
-                    throw new IllegalStateException("Non-discrete axis columns must have a meta-property name set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
+                    throw new IllegalStateException("Non-discrete axis columns must have a meta-property 'name' set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
                 }
                 columns.add(axis.findColumnByName((String)value))
             }
         }
         return columns
+    }
+
+    /**
+     * @return Closure to be used with the NCube.mapReduce() API for NCubes that follow the 'Decision Table' pattern.
+     * <pre>
+     * Decision Table NCubes are in the form where there is a 'row' axis and a 'fields' axis.  The columns on the 'fields'
+     * axis can be one of five kinds of column types:
+     * 
+     *     1. An informational column has no special meta-properties on it.
+     *     2. A decision variable column (discrete value matched with == and !=, supports list of values separated by
+     *        commas).  These columns must be marked with a data_type meta-property.  See below for supported types.
+     *     3. A range decision variable column (two columns with meta-property low_range and high_range specified).  The
+     *        value specified is the name of the input that will have the value that is tested to fit within the range.
+     *        These columns must also be marked with a data_type.  See below.
+     *     4. A column with the meta-property 'ignore'.  If a boolean 'true' value is found within any of this column's
+     *        rows, the row will be skipped.  The value can be any supported data type that can be coerced to a boolean.
+     *     5. A column with the meta-property 'priority.'  If this is found, then a value can be set to an integer
+     *        type value (or left blank).  If more than two (2) rows match in the Map reduced, if they have different
+     *        priority values, then the one with the priority closest to 1 will supercede the others.  This allows you
+     *        to have overlapping date ranges, for example, and give a blanket (wide) range a value of say 1000, and
+     *        give a narrower date range a value of 10.  The narrower range in this case would be chosen.
+     *
+     * In order to identify the data-type of the input(decision variable) columns, these columns should have a
+     * 'data_type' meta property.  This indicates the data type the values in this column will be coerced
+     * when compared to the input variable associated to this column.  If the 'data_type' meta property is not
+     * specified, then the data_type is defaulted to 'STRING'.  The data types supported are:
+     *
+     *     CISTRING 		// For case insensitive Java Strings.  Strings will be compared with .equalsIgnoreCase()
+     *     STRING 		    // For Java Strings.  Strings will be compared with .equals()
+     *     LONG 			// For any integral java type (byte, short, int, long).  All of those will be promoted to long internally.
+     *     BIG_DECIMAL   	// For float, double, or BigDecimal.  All of those will be promoted to BigDecimal internally.
+     *     DOUBLE 		    // For float or double.  Float will be promoted to double internally.
+     *     DATE 			// For Date.  Calendar and Long can be passed in for comparison against.
+     *     COMPARABLE		// For all other objects.  For example, Character, LatLon, or a Class that implements Comparable.
+     *
+     * In order to use this closure with mapReduce(), you must supply input to map reduce in the following format:
+     *
+     *         Map additionalInput = [
+     *             dvs: [
+     *                 profitCenter: '1234',                             // regular decision variable
+     *                 producerCode: '50',                              // regular decision variable
+     *                 symbol: 'FOO'                                    // regular decision variable
+     *                 ignore: null,                                    // need to include the 'ignore' column
+     *                 date: [                                          // Name of a range variable (right hand side of 'input_low' and 'input_high' on range colums)
+     *                     low:'effectiveDate',                         // Name of column with low range
+     *                     high:'expirationDate',                       // Name of column with high end of range
+     *                     value: new Date()                            // Value that will be tested for inclusion: low >= value < high
+     *                 ]
+     *             ]
+     *         ]
+     *
+     *         Map options = [
+     *                 (NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): inputColumns,  // List of column names (decision vars)
+     *                 (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): outputColumns, // List of column names (output values)
+     *                 input: additionalInput                               // see Structure above
+     *         ]
+     *
+     *         long start = System.nanoTime()
+     *         Map result = ncube.mapReduce('field', find, options)
+     * </pre>
+     */
+    Closure getDecisionTableClosure()
+    {
+        return { Map<String, ?> rowValues, Map<String, ?> input ->
+            Map<String, ?> valuesToCheck = (Map<String, ?>) input.dvs
+            for (Map.Entry<String, ?> entry : valuesToCheck)
+            {
+                // Check special IGNORE row variable
+                String decVar = entry.key
+                if ('ignore' == decVar)
+                {
+                    if (Converter.convertToBoolean(rowValues[decVar]))
+                    {
+                        return false    // skip row
+                    }
+                    continue    // check next decision variable
+                }
+
+                String tableValue = Converter.convertToString(rowValues[decVar])
+                if (tableValue == null)
+                {
+                    tableValue = ''
+                }
+
+                // Check range variables
+                if (valuesToCheck[decVar] instanceof Map)
+                {
+                    // TODO: Convert to data type of range columns before comparing.
+                    Map<String, ?> rangeInfo = (Map<String, ?>) valuesToCheck[decVar]
+                    Range range = new Range((Comparable) rowValues[(String) rangeInfo.low], (Comparable) rowValues[(String) rangeInfo.high])
+                    if (!(range.isWithin((Comparable) rangeInfo.value) == 0))
+                    {
+                        return false    // skip row: does not fit within a range
+                    }
+                    continue    // check next decision variable
+                }
+
+                // Check discrete decision variables
+                String inputValue = Converter.convertToString(entry.value)
+                boolean exclude = tableValue.startsWith('!')
+
+                if (exclude)
+                {
+                    tableValue = tableValue.substring(1)
+                }
+
+                List<String> tokens = tableValue.tokenize(', ')
+
+                if (exclude)
+                {
+                    // TODO: Cannot use .contains() below.  Need to convert each value in the List to the data-type of the decision variable and see if it matches
+                    if (tokens.contains(inputValue))
+                    {
+                        return false
+                    }
+                }
+                else
+                {
+                    // TODO: Cannot use .contains() below.  Need to convert each value in the List to the data-type of the decision variable and see if it matches
+                    if (!tokens.contains(inputValue))
+                    {
+                        return false
+                    }
+                }
+            }
+            return true
+        }
     }
 
     private static void throwIf(boolean throwCondition, String msg)
@@ -2961,9 +3088,9 @@ class NCube<T>
             token = parser.nextToken()
             if (JsonToken.VALUE_NUMBER_INT == token)
             {
-                Object vv = getParserValue(parser, token)
+                Object priority = getParserValue(parser, token)
                 parser.nextToken()
-                return new Range(low, high, convertToInteger(vv))
+                return new Range(low, high, convertToInteger(priority))
             }
             else
             {

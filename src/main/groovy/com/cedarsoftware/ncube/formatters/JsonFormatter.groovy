@@ -594,8 +594,9 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
             writeObjectValue(r.low)
             comma()
             writeObjectValue(r.high)
-            comma()
-            writeObjectValue(r.priority)
+            // Add the lines below when we decide to have priority written to the JSON file
+//            comma()
+//            writeObjectValue(r.priority)
             endArray()
         }
         else if (o instanceof RangeSet)
