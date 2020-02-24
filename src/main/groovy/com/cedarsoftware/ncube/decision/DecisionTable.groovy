@@ -125,11 +125,11 @@ class DecisionTable
             for (Map.Entry<String, ?> entry : inputMap)
             {
                 // Check special IGNORE row variable
-                String decVar = entry.key
-                Object decVarValue = rowValues.get(decVar)
+                String decVarName = entry.key
+                Object decVarValue = rowValues.get(decVarName)
                 Object inputValue = entry.value
 
-                if ('ignore' == decVar)
+                if ('ignore' == decVarName)
                 {
                     if (convertToBoolean(decVarValue))
                     {
@@ -142,13 +142,13 @@ class DecisionTable
                 if (inputValue instanceof Map)
                 {
                     Map<String, ?> rangeInfo = (Map<String, ?>) inputValue
-                    Comparable low = (Comparable) rowValues[(String) rangeInfo.get('low')]
-                    Comparable high = (Comparable) rowValues[(String) rangeInfo.get('high')]
+                    Comparable low = (Comparable) rowValues.get((String) rangeInfo.get('low'))
+                    Comparable high = (Comparable) rowValues.get((String) rangeInfo.get('high'))
                     Comparable value = (Comparable) rangeInfo.get('value')
                     String dataType = rangeInfo.get(DATA_TYPE)
                     if (StringUtilities.isEmpty(dataType))
                     {
-                        throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${decisionTable.name}, input variable: ${decVar}")
+                        throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${decisionTable.name}, input variable: ${decVarName}")
                     }
 
                     if (dataType.equals('DATE'))
