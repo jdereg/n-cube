@@ -44,7 +44,7 @@ class DecisionTable
     DecisionTable(NCube decisionCube)
     {
         decisionTable = decisionCube
-        verify()
+        verifyAndCache()
     }
 
     /**
@@ -54,10 +54,9 @@ class DecisionTable
      */
     Map<Comparable, ?> getDecision(Map<String, ?> input)
     {
-        Map<String, ?> decVars = new CaseInsensitiveMap<>()
-        decVars.put('ignore', null)
-        Map<String, ?> ranges = new CaseInsensitiveMap<>()
+        Map<String, ?> ranges = new HashMap<>()
         Map<String, ?> copyInput = new CaseInsensitiveMap<>(input)
+        copyInput.put('ignore', null)
         Axis fieldAxis = decisionTable.getAxis(decisionAxisName)
 
         for (String colValue : rangeColumns)
@@ -68,10 +67,10 @@ class DecisionTable
             if (colMetaProps.containsKey(INPUT_LOW))
             {
                 String assocInputVarName = colMetaProps.get(INPUT_LOW)
-                Map<String, ?> spec = [
-                        low: column.value,
-                        value: copyInput.get(assocInputVarName),
-                        (DATA_TYPE): colMetaProps.get(DATA_TYPE)]
+                Map<String, ?> spec = new HashMap<>()
+                spec.put('low', column.value)
+                spec.put('value', copyInput.get(assocInputVarName))
+                spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
                 ranges.put(assocInputVarName, spec)
             }
 
@@ -84,14 +83,15 @@ class DecisionTable
                 copyInput.put(assocInputVarName, spec)
             }
         }
-        decVars.putAll(copyInput)
+        
         Map options = [
                 (NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): inputColumns,
                 (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): outputColumns,
-                input: [dvs:decVars]
+                input: [dvs:copyInput]
         ]
 
         Map<Comparable, ?> result = decisionTable.mapReduce(decisionAxisName, decisionTableClosure, options)
+        // TODO: Ensure determinePriority() allows for multiple rows to be returned.
         result = determinePriority(result)
         println result
         return result
@@ -219,7 +219,7 @@ class DecisionTable
         }
     }
 
-    private void verify()
+    private void verifyAndCache()
     {
         if (StringUtilities.hasContent(fieldAxisName) && StringUtilities.hasContent(rowAxisName))
         {
