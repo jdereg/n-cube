@@ -1471,33 +1471,63 @@ class NCube<T>
     private Closure getDecisionTableClosure()
     {
         return { Map<String, ?> rowValues, Map<String, ?> input ->
-            Map<String, ?> valuesToCheck = (Map<String, ?>) input.dvs
-            for (Map.Entry<String, ?> entry : valuesToCheck)
+            Map<String, ?> inputMap = (Map<String, ?>) input.get('dvs')
+            for (Map.Entry<String, ?> entry : inputMap)
             {
                 // Check special IGNORE row variable
                 String decVar = entry.key
+                Object decVarValue = rowValues.get(decVar)
+                Object inputValue = entry.value
+                
                 if ('ignore' == decVar)
                 {
-                    if (convertToBoolean(rowValues[decVar]))
+                    if (convertToBoolean(decVarValue))
                     {
                         return false    // skip row
                     }
                     continue    // check next decision variable
                 }
 
-                String tableValue = convertToString(rowValues[decVar])
-                if (tableValue == null)
-                {
-                    tableValue = ''
-                }
-
                 // Check range variables
-                if (valuesToCheck[decVar] instanceof Map)
+                if (inputValue instanceof Map)
                 {
-                    // TODO: Convert to data type of range columns before comparing.
-                    Map<String, ?> rangeInfo = (Map<String, ?>) valuesToCheck[decVar]
-                    Range range = new Range((Comparable) rowValues[(String) rangeInfo.low], (Comparable) rowValues[(String) rangeInfo.high])
-                    if (!(range.isWithin((Comparable) rangeInfo.value) == 0))
+                    Map<String, ?> rangeInfo = (Map<String, ?>) inputValue
+                    Comparable low = (Comparable) rowValues[(String) rangeInfo.get('low')]
+                    Comparable high = (Comparable) rowValues[(String) rangeInfo.get('high')]
+                    Comparable value = (Comparable) rangeInfo.get('value')
+                    String dataType = rangeInfo.get(DATA_TYPE)
+                    if (StringUtilities.isEmpty(dataType))
+                    {
+                        throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${name}, input variable: ${decVar}")
+                    }
+
+                    if (dataType.equals('DATE'))
+                    {
+                        low = convertToDate(low)
+                        high = convertToDate(high)
+                        value = convertToDate(value)
+                    }
+                    else if (dataType.equals('LONG'))
+                    {
+                        low = convertToLong(low)
+                        high = convertToLong(high)
+                        value = convertToLong(value)
+                    }
+                    else if (dataType.equals('DOUBLE'))
+                    {
+                        low = convertToDouble(low)
+                        high = convertToDouble(high)
+                        value = convertToDouble(value)
+                    }
+                    else if (dataType.equals('BIG_DECIMAL'))
+                    {
+                        low = convertToBigDecimal(low)
+                        high = convertToBigDecimal(high)
+                        value = convertToBigDecimal(value)
+                    }
+
+                    Range range = new Range(low, high)
+                    if (!(range.isWithin(value) == 0))
                     {
                         return false    // skip row: does not fit within a range
                     }
@@ -1505,19 +1535,23 @@ class NCube<T>
                 }
 
                 // Check discrete decision variables
-                String inputValue = convertToString(entry.value)
-                boolean exclude = tableValue.startsWith('!')
+                String cellValue = convertToString(decVarValue)
+                if (cellValue == null)
+                {
+                    cellValue = ''
+                }
+                inputValue = convertToString(inputValue)
+                boolean exclude = cellValue.startsWith('!')
 
                 if (exclude)
                 {
-                    tableValue = tableValue.substring(1)
+                    cellValue = cellValue.substring(1)
                 }
 
-                List<String> tokens = tableValue.tokenize(', ')
+                List<String> tokens = cellValue.tokenize(', ')
 
                 if (exclude)
                 {
-                    // TODO: Cannot use .contains() below.  Need to convert each value in the List to the data-type of the decision variable and see if it matches
                     if (tokens.contains(inputValue))
                     {
                         return false
@@ -1525,7 +1559,6 @@ class NCube<T>
                 }
                 else
                 {
-                    // TODO: Cannot use .contains() below.  Need to convert each value in the List to the data-type of the decision variable and see if it matches
                     if (!tokens.contains(inputValue))
                     {
                         return false
@@ -1629,7 +1662,7 @@ class NCube<T>
         for (Column column : getAxis(decisionAxisName).columnsWithoutDefault)
         {
             Map colMetaProps = column.metaProperties
-            if (colMetaProps.containsKey(INPUT_VALUE) || colMetaProps.containsKey(IGNORE))
+            if (colMetaProps.containsKey(INPUT_VALUE))
             {
                 inputColumns.add((String) column.value)
             }
@@ -1638,7 +1671,14 @@ class NCube<T>
             {
                 inputColumns.add((String) column.value)
                 String assocInputVarName = colMetaProps.get(INPUT_LOW)
-                Map<String, ?> spec = [low: column.value, value: input.get(assocInputVarName)]
+                if (!colMetaProps.containsKey(DATA_TYPE))
+                {
+                    throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${name}, column: ${column.value}. Valid values are DATE, LONG, DOUBLE, BIG_DECIMAL.")
+                }
+                Map<String, ?> spec = [
+                        low: column.value,
+                        value: input.get(assocInputVarName),
+                        datatype: colMetaProps.get(DATA_TYPE)]
                 ranges.put(assocInputVarName, spec)
             }
 
@@ -1646,12 +1686,18 @@ class NCube<T>
             {
                 inputColumns.add((String) column.value)
                 String assocInputVarName = colMetaProps.get(INPUT_HIGH)
+                if (!colMetaProps.containsKey(DATA_TYPE))
+                {
+                    throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${name}, column: ${column.value}. Valid values are DATE, LONG, DOUBLE, BIG_DECIMAL.")
+                }
+
                 Map<String, ?> spec = (Map)ranges.get(assocInputVarName)
-                if (spec.size() != 2)
+                if (spec.size() != 3)
                 {
                     throw new IllegalStateException("Expecting the low range value column before the high range value.  NCube: ${name}, high value column: ${column.value}")
                 }
                 spec.put('high', column.value)
+                spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
                 input.put(assocInputVarName, spec)
             }
             
