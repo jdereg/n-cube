@@ -66,8 +66,8 @@ class Range implements Comparable<Range>
     {
         Iterable<String> bites = Splitter.on('/').trimResults().omitEmptyStrings().split(enchilada)
         String dataType = bites[0]
-        low = 'null' == bites[1] ? null : (Comparable) CellInfo.parseJsonValue(bites[1], null, dataType, false)
-        high = 'null' == bites[2] ? null : (Comparable) CellInfo.parseJsonValue(bites[2], null, dataType, false)
+        low = 'Default' == bites[1] ? null : (Comparable) CellInfo.parseJsonValue(bites[1], null, dataType, false)
+        high = 'Default' == bites[2] ? null : (Comparable) CellInfo.parseJsonValue(bites[2], null, dataType, false)
         priority = convertToInteger(bites[3])
     }
 

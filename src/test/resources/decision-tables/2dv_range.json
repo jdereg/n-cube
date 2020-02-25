@@ -1,5 +1,6 @@
 {
-  "ncube":"1dv_bad",
+  "ncube":"2dv_range",
+  "default_view_axis_order":"[\"row\",\"field\"]",
   "axes":[
     {
       "id":3,
@@ -11,10 +12,28 @@
       "fireAll":false,
       "columns":[
         {
-          "id":3001397469746,
+          "id":3000594734245,
           "type":"string",
           "input_value":true,
-          "value":"state"
+          "default_value":{
+            "type":"exp",
+            "value":"input.pet"
+          },
+          "value":"pet"
+        },
+        {
+          "id":3000258603792,
+          "type":"string",
+          "input_low":"number",
+          "data_type":"long",
+          "value":"low"
+        },
+        {
+          "id":3000272818329,
+          "type":"string",
+          "input_high":"number",
+          "data_type":"long",
+          "value":"high"
         },
         {
           "id":3000322296561,
@@ -49,22 +68,6 @@
   "cells":[
     {
       "id":[
-        3001397469746,
-        4000365880973
-      ],
-      "type":"string",
-      "value":"!KY"
-    },
-    {
-      "id":[
-        3001397469746,
-        4001762860459
-      ],
-      "type":"string",
-      "value":"OH"
-    },
-    {
-      "id":[
         3000322296561,
         4000365880973
       ],
@@ -73,11 +76,43 @@
     },
     {
       "id":[
+        3000272818329,
+        4000365880973
+      ],
+      "type":"string",
+      "value":"100"
+    },
+    {
+      "id":[
         3000322296561,
         4001762860459
       ],
       "type":"string",
       "value":"15"
+    },
+    {
+      "id":[
+        3000258603792,
+        4000365880973
+      ],
+      "type":"string",
+      "value":"6"
+    },
+    {
+      "id":[
+        3000272818329,
+        4001762860459
+      ],
+      "type":"string",
+      "value":"6"
+    },
+    {
+      "id":[
+        3000258603792,
+        4001762860459
+      ],
+      "type":"string",
+      "value":"0"
     }
   ]
 }

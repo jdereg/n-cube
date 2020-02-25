@@ -13,7 +13,7 @@
         {
           "id":3001397469746,
           "type":"string",
-          "decision_variable":true,
+          "input_value":true,
           "value":"state"
         },
         {

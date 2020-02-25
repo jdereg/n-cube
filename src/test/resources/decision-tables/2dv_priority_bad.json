@@ -1,5 +1,6 @@
 {
-  "ncube":"1dv_bad",
+  "ncube":"2dv_priority_bad",
+  "default_view_axis_order":"[\"row\",\"field\"]",
   "axes":[
     {
       "id":3,
@@ -14,13 +15,33 @@
           "id":3001397469746,
           "type":"string",
           "input_value":true,
+          "default_value":{
+            "type":"exp",
+            "value":"input.state"
+          },
           "value":"state"
+        },
+        {
+          "id":3000594734245,
+          "type":"string",
+          "input_value":true,
+          "default_value":{
+            "type":"exp",
+            "value":"input.pet"
+          },
+          "value":"pet"
         },
         {
           "id":3000322296561,
           "type":"string",
           "output_value":true,
           "value":"output"
+        },
+        {
+          "id":3000495145241,
+          "type":"string",
+          "priority":true,
+          "value":"priority"
         }
       ]
     },
@@ -49,19 +70,35 @@
   "cells":[
     {
       "id":[
-        3001397469746,
+        3000495145241,
+        4001762860459
+      ],
+      "type":"long",
+      "value":900
+    },
+    {
+      "id":[
+        3000495145241,
         4000365880973
       ],
-      "type":"string",
-      "value":"!KY"
+      "type":"long",
+      "value":900
     },
     {
       "id":[
         3001397469746,
-        4001762860459
+        4000365880973
       ],
       "type":"string",
       "value":"OH"
+    },
+    {
+      "id":[
+        3000594734245,
+        4001762860459
+      ],
+      "type":"string",
+      "value":"dog"
     },
     {
       "id":[

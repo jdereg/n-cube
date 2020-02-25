@@ -1,15 +1,19 @@
 package com.cedarsoftware.ncube.decision
 
 import com.cedarsoftware.ncube.Axis
+import com.cedarsoftware.ncube.AxisType
+import com.cedarsoftware.ncube.AxisValueType
 import com.cedarsoftware.ncube.Column
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.Range
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.StringUtilities
+import com.google.common.base.Splitter
 import groovy.transform.CompileStatic
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
 import static com.cedarsoftware.util.Converter.*
+import static com.cedarsoftware.util.StringUtilities.hasContent
 
 /**
  * Decision Table implements a list of rules that filter a variable number of inputs (decision variables) against
@@ -40,6 +44,9 @@ class DecisionTable
     private Set<String> inputColumns = new HashSet<>()
     private Set<String> outputColumns = new HashSet<>()
     private Set<String> rangeColumns = new HashSet<>()
+    private static final String BANG = '!'
+    private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings()
+    private static final Splitter BAR_SPLITTER = Splitter.on('|').trimResults().omitEmptyStrings()
 
     DecisionTable(NCube decisionCube)
     {
@@ -56,8 +63,8 @@ class DecisionTable
     {
         Map<String, ?> ranges = new HashMap<>()
         Map<String, ?> copyInput = new CaseInsensitiveMap<>(input)
-        copyInput.put('ignore', null)
-        Axis fieldAxis = decisionTable.getAxis(decisionAxisName)
+        copyInput.put(IGNORE, null)
+        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
 
         for (String colValue : rangeColumns)
         {
@@ -90,8 +97,7 @@ class DecisionTable
                 input: [dvs:copyInput]
         ]
 
-        Map<Comparable, ?> result = decisionTable.mapReduce(decisionAxisName, decisionTableClosure, options)
-        // TODO: Ensure determinePriority() allows for multiple rows to be returned.
+        Map<Comparable, ?> result = decisionTable.mapReduce(fieldAxisName, decisionTableClosure, options)
         result = determinePriority(result)
         println result
         return result
@@ -115,6 +121,14 @@ class DecisionTable
         return rowAxisName
     }
 
+    Set<Comparable> validateDecisionTable()
+    {
+        List<Column> rows = decisionTable.getAxis(rowAxisName).columnsWithoutDefault
+        NCube blowout = createValidationNCube(rows)
+        Set<Comparable> badRows = validateDecisionTableRow(blowout, rows)
+        return badRows
+    }
+
     /**
      * Closure used with mapReduce() on special 2D decision n-cubes.
      */
@@ -129,7 +143,7 @@ class DecisionTable
                 Object decVarValue = rowValues.get(decVarName)
                 Object inputValue = entry.value
 
-                if ('ignore' == decVarName)
+                if (IGNORE == decVarName)
                 {
                     if (convertToBoolean(decVarValue))
                     {
@@ -151,25 +165,25 @@ class DecisionTable
                         throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${decisionTable.name}, input variable: ${decVarName}")
                     }
 
-                    if (dataType.equals('DATE'))
+                    if (dataType.equalsIgnoreCase('DATE'))
                     {
                         low = convertToDate(low)
                         high = convertToDate(high)
                         value = convertToDate(value)
                     }
-                    else if (dataType.equals('LONG'))
+                    else if (dataType.equalsIgnoreCase('LONG'))
                     {
                         low = convertToLong(low)
                         high = convertToLong(high)
                         value = convertToLong(value)
                     }
-                    else if (dataType.equals('DOUBLE'))
+                    else if (dataType.equalsIgnoreCase('DOUBLE'))
                     {
                         low = convertToDouble(low)
                         high = convertToDouble(high)
                         value = convertToDouble(value)
                     }
-                    else if (dataType.equals('BIG_DECIMAL'))
+                    else if (dataType.equalsIgnoreCase('BIG_DECIMAL'))
                     {
                         low = convertToBigDecimal(low)
                         high = convertToBigDecimal(high)
@@ -221,14 +235,14 @@ class DecisionTable
 
     private void verifyAndCache()
     {
-        if (StringUtilities.hasContent(fieldAxisName) && StringUtilities.hasContent(rowAxisName))
+        if (hasContent(fieldAxisName) && hasContent(rowAxisName))
         {
             return
         }
 
         if (decisionTable.numDimensions != 2)
         {
-            return
+            throw new IllegalStateException("Decision table: ${decisionTable.name} must have 2 axes.")
         }
 
         Set<String> decisionMetaPropertyKeys = [INPUT_VALUE, INPUT_LOW, INPUT_HIGH, OUTPUT_VALUE, IGNORE, PRIORITY] as Set<String>
@@ -249,22 +263,28 @@ class DecisionTable
         {
             fieldAxisName = first.name
             rowAxisName = second.name
-            return
         }
+        else
+        {
+            any = second.columnsWithoutDefault.find { Column column ->
+                Set<String> keys = new HashSet<>(column.metaProperties.keySet())
+                keys.retainAll(decisionMetaPropertyKeys)
+                if (keys.size())
+                {
+                    return column
+                }
+            }
 
-        any = second.columnsWithoutDefault.find { Column column ->
-            Set<String> keys = new HashSet<>(column.metaProperties.keySet())
-            keys.retainAll(decisionMetaPropertyKeys)
-            if (keys.size())
+            if (any)
             {
-                return column
+                fieldAxisName = second.name
+                rowAxisName = first.name
             }
         }
 
-        if (any)
+        if (!fieldAxisName || !rowAxisName)
         {
-            fieldAxisName = second.name
-            rowAxisName = first.name
+            throw new IllegalStateException("Decision table: ${decisionTable.name} must have one axis with one or more columns with meta-property key: input_value.")
         }
 
         for (Column column : decisionTable.getAxis(fieldAxisName).columnsWithoutDefault)
@@ -302,7 +322,6 @@ class DecisionTable
         }
     }
     
-    // TODO: Review.  Need to allow for multiple rows to return
     private static Map<Comparable, ?> determinePriority(Map<Comparable, ?> result)
     {
         Map<Comparable, ?> result2 = [:]
@@ -328,5 +347,289 @@ class DecisionTable
             }
         }
         return result2
+    }
+
+    private NCube createValidationNCube(List<Column> rows)
+    {
+        NCube blowout = new NCube('validation')
+        Map<String, Comparable> coord = [:]
+
+        for (String colValue : inputColumns)
+        {
+            if (rangeColumns.contains(colValue))
+            {
+                continue
+            }
+
+            Column field = decisionTable.getAxis(fieldAxisName).findColumn(colValue)
+            String fieldValue = field.value
+
+            Axis axis = new Axis(fieldValue, AxisType.DISCRETE, AxisValueType.CISTRING, false)
+            blowout.addAxis(axis)
+
+            for (Column row : rows)
+            {
+                String rowValue = row.value
+                coord.put(fieldAxisName, fieldValue)
+                coord.put(rowAxisName, rowValue)
+                String cellValue = convertToString(decisionTable.getCellNoExecute(coord))
+                if (hasContent(cellValue))
+                {
+                    cellValue -= BANG
+                    Iterable<String> values = COMMA_SPLITTER.split(cellValue)
+
+                    for (String value : values)
+                    {
+                        if (!axis.findColumn(value))
+                        {
+                            blowout.addColumn(axis.name, value)
+                        }
+                    }
+                }
+            }
+            blowout.addColumn(axis.name, null)
+        }
+
+        return blowout
+    }
+
+    private Set<Comparable> validateDecisionTableRow(NCube blowout, List<Column> rows)
+    {
+        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        Map<String, Comparable> coord = [:]
+        Set<Comparable> badRows = []
+
+        for (Column row : rows)
+        {
+            Comparable rowValue = row.value
+            coord.put(rowAxisName, rowValue)
+
+            if (fieldAxis.findColumns([(IGNORE): true] as Map).size() > 0)
+            {
+                coord.put(fieldAxisName, IGNORE)
+                if (decisionTable.getCell(coord) != null)
+                {
+                    continue
+                }
+            }
+
+            Map<String, Integer> counters = [:]
+            Map<String, Set<String>> bindings = [:]
+
+            for (String colValue : inputColumns)
+            {
+                if (rangeColumns.contains(colValue))
+                {
+                    continue
+                }
+
+                coord.put(fieldAxisName, colValue)
+
+                counters[colValue] = 1
+                bindings[colValue] = new HashSet()
+
+                String cellValue = convertToString(decisionTable.getCellNoExecute(coord))
+                if (hasContent(cellValue))
+                {
+                    boolean exclude = cellValue.startsWith(BANG)
+                    cellValue -= BANG
+                    Iterable<String> values = COMMA_SPLITTER.split(cellValue)
+
+                    if (exclude)
+                    {
+                        List<Column> columns = blowout.getAxis(colValue).columns
+                        for (Column column : columns)
+                        {
+                            String columnValue = column.value
+                            if (!values.contains(columnValue))
+                            {
+                                bindings.get(colValue).add(columnValue)
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (String value : values)
+                        {
+                            bindings.get(colValue).add(value)
+                        }
+                    }
+                }
+                else
+                {
+                    List<Column> columns = blowout.getAxis(colValue).columns
+                    for (Column column : columns)
+                    {
+                        String columnValue = column.value
+                        bindings.get(colValue).add(columnValue)
+                    }
+                }
+            }
+
+            Range range = buildRange(rowValue)
+            String[] axisNames = bindings.keySet() as String[]
+
+            populateCachedNCube(badRows, blowout, counters, bindings, axisNames, range, rowValue) // call this method once before the counter gets turned over
+            while (incrementVariableRadixCount(counters, bindings, axisNames))
+            {
+                populateCachedNCube(badRows, blowout, counters, bindings, axisNames, range, rowValue)
+            }
+        }
+        return badRows
+    }
+
+    private Range buildRange(Comparable rowValue)
+    {
+        Range range = new Range()
+        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        Map<String, Comparable> coord = [(rowAxisName): rowValue]
+
+        // TODO - add support for validating multiple ranges
+        if (rangeColumns.size() > 2)
+        {
+            throw new IllegalStateException("Multiple ranges not yet supported, ncube: ${decisionTable.name}")
+        }
+
+        for (String colValue : rangeColumns)
+        {
+            Column column = fieldAxis.findColumn(colValue)
+            Map colMetaProps = column.metaProperties
+            String dataType = colMetaProps.get(DATA_TYPE)
+
+            if (colMetaProps.containsKey(INPUT_LOW))
+            {
+                coord.put(fieldAxisName, colValue)
+                range.low = getRangeValue(dataType, coord)
+            }
+            else if (colMetaProps.containsKey(INPUT_HIGH))
+            {
+                coord.put(fieldAxisName, colValue)
+                range.high = getRangeValue(dataType, coord)
+            }
+        }
+
+        List<Column> priorityColumns = fieldAxis.findColumns([(PRIORITY): true] as Map)
+        if (priorityColumns)
+        {
+            Column priority = priorityColumns.first()
+            coord.put(fieldAxisName, priority.value)
+            Object cellValue = decisionTable.getCell(coord)
+            range.priority = convertToInteger(cellValue)
+        }
+
+        return range
+    }
+
+    private Comparable getRangeValue(String dataType, Map coord)
+    {
+        Object cellValue = decisionTable.getCell(coord)
+        Comparable rangeValue
+
+        if (dataType.equalsIgnoreCase('DATE'))
+        {
+            rangeValue = convertToDate(cellValue)
+        }
+        else if (dataType.equalsIgnoreCase('LONG'))
+        {
+            rangeValue = convertToLong(cellValue)
+        }
+        else if (dataType.equalsIgnoreCase('DOUBLE'))
+        {
+            rangeValue = convertToDouble(cellValue)
+        }
+        else if (dataType.equalsIgnoreCase('BIG_DECIMAL'))
+        {
+            rangeValue = convertToBigDecimal(cellValue)
+        }
+        else
+        {
+            throw new IllegalStateException("Range data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL, ncube: ${decisionTable.name}")
+        }
+
+        return rangeValue
+    }
+
+    private static void populateCachedNCube(Set<Comparable> badRows, NCube blowout, Map<String, Integer> counters, Map<String, Set<String>> bindings, String[] axisNames, Range candidate, Comparable rowId)
+    {
+        Map<String, Object> coordinate = [:]
+        for (String key : axisNames)
+        {
+            int radix = counters[key]
+            String value = bindings.get(key)[radix - 1]
+            coordinate.put(key, value)
+        }
+
+        boolean goodCoordinate = true
+        String existingValue = blowout.getCell(coordinate)
+        if (existingValue != null)
+        {
+            Iterable<String> entryStrings = BAR_SPLITTER.split(existingValue)
+            for (String entryString : entryStrings)
+            {
+                Range existingEntry = new Range(entryString)
+                if (candidate.out() == existingEntry.out())
+                {
+                    goodCoordinate = false
+                }
+                else
+                {
+                    boolean nullRange = existingEntry.low == null && existingEntry.high == null && candidate.low == null && candidate.high == null
+                    boolean equalPriorities = existingEntry.priority == candidate.priority
+                    if ((nullRange || existingEntry.overlap(candidate)) && equalPriorities)
+                    {
+                        goodCoordinate = false
+                    }
+                }
+
+                if (!goodCoordinate)
+                {
+                    badRows.add(rowId)
+                    break
+                }
+            }
+        }
+        else
+        {
+            existingValue = ""
+        }
+
+        if (goodCoordinate)
+        {
+            String newValue = "${candidate.out()}|${existingValue}"
+            blowout.setCell(newValue, coordinate)
+        }
+    }
+
+    /**
+     * Increment the variable radix number passed in.  The number is represented by a Map, where the keys are the
+     * digit names (axis names), and the values are the associated values for the number.
+     * @return false if more incrementing can be done, otherwise true.
+     */
+    private static boolean incrementVariableRadixCount(final Map<String, Integer> counters,
+                                                       final Map<String, Set<String>> bindings,
+                                                       final String[] axisNames)
+    {
+        int digit = axisNames.length - 1
+
+        while (true)
+        {
+            final String axisName = axisNames[digit]
+            final int count = counters[axisName]
+            final Set<String> cols = bindings[axisName]
+
+            if (count >= cols.size())
+            {   // Reach max value for given dimension (digit)
+                if (digit == 0)
+                {   // we have reached the max radix for the most significant digit - we are done
+                    return false
+                }
+                counters[axisNames[digit--]] = 1
+            }
+            else
+            {
+                counters[axisName] = count + 1  // increment counter
+                return true
+            }
+        }
     }
 }
