@@ -1,11 +1,6 @@
 package com.cedarsoftware.ncube.util;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Special Set instance that hashes the Set&lt;Long&gt; column IDs with excellent dispersion,

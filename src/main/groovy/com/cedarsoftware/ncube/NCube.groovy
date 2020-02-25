@@ -37,14 +37,23 @@ import java.util.zip.Deflater
 import java.util.zip.GZIPInputStream
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
-import static com.cedarsoftware.ncube.NCubeConstants.*
-import static com.cedarsoftware.util.Converter.*
+import static com.cedarsoftware.ncube.NCubeConstants.DATA_TYPE
+import static com.cedarsoftware.ncube.NCubeConstants.IGNORE
+import static com.cedarsoftware.ncube.NCubeConstants.INPUT_HIGH
+import static com.cedarsoftware.ncube.NCubeConstants.INPUT_LOW
+import static com.cedarsoftware.ncube.NCubeConstants.INPUT_VALUE
+import static com.cedarsoftware.ncube.NCubeConstants.PRIORITY
+import static com.cedarsoftware.util.Converter.convertToInteger
+import static com.cedarsoftware.util.Converter.convertToLong
+import static com.cedarsoftware.util.Converter.convertToString
 import static com.cedarsoftware.util.EncryptionUtilities.SHA1Digest
 import static com.cedarsoftware.util.EncryptionUtilities.calculateSHA1Hash
 import static com.cedarsoftware.util.ExceptionUtilities.getDeepestException
 import static com.cedarsoftware.util.IOUtilities.close
 import static com.cedarsoftware.util.ReflectionUtils.getDeepDeclaredFields
-import static com.cedarsoftware.util.StringUtilities.*
+import static com.cedarsoftware.util.StringUtilities.encode
+import static com.cedarsoftware.util.StringUtilities.hasContent
+import static com.cedarsoftware.util.StringUtilities.isEmpty
 import static com.cedarsoftware.util.io.MetaUtils.isLogicalPrimitive
 
 /**
@@ -107,7 +116,7 @@ class NCube<T>
     protected final Map<Set<Long>, T> cells = new CellMap<T>()
     private T defaultCellValue
     private final Map<String, Advice> advices = [:]
-    private Map metaProps = new CaseInsensitiveMap<>()
+    private Map<String, Object> metaProps = new CaseInsensitiveMap<>()
     private static ConcurrentMap primitives = new ConcurrentHashMap()
     //  Sets up the defaultApplicationId for cubes loaded in from disk.
     private transient ApplicationID appId = ApplicationID.testAppId
@@ -1195,7 +1204,7 @@ class NCube<T>
         Map input =  options.containsKey('input') ? (Map) options.input : [:]
         Map output = options.containsKey('output') ? (Map) options.output : [:]
         Object defaultValue = options.get(MAP_REDUCE_DEFAULT_VALUE)
-        Collection<Column> selectList = (Collection) options.selectList
+        Collection<Column> selectList = (Collection<Column>) options.selectList
         Collection<Column> whereColumns = (Collection<Column>) options.whereColumns
         final TrackingMap commandInput = new TrackingMap<>(new LinkedHashMap(input))
         Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
