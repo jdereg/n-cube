@@ -571,8 +571,10 @@ class DecisionTable
 
     private static void populateCachedNCube(Set<Comparable> badRows, NCube blowout, Map<String, Integer> counters, Map<String, Set<String>> bindings, String[] axisNames, Range candidate, Comparable rowId)
     {
+        String candidateOut = candidate.out()
         Map<String, Object> coordinate = [:]
         Set<Long> ids = new HashSet<>()
+        
         for (String key : axisNames)
         {
             int radix = counters[key]
@@ -591,7 +593,7 @@ class DecisionTable
             for (String entryString : entryStrings)
             {
                 Range existingEntry = new Range(entryString)
-                if (candidate.out() == existingEntry.out())
+                if (candidateOut == existingEntry.out())
                 {
                     goodCoordinate = false
                 }
@@ -619,7 +621,7 @@ class DecisionTable
 
         if (goodCoordinate)
         {
-            String newValue = "${candidate.out()}|${existingValue}"
+            String newValue = "${candidateOut}|${existingValue}"
             blowout.setCellById(newValue, idCoord)
         }
     }
