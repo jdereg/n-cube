@@ -1,6 +1,6 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.decision.DecisionTable
+
 import com.cedarsoftware.ncube.exception.AxisOverlapException
 import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
@@ -5883,26 +5883,7 @@ class TestNCube extends NCubeBaseTest
             fail('CommandCellException should have been thrown')
         }
     }
-
-    @Test
-    void testGetDecision()
-    {
-        Map input = [profitCenter: '2967',
-                       producerCode: '50',
-                       date: new Date(),
-                       symbol: 'CAP']
-        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'commission.json')
-        DecisionTable decisionTable = new DecisionTable(ncube)
-
-        for (int i=0; i < 1000; i++)
-        {
-            long start = System.nanoTime()
-            decisionTable.getDecision(input)
-            long end = System.nanoTime()
-            println "took ${(end - start) / 1000000} ms"
-        }
-    }
-
+    
     // ---------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------
 

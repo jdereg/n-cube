@@ -911,7 +911,7 @@ class NCube<T>
      * coordinate has at least an entry for each axis (entry not needed for axes with
      * default column or rule axes).
      */
-    protected T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, Map columnDefaultCache = null)
+    T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, Map columnDefaultCache = null)
     {
         // First, get a ThreadLocal copy of an NCube execution stack
         Deque<StackEntry> stackFrame = (Deque<StackEntry>) executionStack.get()

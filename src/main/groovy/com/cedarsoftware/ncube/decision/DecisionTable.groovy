@@ -155,7 +155,7 @@ class DecisionTable
     {
         List<Column> rows = decisionTable.getAxis(rowAxisName).columnsWithoutDefault
         NCube blowout = createValidationNCube(rows)
-        Set<Comparable> badRows = validateDecisionTableRow(blowout, rows)
+        Set<Comparable> badRows = validateDecisionTableRows(blowout, rows)
         return badRows
     }
 
@@ -390,7 +390,8 @@ class DecisionTable
                 String rowValue = row.value
                 coord.put(fieldAxisName, fieldValue)
                 coord.put(rowAxisName, rowValue)
-                String cellValue = convertToString(decisionTable.getCellNoExecute(coord))
+                Set<Long> idCoord = new LongHashSet([field.id, row.id] as Set)
+                String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
                 if (hasContent(cellValue))
                 {
                     cellValue -= BANG
@@ -411,12 +412,13 @@ class DecisionTable
         return blowout
     }
 
-    private Set<Comparable> validateDecisionTableRow(NCube blowout, List<Column> rows)
+    private Set<Comparable> validateDecisionTableRows(NCube blowout, List<Column> rows)
     {
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         Map<String, Comparable> coord = [:]
         Set<Comparable> badRows = []
         Column ignoreColumn = fieldAxis.findColumn(IGNORE)
+        Column priorityColumn = fieldAxis.findColumn(PRIORITY)
 
         for (Column row : rows)
         {
@@ -487,7 +489,7 @@ class DecisionTable
                 }
             }
 
-            Range range = buildRange(rowValue)
+            Range range = buildRange(row.id, rowValue, priorityColumn)
             String[] axisNames = bindings.keySet() as String[]
 
             populateCachedNCube(badRows, blowout, counters, bindings, axisNames, range, rowValue) // call this method once before the counter gets turned over
@@ -499,7 +501,7 @@ class DecisionTable
         return badRows
     }
 
-    private Range buildRange(Comparable rowValue)
+    private Range buildRange(long rowId, Comparable rowValue, Column priorityColumn)
     {
         Range range = new Range()
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
@@ -529,12 +531,11 @@ class DecisionTable
             }
         }
 
-        List<Column> priorityColumns = fieldAxis.findColumns([(PRIORITY): true] as Map)
-        if (priorityColumns)
+        if (priorityColumn)
         {
-            Column priority = priorityColumns.first()
-            coord.put(fieldAxisName, priority.value)
-            Object cellValue = decisionTable.getCell(coord)
+            coord.put(fieldAxisName, priorityColumn.value)
+            Set<Long> idCoord = new LongHashSet([rowId, priorityColumn.id] as Set)
+            Object cellValue = decisionTable.getCellById(idCoord, coord, [:])
             range.priority = convertToInteger(cellValue)
         }
 
@@ -573,15 +574,19 @@ class DecisionTable
     private static void populateCachedNCube(Set<Comparable> badRows, NCube blowout, Map<String, Integer> counters, Map<String, Set<String>> bindings, String[] axisNames, Range candidate, Comparable rowId)
     {
         Map<String, Object> coordinate = [:]
+        Set<Long> ids = new HashSet<>()
         for (String key : axisNames)
         {
             int radix = counters[key]
             String value = bindings.get(key)[radix - 1]
             coordinate.put(key, value)
+            ids.add(blowout.getAxis(key).findColumn(value).id)
         }
 
         boolean goodCoordinate = true
-        String existingValue = blowout.getCell(coordinate)
+        Set<Long> idCoord = new LongHashSet(ids)
+        String existingValue = blowout.getCellById(idCoord, coordinate, [:])
+        
         if (existingValue != null)
         {
             Iterable<String> entryStrings = BAR_SPLITTER.split(existingValue)
@@ -611,13 +616,13 @@ class DecisionTable
         }
         else
         {
-            existingValue = ""
+            existingValue = ''
         }
 
         if (goodCoordinate)
         {
             String newValue = "${candidate.out()}|${existingValue}"
-            blowout.setCell(newValue, coordinate)
+            blowout.setCellById(newValue, idCoord)
         }
     }
 
