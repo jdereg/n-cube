@@ -301,7 +301,7 @@ class DecisionTable
         for (Column column : decisionTable.getAxis(fieldAxisName).columnsWithoutDefault)
         {
             Map colMetaProps = column.metaProperties
-            if (colMetaProps.containsKey(INPUT_VALUE) || colMetaProps.containsKey(IGNORE))
+            if (colMetaProps.containsKey(INPUT_VALUE))
             {
                 inputColumns.add((String) column.value)
             }
@@ -418,25 +418,10 @@ class DecisionTable
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         Map<String, Comparable> coord = [:]
         Set<Comparable> badRows = []
-        List<Column> ignoreColumns = fieldAxis.findColumns([(IGNORE): true] as Map)
-        Column ignoreColumn = null
-        if (!ignoreColumns.empty)
-        {
-            ignoreColumn = ignoreColumns.first()
-        }
-        List<Column> priorityColumns = fieldAxis.findColumns([(PRIORITY): true] as Map)
-        Column priorityColumn = null
-        if (!priorityColumns.empty)
-        {
-            priorityColumn = fieldAxis.findColumn(PRIORITY)
-        }
-
+        Column ignoreColumn = fieldAxis.findColumn(IGNORE)
+        Column priorityColumn = fieldAxis.findColumn(PRIORITY)
         Set<String> colsToProcess = new CaseInsensitiveSet<>(inputColumns)
         colsToProcess.removeAll(rangeColumns)
-        if (ignoreColumn)
-        {
-            colsToProcess.remove(ignoreColumn.value)
-        }
         
         for (Column row : rows)
         {
@@ -531,16 +516,16 @@ class DecisionTable
             Column column = fieldAxis.findColumn(colValue)
             Map colMetaProps = column.metaProperties
             String dataType = colMetaProps.get(DATA_TYPE)
+            Set<Long> idCoord = new LongHashSet([column.id, rowId] as Set)
+            coord.put(fieldAxisName, colValue)
 
             if (colMetaProps.containsKey(INPUT_LOW))
             {
-                coord.put(fieldAxisName, colValue)
-                range.low = getRangeValue(dataType, coord)
+                range.low = getRangeValue(dataType, coord, idCoord)
             }
             else if (colMetaProps.containsKey(INPUT_HIGH))
             {
-                coord.put(fieldAxisName, colValue)
-                range.high = getRangeValue(dataType, coord)
+                range.high = getRangeValue(dataType, coord, idCoord)
             }
         }
 
@@ -555,9 +540,9 @@ class DecisionTable
         return range
     }
 
-    private Comparable getRangeValue(String dataType, Map coord)
+    private Comparable getRangeValue(String dataType, Map coord, Set<Long> idCoord)
     {
-        Object cellValue = decisionTable.getCell(coord)
+        Object cellValue = decisionTable.getCellById(idCoord, coord, [:])
         Comparable rangeValue
 
         if (dataType.equalsIgnoreCase('DATE'))

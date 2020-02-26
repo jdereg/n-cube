@@ -35,7 +35,7 @@ class TestDecisionTable extends NCubeBaseTest
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'decision-tables/commission.json')
         DecisionTable decisionTable = new DecisionTable(ncube)
 
-        for (int i=0; i < 10; i++)
+        for (int i=0; i < 100; i++)
         {
             long start = System.nanoTime()
             decisionTable.getDecision(input)
