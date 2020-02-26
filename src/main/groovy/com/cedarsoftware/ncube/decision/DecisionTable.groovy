@@ -6,6 +6,7 @@ import com.cedarsoftware.ncube.AxisValueType
 import com.cedarsoftware.ncube.Column
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.Range
+import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.google.common.base.Splitter
 import groovy.transform.CompileStatic
@@ -146,6 +147,7 @@ class DecisionTable
     /**
      * Validate that the Decision Table has no overlapping rules.  In other words, it must return 0 or 1
      * records, never more.
+     * NOTE: Currently, only supports one range variable (low, high) columns.
      * @return Set<Comparable> rowIds of the rows that have duplicate rules.  If the returned Set is empty,
      * then there are no overlapping rules.
      */
@@ -164,7 +166,7 @@ class DecisionTable
     {
         return { Map<String, ?> rowValues, Map<String, ?> input ->
             Map<String, ?> inputMap = (Map<String, ?>) input.get('dvs')
-            Map<String, ?> range = [:]
+
             for (Map.Entry<String, ?> entry : inputMap)
             {
                 // Check special IGNORE row variable
@@ -183,17 +185,16 @@ class DecisionTable
 
                 // Check range variables
                 if (inputValue instanceof Map)
-                {
-                    range.put(INPUT_LOW, rowValues.get((String) inputValue.get(INPUT_LOW)))
-                    range.put(INPUT_HIGH, rowValues.get((String) inputValue.get(INPUT_HIGH)))
-                    range.put(INPUT_VALUE, inputValue[INPUT_VALUE])
-                    range.put(DATA_TYPE, inputValue[DATA_TYPE])
-                    boolean isWithin = isWithinRange(range)
-                    if (isWithin)
+                {   // Using [ ] notation for Map access for sake of clarity
+                    if (!isWithinRange(
+                            (Comparable)rowValues[(String) inputValue[INPUT_LOW]],
+                            (Comparable)rowValues[(String) inputValue[INPUT_HIGH]],
+                            (Comparable)inputValue[INPUT_VALUE],
+                            (String)inputValue[DATA_TYPE]))
                     {
-                        continue
+                        return false
                     }
-                    return false
+                    continue
                 }
 
                 // Check discrete decision variables
@@ -243,7 +244,7 @@ class DecisionTable
             throw new IllegalStateException("Decision table: ${decisionTable.name} must have 2 axes.")
         }
 
-        Set<String> decisionMetaPropertyKeys = [INPUT_VALUE, INPUT_LOW, INPUT_HIGH, OUTPUT_VALUE, IGNORE, PRIORITY] as Set<String>
+        Set<String> decisionMetaPropertyKeys = [INPUT_VALUE, INPUT_LOW, INPUT_HIGH, OUTPUT_VALUE] as Set<String>
         List<Axis> axes = decisionTable.axes
         Axis first = axes.first()
         Axis second = axes.last()
@@ -358,10 +359,18 @@ class DecisionTable
         return result2
     }
 
+    /**
+     * Create an N-Dimensional NCube, where the number of dimensions (N) is equivalent to the number
+     * of discrete (non range) columns on the field axis.  When this method returns, it will have no
+     * cell contents, however, all Axes will be set up with each axis (dimension) containing all the
+     * values that appeared in rows (whether specified negative or positively, as a single value or
+     * a comma delimited list.)
+     */
     private NCube createValidationNCube(List<Column> rows)
     {
         NCube blowout = new NCube('validation')
         Map<String, Comparable> coord = [:]
+        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
 
         for (String colValue : inputColumns)
         {
@@ -370,7 +379,7 @@ class DecisionTable
                 continue
             }
 
-            Column field = decisionTable.getAxis(fieldAxisName).findColumn(colValue)
+            Column field = fieldAxis.findColumn(colValue)
             String fieldValue = field.value
 
             Axis axis = new Axis(fieldValue, AxisType.DISCRETE, AxisValueType.CISTRING, false)
@@ -407,17 +416,18 @@ class DecisionTable
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         Map<String, Comparable> coord = [:]
         Set<Comparable> badRows = []
-        boolean hasIgnoreColumn = fieldAxis.findColumns([(IGNORE): true] as Map).size() > 0
+        Column ignoreColumn = fieldAxis.findColumn(IGNORE)
 
         for (Column row : rows)
         {
             Comparable rowValue = row.value
             coord.put(rowAxisName, rowValue)
 
-            if (hasIgnoreColumn)
+            if (ignoreColumn)
             {
                 coord.put(fieldAxisName, IGNORE)
-                if (convertToBoolean(decisionTable.getCell(coord)))
+                Set<Long> idCoord = new LongHashSet([row.id, ignoreColumn.id] as Set)
+                if (convertToBoolean(decisionTable.getCellById(idCoord, coord, [:])))
                 {
                     continue
                 }
@@ -434,11 +444,12 @@ class DecisionTable
                 }
 
                 coord.put(fieldAxisName, colValue)
-
+                Column field = fieldAxis.findColumn(colValue)
                 counters[colValue] = 1
                 bindings[colValue] = new HashSet()
-
-                String cellValue = convertToString(decisionTable.getCellNoExecute(coord))
+                Set<Long> idCoord = new LongHashSet([row.id, field.id] as Set)
+                coord.put(fieldAxisName, field.value)
+                String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
                 if (hasContent(cellValue))
                 {
                     boolean exclude = cellValue.startsWith(BANG)
@@ -675,13 +686,8 @@ class DecisionTable
      * ]
      * This method will return true if the value is >= the input_low value, and < the input_high value.
      */
-    private static boolean isWithinRange(Map<String, ?> spec)
+    private static boolean isWithinRange(Comparable low, Comparable high, Comparable value, String dataType)
     {
-        Comparable low = (Comparable) spec.get(INPUT_LOW)
-        Comparable high = (Comparable) spec.get(INPUT_HIGH)
-        Comparable value = (Comparable) spec.get(INPUT_VALUE)
-        String dataType = spec.get(DATA_TYPE)
-        
         if (dataType.equalsIgnoreCase('DATE'))
         {
             low = convertToDate(low)
