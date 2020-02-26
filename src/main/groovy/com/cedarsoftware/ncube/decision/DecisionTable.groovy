@@ -7,7 +7,6 @@ import com.cedarsoftware.ncube.Column
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.Range
 import com.cedarsoftware.util.CaseInsensitiveMap
-import com.cedarsoftware.util.StringUtilities
 import com.google.common.base.Splitter
 import groovy.transform.CompileStatic
 
@@ -72,12 +71,13 @@ class DecisionTable
      * @param input Map containing key/value pairs for all the input_value columns
      * @return List<Comparable, List<outputs>>
      */
-    Map<Comparable, ?> getDecisionx(Map<String, ?> input)
+    Map<Comparable, ?> getDecision(Map<String, ?> input)
     {
-        Map<String, ?> ranges = new HashMap<>()
+        Map<String, Map<String, ?>> ranges = new HashMap<>()
         Map<String, ?> copyInput = new CaseInsensitiveMap<>(input)
         copyInput.put(IGNORE, null)
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        ensuredRequiredInputs(copyInput, fieldAxis)
 
         for (String colValue : rangeColumns)
         {
@@ -85,22 +85,31 @@ class DecisionTable
             Map colMetaProps = column.metaProperties
 
             if (colMetaProps.containsKey(INPUT_LOW))
-            {
-                String assocInputVarName = colMetaProps.get(INPUT_LOW)
-                Map<String, ?> spec = new HashMap<>()
-                spec.put('low', column.value)
-                spec.put('value', copyInput.get(assocInputVarName))
-                spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
-                ranges.put(assocInputVarName, spec)
+            {   // Allow ranges to be processed in ANY order (even intermixed with other ranges)
+                String inputVarName = colMetaProps.get(INPUT_LOW)
+                Map<String, ?> spec = getRangeSpec(ranges, inputVarName)
+                spec.put(INPUT_LOW, column.value)
+
+                if (!spec.containsKey(INPUT_VALUE))
+                {   // Last range post (high or low) processed, sets the input_value, data_type, and copies the range spec to the input map.
+                    // ["date": date instance] becomes ("date": [low:1900, high:2100, input_value: date instance, data_type: DATE])
+                    spec.put(INPUT_VALUE, copyInput.get(inputVarName))
+                    spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
+                    copyInput.put(inputVarName, spec)
+                }
             }
 
             if (colMetaProps.containsKey(INPUT_HIGH))
-            {
-                String assocInputVarName = colMetaProps.get(INPUT_HIGH)
-                Map<String, ?> spec = (Map)ranges.get(assocInputVarName)
-                spec.put('high', column.value)
-                spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
-                copyInput.put(assocInputVarName, spec)
+            {   // Allow ranges to be processed in ANY order (even intermixed with other ranges)
+                String inputVarName = colMetaProps.get(INPUT_HIGH)
+                Map<String, ?> spec = getRangeSpec(ranges, inputVarName)
+                spec.put(INPUT_HIGH, column.value)
+                if (!spec.containsKey(INPUT_VALUE))
+                {
+                    spec.put(INPUT_VALUE, copyInput.get(inputVarName))
+                    spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
+                    copyInput.put(inputVarName, spec)
+                }
             }
         }
         
@@ -111,164 +120,6 @@ class DecisionTable
         ]
 
         Map<Comparable, ?> result = decisionTable.mapReduce(fieldAxisName, decisionTableClosure, options)
-        result = determinePriority(result)
-        println result
-        return result
-    }
-
-    void ensuredRequiredInputs(Map<String, ?> input)
-    {
-        for (Column column : decisionTable.getAxis(fieldAxisName).columnsWithoutDefault)
-        {
-            if (column.metaProperties.containsKey(REQUIRED) && convertToBoolean(column.getMetaProperty(REQUIRED)))
-            {
-                if (!input.containsKey(column.value))
-                {
-                    throw new IllegalArgumentException("Required field: ${column.value} not found on input, decision table: ${decisionTable.name}")
-                }
-            }
-        }
-    }
-
-    /**
-     * Main API for querying a Decision Table.
-     * @param input Map containing key/value pairs for all the input_value columns
-     * @return List<Comparable, List<outputs>>
-     */
-    Map<Comparable, ?> getDecision(Map<String, ?> input)
-    {
-        ensuredRequiredInputs(input)
-        Map<String, ?> ranges = new HashMap<>()
-        Map<String, ?> copyInput = new CaseInsensitiveMap<>(input)
-        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
-        boolean hasIgnoreColumn = fieldAxis.findColumns([(IGNORE): true] as Map).size() > 0
-        Map<String, Comparable> coord = [:]
-        Map<Comparable, ?> result = new CaseInsensitiveMap<>()
-
-        for (Column row : decisionTable.getAxis(rowAxisName).columnsWithoutDefault)
-        {
-            Comparable rowValue = row.value
-            coord.put(rowAxisName, rowValue)
-
-            if (hasIgnoreColumn)
-            {
-                coord.put(fieldAxisName, IGNORE)
-                if (convertToBoolean(decisionTable.getCell(coord)))
-                {   // Skip rows when value in cell inside ignore column evaluates to boolean true.
-                    continue
-                }
-            }
-
-            Map<?, ?> stripe = decisionTable.getMap([row: row.id])
-            for (String colName : inputColumns)
-            {
-                Column column = fieldAxis.findColumn(colName)
-                Map colMetaProps = column.metaProperties
-
-                if (colMetaProps.containsKey(INPUT_LOW))
-                {
-                    String assocInputVarName = colMetaProps.get(INPUT_LOW)
-                    Map<String, ?> spec = new HashMap<>()
-                    spec.put('low', column.value)
-                    spec.put('value', copyInput.get(assocInputVarName))
-                    spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
-                    ranges.put(assocInputVarName, spec)
-                }
-
-                if (colMetaProps.containsKey(INPUT_HIGH))
-                {
-                    String assocInputVarName = colMetaProps.get(INPUT_HIGH)
-                    Map<String, ?> spec = (Map) ranges.get(assocInputVarName)
-                    spec.put('high', column.value)
-                    spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
-                    copyInput.put(assocInputVarName, spec)
-                }
-
-                String decVarName = colName
-                Object decVarValue = stripe.get(decVarName)
-                Object inputValue = coord.get(colName)
-
-
-                // Check range variables
-                if (inputValue instanceof Map)
-                {
-                    Map<String, ?> rangeInfo = (Map<String, ?>) inputValue
-                    Comparable low = (Comparable) stripe.get((String) rangeInfo.get('low'))
-                    Comparable high = (Comparable) stripe.get((String) rangeInfo.get('high'))
-                    Comparable value = (Comparable) rangeInfo.get('value')
-                    String dataType = rangeInfo.get(DATA_TYPE)
-                    if (StringUtilities.isEmpty(dataType))
-                    {
-                        throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${decisionTable.name}, input variable: ${decVarName}")
-                    }
-
-                    if (dataType.equalsIgnoreCase('DATE'))
-                    {
-                        low = convertToDate(low)
-                        high = convertToDate(high)
-                        value = convertToDate(value)
-                    }
-                    else if (dataType.equalsIgnoreCase('LONG'))
-                    {
-                        low = convertToLong(low)
-                        high = convertToLong(high)
-                        value = convertToLong(value)
-                    }
-                    else if (dataType.equalsIgnoreCase('DOUBLE'))
-                    {
-                        low = convertToDouble(low)
-                        high = convertToDouble(high)
-                        value = convertToDouble(value)
-                    }
-                    else if (dataType.equalsIgnoreCase('BIG_DECIMAL'))
-                    {
-                        low = convertToBigDecimal(low)
-                        high = convertToBigDecimal(high)
-                        value = convertToBigDecimal(value)
-                    }
-
-                    Range range = new Range(low, high)
-                    if (!(range.isWithin(value) == 0))
-                    {
-                        break    // skip row: does not fit within a range
-                    }
-                    continue    // check next decision variable
-                }
-
-                // Check discrete decision variables
-                String cellValue = convertToString(decVarValue)
-                if (cellValue == null)
-                {
-                    cellValue = ''
-                }
-                inputValue = convertToString(inputValue)
-                boolean exclude = cellValue.startsWith('!')
-
-                if (exclude)
-                {
-                    cellValue = cellValue.substring(1)
-                }
-
-                List<String> tokens = cellValue.tokenize(', ')
-
-                if (exclude)
-                {
-                    if (tokens.contains(inputValue))
-                    {
-                        break   // skip row
-                    }
-                }
-                else
-                {
-                    if (!tokens.contains(inputValue))
-                    {
-                        break // skip row
-                    }
-                }
-                // Row matches.  Add it to output.
-                result.put(row.id, [:])
-            }
-        }
         result = determinePriority(result)
         println result
         return result
@@ -292,6 +143,12 @@ class DecisionTable
         return rowAxisName
     }
 
+    /**
+     * Validate that the Decision Table has no overlapping rules.  In other words, it must return 0 or 1
+     * records, never more.
+     * @return Set<Comparable> rowIds of the rows that have duplicate rules.  If the returned Set is empty,
+     * then there are no overlapping rules.
+     */
     Set<Comparable> validateDecisionTable()
     {
         List<Column> rows = decisionTable.getAxis(rowAxisName).columnsWithoutDefault
@@ -307,6 +164,7 @@ class DecisionTable
     {
         return { Map<String, ?> rowValues, Map<String, ?> input ->
             Map<String, ?> inputMap = (Map<String, ?>) input.get('dvs')
+            Map<String, ?> range = [:]
             for (Map.Entry<String, ?> entry : inputMap)
             {
                 // Check special IGNORE row variable
@@ -326,47 +184,16 @@ class DecisionTable
                 // Check range variables
                 if (inputValue instanceof Map)
                 {
-                    Map<String, ?> rangeInfo = (Map<String, ?>) inputValue
-                    Comparable low = (Comparable) rowValues.get((String) rangeInfo.get('low'))
-                    Comparable high = (Comparable) rowValues.get((String) rangeInfo.get('high'))
-                    Comparable value = (Comparable) rangeInfo.get('value')
-                    String dataType = rangeInfo.get(DATA_TYPE)
-                    if (StringUtilities.isEmpty(dataType))
+                    range.put(INPUT_LOW, rowValues.get((String) inputValue.get(INPUT_LOW)))
+                    range.put(INPUT_HIGH, rowValues.get((String) inputValue.get(INPUT_HIGH)))
+                    range.put(INPUT_VALUE, inputValue[INPUT_VALUE])
+                    range.put(DATA_TYPE, inputValue[DATA_TYPE])
+                    boolean isWithin = isWithinRange(range)
+                    if (isWithin)
                     {
-                        throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${decisionTable.name}, input variable: ${decVarName}")
+                        continue
                     }
-
-                    if (dataType.equalsIgnoreCase('DATE'))
-                    {
-                        low = convertToDate(low)
-                        high = convertToDate(high)
-                        value = convertToDate(value)
-                    }
-                    else if (dataType.equalsIgnoreCase('LONG'))
-                    {
-                        low = convertToLong(low)
-                        high = convertToLong(high)
-                        value = convertToLong(value)
-                    }
-                    else if (dataType.equalsIgnoreCase('DOUBLE'))
-                    {
-                        low = convertToDouble(low)
-                        high = convertToDouble(high)
-                        value = convertToDouble(value)
-                    }
-                    else if (dataType.equalsIgnoreCase('BIG_DECIMAL'))
-                    {
-                        low = convertToBigDecimal(low)
-                        high = convertToBigDecimal(high)
-                        value = convertToBigDecimal(value)
-                    }
-
-                    Range range = new Range(low, high)
-                    if (!(range.isWithin(value) == 0))
-                    {
-                        return false    // skip row: does not fit within a range
-                    }
-                    continue    // check next decision variable
+                    return false
                 }
 
                 // Check discrete decision variables
@@ -456,6 +283,17 @@ class DecisionTable
         if (!fieldAxisName || !rowAxisName)
         {
             throw new IllegalStateException("Decision table: ${decisionTable.name} must have one axis with one or more columns with meta-property key: input_value.")
+        }
+
+        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        if (fieldAxis.type != AxisType.DISCRETE)
+        {
+            throw new IllegalStateException("Decision table: ${decisionTable.name} field / property axis must be a DISCRETE axis.  It is ${fieldAxis.type}")
+        }
+
+        if (fieldAxis.valueType != AxisValueType.CISTRING)
+        {
+            throw new IllegalStateException("Decision table: ${decisionTable.name} field / property axis must have value type of CISTRING.  It is ${fieldAxis.valueType}")
         }
 
         for (Column column : decisionTable.getAxis(fieldAxisName).columnsWithoutDefault)
@@ -770,6 +608,107 @@ class DecisionTable
             String newValue = "${candidate.out()}|${existingValue}"
             blowout.setCell(newValue, coordinate)
         }
+    }
+
+    /**
+     * Ensure required input key/values are supplied.  If required values are missing, IllegalArgumentException is
+     * thrown.
+     * @param input Map containing decision variable name/value pairs.
+     */
+    private void ensuredRequiredInputs(Map<String, ?> input, Axis fieldAxis)
+    {
+        for (Column column : fieldAxis.columnsWithoutDefault)
+        {
+            if (column.metaProperties.containsKey(REQUIRED) && convertToBoolean(column.getMetaProperty(REQUIRED)))
+            {
+                if (column.getMetaProperty(INPUT_VALUE))
+                {
+                    if (!input.containsKey(column.value))
+                    {
+                        throw new IllegalArgumentException("Required input: ${column.value} not found, decision table: ${decisionTable.name}")
+                    }
+                }
+                else
+                {
+                    String colName = column.getMetaProperty(INPUT_LOW)
+                    if (!colName)
+                    {
+                        colName = column.getMetaProperty(INPUT_HIGH)
+                    }
+                    if (colName)
+                    {
+                        if (!input.containsKey(colName))
+                        {
+                            throw new IllegalArgumentException("Required range input: ${colName} not found on input, decision table: ${decisionTable.name}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+    /**
+     * Get the range spec Map out of the 'ranges' map by input variable name.  If not there, create a new
+     * empty range spec Map and place it there.
+     */
+    private static Map<String, ?> getRangeSpec(Map<String, Map<String, ?>> ranges, String inputVarName)
+    {
+        Map<String, ?> spec
+        if (ranges.containsKey(inputVarName))
+        {
+            spec = (Map<String, ?>) ranges.get(inputVarName)
+        }
+        else
+        {
+            spec = new HashMap<>()
+            ranges.put(inputVarName, spec)
+        }
+        return spec
+    }
+
+    /**
+     * Ensure value is within range.  The input Map consists of 4 keys (example):
+     * [
+     *     "input_low": 1900
+     *     "input_high": 2100
+     *     "input_value: 2020       // value to test for inclusion within.
+     *     "data_type": DATE
+     * ]
+     * This method will return true if the value is >= the input_low value, and < the input_high value.
+     */
+    private static boolean isWithinRange(Map<String, ?> spec)
+    {
+        Comparable low = (Comparable) spec.get(INPUT_LOW)
+        Comparable high = (Comparable) spec.get(INPUT_HIGH)
+        Comparable value = (Comparable) spec.get(INPUT_VALUE)
+        String dataType = spec.get(DATA_TYPE)
+        
+        if (dataType.equalsIgnoreCase('DATE'))
+        {
+            low = convertToDate(low)
+            high = convertToDate(high)
+            value = convertToDate(value)
+        }
+        else if (dataType.equalsIgnoreCase('LONG'))
+        {
+            low = convertToLong(low)
+            high = convertToLong(high)
+            value = convertToLong(value)
+        }
+        else if (dataType.equalsIgnoreCase('DOUBLE'))
+        {
+            low = convertToDouble(low)
+            high = convertToDouble(high)
+            value = convertToDouble(value)
+        }
+        else if (dataType.equalsIgnoreCase('BIG_DECIMAL'))
+        {
+            low = convertToBigDecimal(low)
+            high = convertToBigDecimal(high)
+            value = convertToBigDecimal(value)
+        }
+
+        Range range = new Range(low, high)
+        return range.isWithin(value) == 0
     }
 
     /**

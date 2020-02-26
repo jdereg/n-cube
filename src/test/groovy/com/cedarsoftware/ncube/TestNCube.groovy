@@ -5897,7 +5897,7 @@ class TestNCube extends NCubeBaseTest
         for (int i=0; i < 1000; i++)
         {
             long start = System.nanoTime()
-            decisionTable.getDecisionx(input)
+            decisionTable.getDecision(input)
             long end = System.nanoTime()
             println "took ${(end - start) / 1000000} ms"
         }
