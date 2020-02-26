@@ -28,12 +28,13 @@ import static com.cedarsoftware.util.Converter.convertToInteger
 import static com.cedarsoftware.util.Converter.convertToLong
 import static com.cedarsoftware.util.Converter.convertToString
 import static com.cedarsoftware.util.StringUtilities.hasContent
+import static java.lang.String.CASE_INSENSITIVE_ORDER
 
 /**
  * Decision Table implements a list of rules that filter a variable number of inputs (decision variables) against
  * a list of constraints.
  *
- * @author John DeRegnaucourt (jdereg@gmail.com)
+ * @author John DeRegnaucourt (jdereg@gmail.com), Josh Snyder (joshsnyder@gmail.com)
  *         <br>
  *         Copyright (c) Cedar Software LLC
  *         <br><br>
@@ -158,6 +159,52 @@ class DecisionTable
         NCube blowout = createValidationNCube(rows)
         Set<Comparable> badRows = validateDecisionTableRows(blowout, rows)
         return badRows
+    }
+
+    /**
+     * Return the values defined in the decision table for every input_value column. The values represent the possible
+     * values of the input_value columns. The values do not account for cells that are left blank which would match on
+     * andy input value passed.
+     * @return Map<String, Set<String> Map with keys representing the input_value columns and values representing
+     * all values defined in the cells associated to those columns
+     */
+    Map<String, Set<String>> getDefinedValues()
+    {
+        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        Axis rowAxis = decisionTable.getAxis(rowAxisName)
+        List<Column> rows = rowAxis.columnsWithoutDefault
+        Map<String, Set<String>> definedValues = [:]
+
+        Map<String, Comparable> coord = [:]
+        for (String colValue : inputColumns)
+        {
+            if (rangeColumns.contains(colValue))
+            {
+                continue
+            }
+
+            Column field = fieldAxis.findColumn(colValue)
+            String fieldValue = field.value
+            Set<String> values = new TreeSet<>(CASE_INSENSITIVE_ORDER)
+
+            for (Column row : rows)
+            {
+                String rowValue = row.value
+                coord.put(fieldAxisName, fieldValue)
+                coord.put(rowAxisName, rowValue)
+                Set<Long> idCoord = new LongHashSet([field.id, row.id] as Set)
+                String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
+                if (hasContent(cellValue))
+                {
+                    cellValue -= BANG
+                    Iterable<String> cellValues = COMMA_SPLITTER.split(cellValue)
+                    values.addAll(cellValues)
+                }
+            }
+
+            definedValues.put(colValue, values)
+        }
+        return definedValues
     }
 
     /**
@@ -439,14 +486,14 @@ class DecisionTable
             }
 
             Map<String, Integer> counters = [:]
-            Map<String, Set<String>> bindings = [:]
+            Map<String, List<String>> bindings = [:]
 
             for (String colValue : colsToProcess)
             {
                 coord.put(fieldAxisName, colValue)
                 Column field = fieldAxis.findColumn(colValue)
                 counters[colValue] = 1
-                bindings[colValue] = new HashSet()
+                bindings.put(colValue, [])
                 Set<Long> idCoord = new LongHashSet([row.id, field.id] as Set)
                 coord.put(fieldAxisName, field.value)
                 String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
@@ -569,7 +616,7 @@ class DecisionTable
         return rangeValue
     }
 
-    private static void populateCachedNCube(Set<Comparable> badRows, NCube blowout, Map<String, Integer> counters, Map<String, Set<String>> bindings, String[] axisNames, Range candidate, Comparable rowId)
+    private static void populateCachedNCube(Set<Comparable> badRows, NCube blowout, Map<String, Integer> counters, Map<String, List<String>> bindings, String[] axisNames, Range candidate, Comparable rowId)
     {
         String candidateOut = candidate.out()
         Map<String, Object> coordinate = [:]
@@ -728,7 +775,7 @@ class DecisionTable
      * @return false if more incrementing can be done, otherwise true.
      */
     private static boolean incrementVariableRadixCount(final Map<String, Integer> counters,
-                                                       final Map<String, Set<String>> bindings,
+                                                       final Map<String, List<String>> bindings,
                                                        final String[] axisNames)
     {
         int digit = axisNames.length - 1
@@ -736,8 +783,8 @@ class DecisionTable
         while (true)
         {
             final String axisName = axisNames[digit]
-            final int count = counters[axisName]
-            final Set<String> cols = bindings[axisName]
+            final int count = counters.get(axisName)
+            final List<String> cols = bindings.get(axisName)
 
             if (count >= cols.size())
             {   // Reach max value for given dimension (digit)
@@ -745,11 +792,11 @@ class DecisionTable
                 {   // we have reached the max radix for the most significant digit - we are done
                     return false
                 }
-                counters[axisNames[digit--]] = 1
+                counters.put(axisNames[digit--], 1)
             }
             else
             {
-                counters[axisName] = count + 1  // increment counter
+                counters.put(axisName, count + 1)  // increment counter
                 return true
             }
         }
