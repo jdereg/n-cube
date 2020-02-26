@@ -22,7 +22,6 @@ import com.cedarsoftware.util.io.JsonWriter
 import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonToken
-import com.google.common.base.Splitter
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.springframework.util.FastByteArrayOutputStream
@@ -37,15 +36,8 @@ import java.util.zip.Deflater
 import java.util.zip.GZIPInputStream
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
-import static com.cedarsoftware.ncube.NCubeConstants.DATA_TYPE
-import static com.cedarsoftware.ncube.NCubeConstants.IGNORE
-import static com.cedarsoftware.ncube.NCubeConstants.INPUT_HIGH
-import static com.cedarsoftware.ncube.NCubeConstants.INPUT_LOW
-import static com.cedarsoftware.ncube.NCubeConstants.INPUT_VALUE
-import static com.cedarsoftware.ncube.NCubeConstants.PRIORITY
 import static com.cedarsoftware.util.Converter.convertToInteger
 import static com.cedarsoftware.util.Converter.convertToLong
-import static com.cedarsoftware.util.Converter.convertToString
 import static com.cedarsoftware.util.EncryptionUtilities.SHA1Digest
 import static com.cedarsoftware.util.EncryptionUtilities.calculateSHA1Hash
 import static com.cedarsoftware.util.ExceptionUtilities.getDeepestException

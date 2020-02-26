@@ -120,4 +120,5 @@ interface NCubeConstants
     final String INPUT_HIGH = 'input_high'
     final String PRIORITY = 'priority'
     final String IGNORE = 'ignore'
+    final String REQUIRED = 'required'
 }

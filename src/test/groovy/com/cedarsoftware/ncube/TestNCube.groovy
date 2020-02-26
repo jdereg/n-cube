@@ -17,7 +17,13 @@ import org.junit.Test
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.util.TestUtil.assertContainsIgnoreCase
-import static org.junit.Assert.*
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertFalse
+import static org.junit.Assert.assertNotEquals
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertNull
+import static org.junit.Assert.assertTrue
+import static org.junit.Assert.fail
 
 /**
  * NCube tests.
@@ -5891,7 +5897,7 @@ class TestNCube extends NCubeBaseTest
         for (int i=0; i < 1000; i++)
         {
             long start = System.nanoTime()
-            decisionTable.getDecision(input)
+            decisionTable.getDecisionx(input)
             long end = System.nanoTime()
             println "took ${(end - start) / 1000000} ms"
         }
