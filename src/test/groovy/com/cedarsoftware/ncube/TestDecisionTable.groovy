@@ -32,10 +32,10 @@ class TestDecisionTable extends NCubeBaseTest
                      producerCode: '50',
                      date: new Date(),
                      symbol: 'CAP']
-        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'commission.json')
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'decision-tables/commission.json')
         DecisionTable decisionTable = new DecisionTable(ncube)
 
-        for (int i=0; i < 1000; i++)
+        for (int i=0; i < 10; i++)
         {
             long start = System.nanoTime()
             decisionTable.getDecision(input)

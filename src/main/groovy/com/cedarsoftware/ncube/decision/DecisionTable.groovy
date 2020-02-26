@@ -8,6 +8,7 @@ import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.Range
 import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CaseInsensitiveSet
 import com.google.common.base.Splitter
 import groovy.transform.CompileStatic
 
@@ -300,7 +301,7 @@ class DecisionTable
         for (Column column : decisionTable.getAxis(fieldAxisName).columnsWithoutDefault)
         {
             Map colMetaProps = column.metaProperties
-            if (colMetaProps.containsKey(INPUT_VALUE))
+            if (colMetaProps.containsKey(INPUT_VALUE) || colMetaProps.containsKey(IGNORE))
             {
                 inputColumns.add((String) column.value)
             }
@@ -417,9 +418,26 @@ class DecisionTable
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         Map<String, Comparable> coord = [:]
         Set<Comparable> badRows = []
-        Column ignoreColumn = fieldAxis.findColumn(IGNORE)
-        Column priorityColumn = fieldAxis.findColumn(PRIORITY)
+        List<Column> ignoreColumns = fieldAxis.findColumns([(IGNORE): true] as Map)
+        Column ignoreColumn = null
+        if (!ignoreColumns.empty)
+        {
+            ignoreColumn = ignoreColumns.first()
+        }
+        List<Column> priorityColumns = fieldAxis.findColumns([(PRIORITY): true] as Map)
+        Column priorityColumn = null
+        if (!priorityColumns.empty)
+        {
+            priorityColumn = fieldAxis.findColumn(PRIORITY)
+        }
 
+        Set<String> colsToProcess = new CaseInsensitiveSet<>(inputColumns)
+        colsToProcess.removeAll(rangeColumns)
+        if (ignoreColumn)
+        {
+            colsToProcess.remove(ignoreColumn.value)
+        }
+        
         for (Column row : rows)
         {
             Comparable rowValue = row.value
@@ -438,13 +456,8 @@ class DecisionTable
             Map<String, Integer> counters = [:]
             Map<String, Set<String>> bindings = [:]
 
-            for (String colValue : inputColumns)
+            for (String colValue : colsToProcess)
             {
-                if (rangeColumns.contains(colValue))
-                {
-                    continue
-                }
-
                 coord.put(fieldAxisName, colValue)
                 Column field = fieldAxis.findColumn(colValue)
                 counters[colValue] = 1
