@@ -1,4 +1,7 @@
 ### Revision History
+* 4.6.12
+  * Added `DecisionTable` class.  See [Decision Table Developer Guide.](README-decision.md)
+  * Test are still being added for DecisionTable, so it is considered 'beta' at this point. 
 * 4.6.11
   * Updated `JsonHttpProxy` to add OAuth2 capability
 * 4.6.10

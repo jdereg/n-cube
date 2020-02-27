@@ -1,4 +1,4 @@
-package com.cedarsoftware.ncube.decision
+package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.Axis
 import com.cedarsoftware.ncube.AxisType

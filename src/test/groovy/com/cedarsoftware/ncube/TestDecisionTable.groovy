@@ -1,7 +1,8 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.decision.DecisionTable
+
 import groovy.transform.CompileStatic
+import org.junit.Ignore
 import org.junit.Test
 
 import static com.cedarsoftware.util.TestUtil.assertContainsIgnoreCase
@@ -28,6 +29,7 @@ import static org.junit.Assert.fail
 @CompileStatic
 class TestDecisionTable extends NCubeBaseTest
 {
+    @Ignore
     @Test
     void testGetDecision()
     {
@@ -47,6 +49,7 @@ class TestDecisionTable extends NCubeBaseTest
         }
     }
 
+    @Ignore
     @Test
     void testStuff()
     {
