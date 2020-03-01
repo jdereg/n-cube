@@ -1,7 +1,6 @@
 package com.cedarsoftware.ncube
 
 import com.cedarsoftware.ncube.util.LongHashSet
-import com.cedarsoftware.ncube.util.RangeSpec
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.StringUtilities
@@ -64,7 +63,15 @@ class DecisionTable
         decisionTable = decisionCube.duplicate("${decisionCube.name}.copy")
         verifyAndCache()
     }
-    
+
+    private static class RangeSpec
+    {
+        String inputVarName
+        String lowColumnName
+        String highColumnName
+        String dataType
+    }
+
     /**
      * Main API for querying a Decision Table.
      * @param input Map containing key/value pairs for all the input_value columns
@@ -205,31 +212,6 @@ class DecisionTable
         return definedValues
     }
 
-    private Comparable convertDataType(Comparable value, String dataType)
-    {
-        if (value == null)
-        {
-            return null
-        }
-        if (dataType.equalsIgnoreCase('DATE'))
-        {
-            return convertToDate(value)
-        }
-        else if (dataType.equalsIgnoreCase('LONG'))
-        {
-            return convertToLong(value)
-        }
-        else if (dataType.equalsIgnoreCase('DOUBLE'))
-        {
-            return convertToDouble(value)
-        }
-        else if (dataType.equalsIgnoreCase('BIG_DECIMAL'))
-        {
-            return convertToBigDecimal(value)
-        }
-        throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL. Data type: ${dataType}, value: ${value}, decision table: ${decisionTable.name}")
-    }
-
     /**
      * Closure used with mapReduce() on special 2D decision n-cubes.
      */
@@ -247,7 +229,7 @@ class DecisionTable
 
                 if (IGNORE == decVarName)
                 {
-                    if (convertToBoolean(decVarValue))
+                    if (decVarValue)
                     {
                         return false    // skip row
                     }
@@ -306,6 +288,16 @@ class DecisionTable
         }
     }
 
+    /**
+     * Perform 'airport pat-down' of 2D NCube being used as a decision table.  This code will ensure that the
+     * passed in NCube is 2D.  It will ensure that this operation is only performed once. This method will ensure
+     * that both Axis are DISCRETE and that the field 'top axis' is of type CISTRING.  This method will ensure that
+     * any range columns have the DATA_TYPE meta-property set.  It will ensure that no "half-ranges" are defined
+     * (meaning only a low or high range is specified.)  This method will ensure that no two (or more) ranges
+     * specify the same input variable name.  This method will convert all cell data in range columns to the data
+     * type of the range columns, so that comparison is faster during validations and searches. Ignore column
+     * values are converted to boolean.  Priority column values are converted to int.
+     */
     private void verifyAndCache()
     {
         // If already called, ignore
@@ -485,8 +477,63 @@ class DecisionTable
                 decisionTable.setCellById(convertDataType(limit, dataType), idCoord)
             }
         }
+        convertSpecialColumnsToPrimitive()
     }
-    
+
+    /**
+     * Convert all IGNORE column values to boolean, and all priority column values to int.
+     */
+    private void convertSpecialColumnsToPrimitive()
+    {
+        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        Axis rowAxis = decisionTable.getAxis(rowAxisName)
+        Map<String, ?> coord = new CaseInsensitiveMap<>()
+
+        long ignoreColId = -1
+        Column ignoreCol = fieldAxis.findColumn(IGNORE)
+
+        if (ignoreCol != null && !ignoreCol.default)
+        {
+            ignoreColId = ignoreCol.id
+        }
+
+        long priorityColId = -1
+        Column priorityCol = fieldAxis.findColumn(PRIORITY)
+
+        if (priorityCol != null && !priorityCol.default)
+        {
+            priorityColId = priorityCol.id
+        }
+
+        if (priorityColId == -1 && ignoreColId == -1)
+        {   // Nothing to do here
+            return
+        }
+
+        for (Column row : rowAxis.columnsWithoutDefault)
+        {
+            coord.put(rowAxisName, row.value)
+
+            if (ignoreColId != -1)
+            {
+                Set<Long> idCoord = new LongHashSet([ignoreColId, row.id] as HashSet)
+                Object value = decisionTable.getCellById(idCoord, coord, [:])
+                decisionTable.setCellById(convertToBoolean(value), idCoord)
+            }
+
+            if (priorityColId != -1)
+            {
+                Set<Long> idCoord = new LongHashSet([priorityColId, row.id] as HashSet)
+                Integer intValue = convertToInteger(decisionTable.getCellById(idCoord, coord, [:]))
+                if (intValue < 1)
+                {   // If priority is not specified, then it is the lowest priority of all
+                    intValue = Integer.MAX_VALUE
+                }
+                decisionTable.setCellById(intValue, idCoord)
+            }
+        }
+    }
+
     private static Map<Comparable, ?> determinePriority(Map<Comparable, ?> result)
     {
         Map<Comparable, ?> result2 = [:]
@@ -536,7 +583,6 @@ class DecisionTable
 
             Column field = fieldAxis.findColumn(colValue)
             String fieldValue = field.value
-
             Axis axis = new Axis(fieldValue, AxisType.DISCRETE, AxisValueType.CISTRING, false)
             blowout.addAxis(axis)
 
@@ -586,7 +632,7 @@ class DecisionTable
             {
                 coord.put(fieldAxisName, IGNORE)
                 Set<Long> idCoord = new LongHashSet([row.id, ignoreColumn.id] as Set)
-                if (convertToBoolean(decisionTable.getCellById(idCoord, coord, [:])))
+                if (decisionTable.getCellById(idCoord, coord, [:]))
                 {
                     continue
                 }
@@ -675,11 +721,11 @@ class DecisionTable
 
             if (colMetaProps.containsKey(INPUT_LOW))
             {
-                range.low = getRangeValue(dataType, coord, idCoord)
+                range.low = convertDataType((Comparable)decisionTable.getCellById(idCoord, coord, [:]), dataType)
             }
             else if (colMetaProps.containsKey(INPUT_HIGH))
             {
-                range.high = getRangeValue(dataType, coord, idCoord)
+                range.high = convertDataType((Comparable)decisionTable.getCellById(idCoord, coord, [:]), dataType)
             }
         }
 
@@ -687,40 +733,10 @@ class DecisionTable
         {
             coord.put(fieldAxisName, priorityColumn.value)
             Set<Long> idCoord = new LongHashSet([rowId, priorityColumn.id] as Set)
-            Object cellValue = decisionTable.getCellById(idCoord, coord, [:])
-            range.priority = convertToInteger(cellValue)
+            range.priority = decisionTable.getCellById(idCoord, coord, [:])
         }
 
         return range
-    }
-
-    private Comparable getRangeValue(String dataType, Map coord, Set<Long> idCoord)
-    {
-        Object cellValue = decisionTable.getCellById(idCoord, coord, [:])
-        Comparable rangeValue
-
-        if (dataType.equalsIgnoreCase('DATE'))
-        {
-            rangeValue = convertToDate(cellValue)
-        }
-        else if (dataType.equalsIgnoreCase('LONG'))
-        {
-            rangeValue = convertToLong(cellValue)
-        }
-        else if (dataType.equalsIgnoreCase('DOUBLE'))
-        {
-            rangeValue = convertToDouble(cellValue)
-        }
-        else if (dataType.equalsIgnoreCase('BIG_DECIMAL'))
-        {
-            rangeValue = convertToBigDecimal(cellValue)
-        }
-        else
-        {
-            throw new IllegalStateException("Range data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL, ncube: ${decisionTable.name}")
-        }
-
-        return rangeValue
     }
 
     private static void populateCachedNCube(Set<Comparable> badRows, NCube blowout, Map<String, Integer> counters, Map<String, List<String>> bindings, String[] axisNames, Range candidate, Comparable rowId)
@@ -816,6 +832,7 @@ class DecisionTable
             }
         }
     }
+    
     /**
      * Get the range spec Map out of the 'ranges' map by input variable name.  If not there, create a new
      * empty range spec Map and place it there.
@@ -833,6 +850,34 @@ class DecisionTable
             ranges.put(inputVarName, spec)
         }
         return spec
+    }
+
+    /**
+     * Convert the passed in value to the data-type specified.
+     */
+    private Comparable convertDataType(Comparable value, String dataType)
+    {
+        if (value == null)
+        {
+            return null
+        }
+        if (dataType.equalsIgnoreCase('DATE'))
+        {
+            return convertToDate(value)
+        }
+        else if (dataType.equalsIgnoreCase('LONG'))
+        {
+            return convertToLong(value)
+        }
+        else if (dataType.equalsIgnoreCase('DOUBLE'))
+        {
+            return convertToDouble(value)
+        }
+        else if (dataType.equalsIgnoreCase('BIG_DECIMAL'))
+        {
+            return convertToBigDecimal(value)
+        }
+        throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL. Data type: ${dataType}, value: ${value}, decision table: ${decisionTable.name}")
     }
 
     /**
