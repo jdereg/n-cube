@@ -1215,7 +1215,7 @@ class NCube<T>
         trackInputKeysUsed(commandInput,output)
 
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
-        final Map matchingRows = [:]
+        final Map matchingRows = rowAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap<>() : [:]
         final Map whereVars = new LinkedHashMap(input)
 
         Collection<Column> rowColumns
@@ -1279,7 +1279,7 @@ class NCube<T>
 
                 String axisName = colAxis.name
                 boolean isDiscrete = colAxis.type == AxisType.DISCRETE
-                Map result = new LinkedHashMap()
+                Map result = colAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap<>() : [:]
                 for (Column column : selectList)
                 {
                     def colValue = isDiscrete ? column.value : column.columnName

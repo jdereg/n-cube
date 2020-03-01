@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
+import org.junit.Ignore
 import org.junit.Test
 
 import static com.cedarsoftware.util.TestUtil.assertContainsIgnoreCase
@@ -27,6 +28,7 @@ import static org.junit.Assert.fail
 @CompileStatic
 class TestDecisionTable extends NCubeBaseTest
 {
+    @Ignore
     @Test
     void testGetDecision()
     {
@@ -37,21 +39,22 @@ class TestDecisionTable extends NCubeBaseTest
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'decision-tables/commission.json')
         DecisionTable decisionTable = new DecisionTable(ncube)
 
-        for (int i=0; i < 50; i++)
+        for (int i=0; i < 10; i++)
         {
             long start = System.nanoTime()
-            decisionTable.getDecision(input)
+            println decisionTable.getDecision(input)
             long end = System.nanoTime()
             println "took ${(end - start) / 1000000} ms"
         }
     }
 
+    @Ignore
     @Test
     void testStuff()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/commission.json')
 
-        for (int i = 0; i < 10; i ++)
+        for (int i = 0; i < 3; i ++)
         {
             long start = System.nanoTime()
             Set<Comparable> badRows = dt.validateDecisionTable()
@@ -191,7 +194,29 @@ class TestDecisionTable extends NCubeBaseTest
         DecisionTable dt = getDecisionTableFromJson('decision-tables/high-low.json')
         Set<Comparable> badRows = dt.validateDecisionTable()
         assert 0 == badRows.size()
-        println dt.getDecision([age:10])
+        Map map10 = dt.getDecision([age:10])
+        assert map10.size() == 1
+        assert map10[1L]['upper'] == 16
+        assert map10[1L]['lower'] == 0
+        Map map20 = dt.getDecision([AGE:20])
+        assert map20.size() == 1
+        assert map20[2L]['UPPER'] == 22
+        assert map20[2L]['LOWER'] == 16
+        assert map10 != map20
+    }
+
+    @Test
+    void testRangeDeclaredHighThenLowWithNoIgnorePriority()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/high-low-output.json')
+        Set<Comparable> badRows = dt.validateDecisionTable()
+        assert 0 == badRows.size()
+        Map map10 = dt.getDecision([age:10])
+        assert map10.size() == 1
+        assert map10[1L]['rate'] == 0.0
+        Map map20 = dt.getDecision([AGE:20])
+        assert map20.size() == 1
+        assert map20[2L]['RaTe'] == 2.0
     }
 
     private static DecisionTable getDecisionTableFromJson(String file)

@@ -56,7 +56,6 @@ class DecisionTable
     private Set<String> rangeColumns = new HashSet<>()
     private static final String BANG = '!'
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings()
-    private static final Splitter BAR_SPLITTER = Splitter.on('|').trimResults().omitEmptyStrings()
 
     DecisionTable(NCube decisionCube)
     {
@@ -130,7 +129,6 @@ class DecisionTable
 
         Map<Comparable, ?> result = decisionTable.mapReduce(fieldAxisName, decisionTableClosure, options)
         result = determinePriority(result)
-        println result
         return result
     }
 
