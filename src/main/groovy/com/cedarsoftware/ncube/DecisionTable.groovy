@@ -1,14 +1,10 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.ncube.Axis
-import com.cedarsoftware.ncube.AxisType
-import com.cedarsoftware.ncube.AxisValueType
-import com.cedarsoftware.ncube.Column
-import com.cedarsoftware.ncube.NCube
-import com.cedarsoftware.ncube.Range
 import com.cedarsoftware.ncube.util.LongHashSet
+import com.cedarsoftware.ncube.util.RangeSpec
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.StringUtilities
 import com.google.common.base.Splitter
 import groovy.transform.CompileStatic
 
@@ -65,10 +61,10 @@ class DecisionTable
 
     DecisionTable(NCube decisionCube)
     {
-        decisionTable = decisionCube
+        decisionTable = decisionCube.duplicate("${decisionCube.name}.copy")
         verifyAndCache()
     }
-
+    
     /**
      * Main API for querying a Decision Table.
      * @param input Map containing key/value pairs for all the input_value columns
@@ -96,7 +92,8 @@ class DecisionTable
                 if (!spec.containsKey(INPUT_VALUE))
                 {   // Last range post (high or low) processed, sets the input_value, data_type, and copies the range spec to the input map.
                     // ["date": date instance] becomes ("date": [low:1900, high:2100, input_value: date instance, data_type: DATE])
-                    spec.put(INPUT_VALUE, copyInput.get(inputVarName))
+                    Comparable value = convertDataType((Comparable)copyInput.get(inputVarName), (String)colMetaProps.get(DATA_TYPE))
+                    spec.put(INPUT_VALUE, value)
                     spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
                     copyInput.put(inputVarName, spec)
                 }
@@ -109,7 +106,8 @@ class DecisionTable
                 spec.put(INPUT_HIGH, column.value)
                 if (!spec.containsKey(INPUT_VALUE))
                 {
-                    spec.put(INPUT_VALUE, copyInput.get(inputVarName))
+                    Comparable value = convertDataType((Comparable)copyInput.get(inputVarName), (String)colMetaProps.get(DATA_TYPE))
+                    spec.put(INPUT_VALUE, value)
                     spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
                     copyInput.put(inputVarName, spec)
                 }
@@ -174,8 +172,8 @@ class DecisionTable
         Axis rowAxis = decisionTable.getAxis(rowAxisName)
         List<Column> rows = rowAxis.columnsWithoutDefault
         Map<String, Set<String>> definedValues = [:]
-
         Map<String, Comparable> coord = [:]
+        
         for (String colValue : inputColumns)
         {
             if (rangeColumns.contains(colValue))
@@ -207,6 +205,31 @@ class DecisionTable
         return definedValues
     }
 
+    private Comparable convertDataType(Comparable value, String dataType)
+    {
+        if (value == null)
+        {
+            return null
+        }
+        if (dataType.equalsIgnoreCase('DATE'))
+        {
+            return convertToDate(value)
+        }
+        else if (dataType.equalsIgnoreCase('LONG'))
+        {
+            return convertToLong(value)
+        }
+        else if (dataType.equalsIgnoreCase('DOUBLE'))
+        {
+            return convertToDouble(value)
+        }
+        else if (dataType.equalsIgnoreCase('BIG_DECIMAL'))
+        {
+            return convertToBigDecimal(value)
+        }
+        throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL. Data type: ${dataType}, value: ${value}, decision table: ${decisionTable.name}")
+    }
+
     /**
      * Closure used with mapReduce() on special 2D decision n-cubes.
      */
@@ -217,7 +240,7 @@ class DecisionTable
 
             for (Map.Entry<String, ?> entry : inputMap)
             {
-                // Check special IGNORE row variable
+                // 1. Check special IGNORE row variable
                 String decVarName = entry.key
                 Object decVarValue = rowValues.get(decVarName)
                 Object inputValue = entry.value
@@ -231,21 +254,29 @@ class DecisionTable
                     continue    // check next decision variable
                 }
 
-                // Check range variables
+                // 2. Check range variables
                 if (inputValue instanceof Map)
                 {   // Using [ ] notation for Map access for sake of clarity
-                    if (!isWithinRange(
-                            (Comparable)rowValues[(String) inputValue[INPUT_LOW]],
-                            (Comparable)rowValues[(String) inputValue[INPUT_HIGH]],
-                            (Comparable)inputValue[INPUT_VALUE],
-                            (String)inputValue[DATA_TYPE]))
+                    Comparable low = (Comparable)rowValues.get((String) inputValue[INPUT_LOW])
+                    Comparable high = (Comparable)rowValues.get((String) inputValue[INPUT_HIGH])
+                    Comparable value = (Comparable)inputValue[INPUT_VALUE]
+
+                    if (value == null)
+                    {   // null is never between ranges
+                        return false
+                    }
+                    if (value.compareTo(low) < 0)
+                    {
+                        return false
+                    }
+                    else if (value.compareTo(high) >= 0)
                     {
                         return false
                     }
                     continue
                 }
 
-                // Check discrete decision variables
+                // 3. Check discrete decision variables
                 String cellValue = convertToString(decVarValue)
                 if (cellValue == null)
                 {
@@ -253,24 +284,19 @@ class DecisionTable
                 }
                 inputValue = convertToString(inputValue)
                 boolean exclude = cellValue.startsWith('!')
+                cellValue -= BANG
+                Iterable<String> cellValues = COMMA_SPLITTER.split(cellValue)
 
                 if (exclude)
                 {
-                    cellValue = cellValue.substring(1)
-                }
-
-                List<String> tokens = cellValue.tokenize(', ')
-
-                if (exclude)
-                {
-                    if (tokens.contains(inputValue))
+                    if (cellValues.contains(inputValue))
                     {
                         return false
                     }
                 }
                 else
                 {
-                    if (!tokens.contains(inputValue))
+                    if (!cellValues.contains(inputValue))
                     {
                         return false
                     }
@@ -282,6 +308,7 @@ class DecisionTable
 
     private void verifyAndCache()
     {
+        // If already called, ignore
         if (hasContent(fieldAxisName) && hasContent(rowAxisName))
         {
             return
@@ -345,6 +372,7 @@ class DecisionTable
             throw new IllegalStateException("Decision table: ${decisionTable.name} field / property axis must have value type of CISTRING.  It is ${fieldAxis.valueType}")
         }
 
+        Map<String, RangeSpec> rangeSpecs = new CaseInsensitiveMap<>()
         for (Column column : decisionTable.getAxis(fieldAxisName).columnsWithoutDefault)
         {
             Map colMetaProps = column.metaProperties
@@ -353,14 +381,48 @@ class DecisionTable
                 inputColumns.add((String) column.value)
             }
 
-            if (colMetaProps.containsKey(INPUT_LOW))
+            if (colMetaProps.containsKey(INPUT_LOW) || colMetaProps.containsKey(INPUT_HIGH))
             {
-                if (!colMetaProps.containsKey(DATA_TYPE))
+                String dataType = colMetaProps.get(DATA_TYPE)
+                if (dataType == null || !['LONG', 'DOUBLE', 'DATE', 'BIG_DECIMAL'].contains(dataType.toUpperCase()))
                 {
                     throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${decisionTable.name}, column: ${column.value}. Valid values are DATE, LONG, DOUBLE, BIG_DECIMAL.")
                 }
                 inputColumns.add((String) column.value)
                 rangeColumns.add((String) column.value)
+                RangeSpec rangeSpec
+                String inputVarName
+                
+                if (colMetaProps.containsKey(INPUT_LOW))
+                {
+                    inputVarName = colMetaProps.get(INPUT_LOW)
+                    rangeSpec = rangeSpecs.get(inputVarName)
+                    if (rangeSpec == null)
+                    {
+                        rangeSpec = new RangeSpec()
+                    }
+                    if (rangeSpec.lowColumnName)
+                    {
+                        throw new IllegalStateException("More than one low range column with same input variable name found: ${INPUT_LOW}. Each range variable should have a unique name.")
+                    }
+                    rangeSpec.lowColumnName = column.value
+                }
+                else
+                {
+                    inputVarName = colMetaProps.get(INPUT_HIGH)
+                    rangeSpec = rangeSpecs.get(inputVarName)
+                    if (rangeSpec == null)
+                    {
+                        rangeSpec = new RangeSpec()
+                    }
+                    if (rangeSpec.highColumnName)
+                    {
+                        throw new IllegalStateException("More than one high range column with same input variable name found: ${INPUT_LOW}. Each range variable should have a unique name.")
+                    }
+                    rangeSpec.highColumnName = column.value
+                }
+                rangeSpec.dataType = dataType
+                rangeSpecs.put(inputVarName, rangeSpec)
             }
 
             if (colMetaProps.containsKey(INPUT_HIGH))
@@ -376,6 +438,51 @@ class DecisionTable
             if (colMetaProps.containsKey(OUTPUT_VALUE))
             {
                 outputColumns.add((String) column.value)
+            }
+        }
+
+        // Throw error if a range is only half-defined (lower with no upper, upper with no lower).
+        for (RangeSpec rangeSpec : rangeSpecs.values())
+        {
+            String boundName1 = null
+            String boundName2 = null
+            if (StringUtilities.isEmpty(rangeSpec.lowColumnName))
+            {
+                boundName1 = 'Upper' 
+                boundName2 = 'lower'
+            }
+            else if (StringUtilities.isEmpty(rangeSpec.highColumnName))
+            {
+                boundName1 = 'Lower'
+                boundName2 = 'upper'
+            }
+            if (boundName1)
+            {
+                throw new IllegalStateException("${boundName1} range Column defined without matching ${boundName2} range Column. Input variable name: ${rangeSpec.inputVarName}, data type: ${rangeSpec.dataType}, ncube: ${decisionTable.name}")
+            }
+        }
+
+        // Convert all range values in the table to the data type specified on the column meta-property
+        Axis rowAxis = decisionTable.getAxis(rowAxisName)
+        Map<String, ?> coord = new CaseInsensitiveMap<>()
+
+        for (String colName : rangeColumns)
+        {
+            Column limitCol = fieldAxis.findColumn(colName)
+            String dataType = limitCol.getMetaProperty(DATA_TYPE)
+            coord.put(fieldAxisName, limitCol.value)
+            
+            for (Column row : rowAxis.columnsWithoutDefault)
+            {
+                coord.put(rowAxisName, row.value)
+                Set<Long> idCoord = new LongHashSet([limitCol.id, row.id] as HashSet)
+                Object value = decisionTable.getCellById(idCoord, coord, [:])
+                if (value == null || !(value instanceof Comparable))
+                {
+                    throw new IllegalStateException("Values in range column must be instanceof Comparable, row ${row.value}, field: ${limitCol.value}, ncube: ${decisionTable.name}")
+                }
+                Comparable limit = (Comparable) value
+                decisionTable.setCellById(convertDataType(limit, dataType), idCoord)
             }
         }
     }
@@ -726,47 +833,6 @@ class DecisionTable
             ranges.put(inputVarName, spec)
         }
         return spec
-    }
-
-    /**
-     * Ensure value is within range.  The input Map consists of 4 keys (example):
-     * [
-     *     "input_low": 1900
-     *     "input_high": 2100
-     *     "input_value: 2020       // value to test for inclusion within.
-     *     "data_type": DATE
-     * ]
-     * This method will return true if the value is >= the input_low value, and < the input_high value.
-     */
-    private static boolean isWithinRange(Comparable low, Comparable high, Comparable value, String dataType)
-    {
-        if (dataType.equalsIgnoreCase('DATE'))
-        {
-            low = convertToDate(low)
-            high = convertToDate(high)
-            value = convertToDate(value)
-        }
-        else if (dataType.equalsIgnoreCase('LONG'))
-        {
-            low = convertToLong(low)
-            high = convertToLong(high)
-            value = convertToLong(value)
-        }
-        else if (dataType.equalsIgnoreCase('DOUBLE'))
-        {
-            low = convertToDouble(low)
-            high = convertToDouble(high)
-            value = convertToDouble(value)
-        }
-        else if (dataType.equalsIgnoreCase('BIG_DECIMAL'))
-        {
-            low = convertToBigDecimal(low)
-            high = convertToBigDecimal(high)
-            value = convertToBigDecimal(value)
-        }
-
-        Range range = new Range(low, high)
-        return range.isWithin(value) == 0
     }
 
     /**

@@ -14,14 +14,14 @@ match a value in the same row in order for the row to be returned. Actually, the
 but all the values in the columns that are marked with the `OUTPUT_VALUE: true` are returned.
 
 The return is a `Map` looks like:
-```
-   ['134': [price: 1.0, commission: 15.0]]
+```groovy
+['134': [price: 1.0, commission: 15.0]]
 ```                                     
 where `134` is the row ID (the row axis can have any name, must be `Axis.axisType (DISCRETE)`, and can be any 
 `Axis.axisValueType (LONG, STRING, etc.)`.
 
 In this example, the input was:
-```
+```groovy
 [state:'OH', 'SKU': 12345]
 ```
 and that input matched row `134` which had a value of `OH` for `state` and the value `12345` for `SKU`.

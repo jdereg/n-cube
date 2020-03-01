@@ -16,7 +16,11 @@ import java.security.SecureRandom
 import java.util.regex.Matcher
 
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
-import static com.cedarsoftware.util.Converter.*
+import static com.cedarsoftware.util.Converter.convertToBigDecimal
+import static com.cedarsoftware.util.Converter.convertToDate
+import static com.cedarsoftware.util.Converter.convertToDouble
+import static com.cedarsoftware.util.Converter.convertToLong
+import static com.cedarsoftware.util.Converter.convertToString
 import static com.cedarsoftware.util.EncryptionUtilities.calculateSHA1Hash
 import static com.cedarsoftware.util.StringUtilities.hasContent
 import static com.cedarsoftware.util.StringUtilities.isEmpty
@@ -410,7 +414,7 @@ class Axis
      */
     Map<String, Object> getMetaProperties()
     {
-        Map ret = metaProps == null ? new CaseInsensitiveMap() : metaProps
+        Map<String, Object> ret = metaProps == null ? new CaseInsensitiveMap<String, Object>() : metaProps
         return Collections.unmodifiableMap(ret)
     }
 
