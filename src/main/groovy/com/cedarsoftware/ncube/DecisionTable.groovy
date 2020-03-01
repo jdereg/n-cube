@@ -690,10 +690,13 @@ class DecisionTable
             Range range = buildRange(row.id, rowValue, priorityColumn)
             String[] axisNames = bindings.keySet() as String[]
 
-            populateCachedNCube(badRows, blowout, counters, bindings, axisNames, range, rowValue) // call this method once before the counter gets turned over
-            while (incrementVariableRadixCount(counters, bindings, axisNames))
+            // Loop written this way because do-while loops are not in Groovy until version 3
+            boolean done = false
+
+            while (!done)
             {
                 populateCachedNCube(badRows, blowout, counters, bindings, axisNames, range, rowValue)
+                done = !incrementVariableRadixCount(counters, bindings, axisNames)
             }
         }
         return badRows
@@ -701,7 +704,6 @@ class DecisionTable
 
     private Range buildRange(long rowId, Comparable rowValue, Column priorityColumn)
     {
-        Range range = new Range()
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         Map<String, Comparable> coord = [(rowAxisName): rowValue]
 
@@ -710,22 +712,22 @@ class DecisionTable
         {
             throw new IllegalStateException("Multiple ranges not yet supported, ncube: ${decisionTable.name}")
         }
+        Range range = new Range(0, 1)
 
         for (String colValue : rangeColumns)
         {
             Column column = fieldAxis.findColumn(colValue)
             Map colMetaProps = column.metaProperties
-            String dataType = colMetaProps.get(DATA_TYPE)
             Set<Long> idCoord = new LongHashSet([column.id, rowId] as Set)
             coord.put(fieldAxisName, colValue)
 
             if (colMetaProps.containsKey(INPUT_LOW))
             {
-                range.low = convertDataType((Comparable)decisionTable.getCellById(idCoord, coord, [:]), dataType)
+                range.low = (Comparable)decisionTable.getCellById(idCoord, coord, [:])
             }
             else if (colMetaProps.containsKey(INPUT_HIGH))
             {
-                range.high = convertDataType((Comparable)decisionTable.getCellById(idCoord, coord, [:]), dataType)
+                range.high = (Comparable)decisionTable.getCellById(idCoord, coord, [:])
             }
         }
 
@@ -739,9 +741,8 @@ class DecisionTable
         return range
     }
 
-    private static void populateCachedNCube(Set<Comparable> badRows, NCube blowout, Map<String, Integer> counters, Map<String, List<String>> bindings, String[] axisNames, Range candidate, Comparable rowId)
+    private static void populateCachedNCube(Set<Comparable> badRows, NCube blowout, Map<String, Integer> counters, Map<String, List<String>> bindings, String[] axisNames, Range candidate, Comparable rowValue)
     {
-        String candidateOut = candidate.out()
         Map<String, Object> coordinate = [:]
         Set<Long> ids = new HashSet<>()
         
@@ -753,46 +754,23 @@ class DecisionTable
             ids.add(blowout.getAxis(key).findColumn(value).id)
         }
 
-        boolean goodCoordinate = true
         Set<Long> idCoord = new LongHashSet(ids)
-        String existingValue = blowout.getCellById(idCoord, coordinate, [:])
-        
-        if (existingValue != null)
+        Ranges ranges = blowout.getCellById(idCoord, coordinate, [:])
+        if (ranges == null)
         {
-            Iterable<String> entryStrings = BAR_SPLITTER.split(existingValue)
-            for (String entryString : entryStrings)
-            {
-                Range existingEntry = new Range(entryString)
-                if (candidateOut == existingEntry.out())
-                {
-                    goodCoordinate = false
-                }
-                else
-                {
-                    boolean nullRange = existingEntry.low == null && existingEntry.high == null && candidate.low == null && candidate.high == null
-                    boolean equalPriorities = existingEntry.priority == candidate.priority
-                    if ((nullRange || existingEntry.overlap(candidate)) && equalPriorities)
-                    {
-                        goodCoordinate = false
-                    }
-                }
-
-                if (!goodCoordinate)
-                {
-                    badRows.add(rowId)
-                    break
-                }
-            }
+            ranges = new Ranges()
+            ranges.addRange(candidate, rowValue)
+            blowout.setCellById(ranges, idCoord)
+        }
+        else if (ranges.matches(candidate))
+        {
+            badRows.add(rowValue)
         }
         else
         {
-            existingValue = ''
-        }
-
-        if (goodCoordinate)
-        {
-            String newValue = "${candidateOut}|${existingValue}"
-            blowout.setCellById(newValue, idCoord)
+            Ranges copy = ranges.duplicate()    // Needed to prevent 'interning' of Ranges instance
+            copy.addRange(candidate, rowValue)
+            blowout.setCellById(copy, idCoord)
         }
     }
 

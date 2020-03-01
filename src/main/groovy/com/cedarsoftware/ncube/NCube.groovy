@@ -4532,7 +4532,7 @@ class NCube<T>
             return null
         }
 
-        if (!isLogicalPrimitive(value.class))
+        if (!isLogicalPrimitive(value.class) && !(value instanceof Ranges))
         {   // don't attempt to intern null (NPE) or non-primitive instances
             return value
         }

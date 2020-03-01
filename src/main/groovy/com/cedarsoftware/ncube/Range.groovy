@@ -1,9 +1,7 @@
 package com.cedarsoftware.ncube
 
-import com.google.common.base.Splitter
-import groovy.transform.CompileStatic
 
-import static com.cedarsoftware.util.Converter.convertToInteger
+import groovy.transform.CompileStatic
 
 /**
  * This class is used to represent a 'band' or 'range' of values (numeric, date, etc.)
@@ -62,25 +60,9 @@ class Range implements Comparable<Range>
         this.high = high
     }
 
-    Range(String enchilada)
-    {
-        Iterable<String> bites = Splitter.on('/').trimResults().omitEmptyStrings().split(enchilada)
-        String dataType = bites[0]
-        low = 'Default' == bites[1] ? null : (Comparable) CellInfo.parseJsonValue(bites[1], null, dataType, false)
-        high = 'Default' == bites[2] ? null : (Comparable) CellInfo.parseJsonValue(bites[2], null, dataType, false)
-        priority = convertToInteger(bites[3])
-    }
-
     String toString()
     {
         return "[${CellInfo.formatForDisplay(low)} - ${CellInfo.formatForDisplay(high)})"
-    }
-
-    String out()
-    {
-        String lowValue = CellInfo.formatForDisplay(low)
-        String highValue = CellInfo.formatForDisplay(high)
-        return "${CellInfo.getType(low)}/${lowValue}/${highValue}/${priority}"
     }
 
     int compareTo(Range that)
@@ -108,7 +90,7 @@ class Range implements Comparable<Range>
         {
             return false
         }
-        if (this == other)
+        if (this.is(other))
         {
             return true
         }
