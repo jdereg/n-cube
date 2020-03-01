@@ -99,7 +99,7 @@ class Range implements Comparable<Range>
 
     int hashCode()
     {
-        return low.hashCode() + high.hashCode() + priority
+        return low.hashCode() + high.hashCode() + 31 * priority
     }
 
     /**

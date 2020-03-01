@@ -1840,7 +1840,7 @@ class Axis
      */
     boolean areAxisPropsEqual(Object o)
     {
-        if (this == o)
+        if (this.is(o))
         {
             return true
         }

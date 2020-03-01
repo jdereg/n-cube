@@ -79,7 +79,7 @@ class DecisionTable
      */
     Map<Comparable, ?> getDecision(Map<String, ?> input)
     {
-        Map<String, Map<String, ?>> ranges = new HashMap<>()
+        Map<String, Map<String, ?>> ranges = new CaseInsensitiveMap<>()
         Map<String, ?> copyInput = new CaseInsensitiveMap<>(input)
         copyInput.put(IGNORE, null)
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
@@ -111,6 +111,7 @@ class DecisionTable
                 String inputVarName = colMetaProps.get(INPUT_HIGH)
                 Map<String, ?> spec = getRangeSpec(ranges, inputVarName)
                 spec.put(INPUT_HIGH, column.value)
+                
                 if (!spec.containsKey(INPUT_VALUE))
                 {
                     Comparable value = convertDataType((Comparable)copyInput.get(inputVarName), (String)colMetaProps.get(DATA_TYPE))
@@ -317,7 +318,7 @@ class DecisionTable
         Axis second = axes.last()
 
         Column any = first.columnsWithoutDefault.find { Column column ->
-            Set<String> keys = new HashSet<>(column.metaProperties.keySet())
+            Set<String> keys = new CaseInsensitiveSet<>(column.metaProperties.keySet())
             keys.retainAll(decisionMetaPropertyKeys)
             if (keys.size())
             {
@@ -333,7 +334,7 @@ class DecisionTable
         else
         {
             any = second.columnsWithoutDefault.find { Column column ->
-                Set<String> keys = new HashSet<>(column.metaProperties.keySet())
+                Set<String> keys = new CaseInsensitiveSet<>(column.metaProperties.keySet())
                 keys.retainAll(decisionMetaPropertyKeys)
                 if (keys.size())
                 {
@@ -350,7 +351,7 @@ class DecisionTable
 
         if (!fieldAxisName || !rowAxisName)
         {
-            throw new IllegalStateException("Decision table: ${decisionTable.name} must have one axis with one or more columns with meta-property key: input_value.")
+            throw new IllegalStateException("Decision table: ${decisionTable.name} must have one axis with one or more columns with meta-property keys: input_value and/or input_high/input_low.")
         }
 
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
@@ -689,14 +690,28 @@ class DecisionTable
 
             Range range = buildRange(row.id, rowValue, priorityColumn)
             String[] axisNames = bindings.keySet() as String[]
+            if (axisNames.length > 0)
+            {   // No discrete variables, only ranges.
+                boolean done = false
+                Set<Long> ids = new HashSet<>()
+                Map<String, ?> coordinate = new HashMap<>()
 
-            // Loop written this way because do-while loops are not in Groovy until version 3
-            boolean done = false
+                // Loop written this way because do-while loops are not in Groovy until version 3
+                while (!done)
+                {
+                    ids.clear()
 
-            while (!done)
-            {
-                populateCachedNCube(badRows, blowout, counters, bindings, axisNames, range, rowValue)
-                done = !incrementVariableRadixCount(counters, bindings, axisNames)
+                    for (String key : axisNames)
+                    {
+                        int radix = counters[key]
+                        String value = bindings.get(key)[radix - 1]
+                        coordinate.put(key, value)
+                        ids.add(blowout.getAxis(key).findColumn(value).id)
+                    }
+
+                    populateRangeCell(badRows, blowout, new LongHashSet(ids), coordinate, range, rowValue)
+                    done = !incrementVariableRadixCount(counters, bindings, axisNames)
+                }
             }
         }
         return badRows
@@ -741,20 +756,8 @@ class DecisionTable
         return range
     }
 
-    private static void populateCachedNCube(Set<Comparable> badRows, NCube blowout, Map<String, Integer> counters, Map<String, List<String>> bindings, String[] axisNames, Range candidate, Comparable rowValue)
+    private static void populateRangeCell(Set<Comparable> badRows, NCube blowout, Set<Long> idCoord, Map<String, ?> coordinate, Range candidate, Comparable rowValue)
     {
-        Map<String, Object> coordinate = [:]
-        Set<Long> ids = new HashSet<>()
-        
-        for (String key : axisNames)
-        {
-            int radix = counters[key]
-            String value = bindings.get(key)[radix - 1]
-            coordinate.put(key, value)
-            ids.add(blowout.getAxis(key).findColumn(value).id)
-        }
-
-        Set<Long> idCoord = new LongHashSet(ids)
         Ranges ranges = blowout.getCellById(idCoord, coordinate, [:])
         if (ranges == null)
         {
@@ -762,7 +765,7 @@ class DecisionTable
             ranges.addRange(candidate, rowValue)
             blowout.setCellById(ranges, idCoord)
         }
-        else if (ranges.matches(candidate))
+        else if (ranges.overlaps(candidate))
         {
             badRows.add(rowValue)
         }
@@ -826,7 +829,7 @@ class DecisionTable
         }
         else
         {
-            spec = new HashMap<>()
+            spec = new CaseInsensitiveMap<>()
             ranges.put(inputVarName, spec)
         }
         return spec

@@ -185,6 +185,15 @@ class TestDecisionTable extends NCubeBaseTest
         assert 3L == badRow
     }
 
+    @Test
+    void testRangeDeclaredHighThenLowWithNoIgnorePriorityAndOutput()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/high-low.json')
+        Set<Comparable> badRows = dt.validateDecisionTable()
+        assert 0 == badRows.size()
+        println dt.getDecision([age:10])
+    }
+
     private static DecisionTable getDecisionTableFromJson(String file)
     {
         String json = NCubeRuntime.getResourceAsString(file)

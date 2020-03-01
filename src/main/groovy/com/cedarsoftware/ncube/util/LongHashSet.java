@@ -272,7 +272,7 @@ public class LongHashSet implements Set<Long>
         // This must be an order insensitive hash
         int h = 0;
         long[] local = elems;
-        int len = elems.length;
+        int len = size();
         for (int i=0; i < len; i++)
         {
             long value = local[i];

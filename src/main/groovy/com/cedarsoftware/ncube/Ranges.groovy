@@ -42,7 +42,7 @@ class Ranges
         return copy
     }
 
-    boolean matches(Range candidate)
+    boolean overlaps(Range candidate)
     {
         for (Range range : ranges)
         {
