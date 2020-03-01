@@ -487,6 +487,16 @@ class NCubeGroovyExpression
     }
 
     /**
+     * Check whether the 'test' input is between the supplied low and high range.
+     * @return true if the 'test' is greater than or equal to the low value, and
+     * less than the high value.
+     */
+    static boolean isBetween(Comparable low, Comparable high, Comparable test)
+    {
+        return test >= low && test < high
+    }
+
+    /**
      * @return long Current time in nano seconds (used to compute how long something takes to execute)
      */
     static long now()

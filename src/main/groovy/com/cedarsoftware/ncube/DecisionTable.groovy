@@ -768,7 +768,9 @@ class DecisionTable
         }
         else
         {
-            Ranges copy = ranges.duplicate()    // Needed to prevent 'interning' of Ranges instance
+            // "Ranges" pulled from cell duplicated so that the interned version is not modified directly.
+            // setCellById() below will intern if possible, otherwise this new instance will exist.
+            Ranges copy = ranges.duplicate()
             copy.addRange(candidate, rowValue)
             blowout.setCellById(copy, idCoord)
         }

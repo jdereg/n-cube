@@ -1,8 +1,6 @@
 package com.cedarsoftware.ncube
 
-
 import groovy.transform.CompileStatic
-import org.junit.Ignore
 import org.junit.Test
 
 import static com.cedarsoftware.util.TestUtil.assertContainsIgnoreCase
@@ -29,7 +27,6 @@ import static org.junit.Assert.fail
 @CompileStatic
 class TestDecisionTable extends NCubeBaseTest
 {
-    @Ignore
     @Test
     void testGetDecision()
     {
@@ -40,7 +37,7 @@ class TestDecisionTable extends NCubeBaseTest
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'decision-tables/commission.json')
         DecisionTable decisionTable = new DecisionTable(ncube)
 
-        for (int i=0; i < 100; i++)
+        for (int i=0; i < 50; i++)
         {
             long start = System.nanoTime()
             decisionTable.getDecision(input)
@@ -49,7 +46,6 @@ class TestDecisionTable extends NCubeBaseTest
         }
     }
 
-    @Ignore
     @Test
     void testStuff()
     {
