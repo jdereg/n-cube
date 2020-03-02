@@ -23,6 +23,7 @@ import static com.cedarsoftware.util.Converter.convertToInteger
 import static com.cedarsoftware.util.Converter.convertToLong
 import static com.cedarsoftware.util.Converter.convertToString
 import static com.cedarsoftware.util.StringUtilities.hasContent
+import static com.cedarsoftware.util.StringUtilities.isEmpty
 import static java.lang.String.CASE_INSENSITIVE_ORDER
 
 /**
@@ -80,6 +81,7 @@ class DecisionTable
     {
         Map<String, Map<String, ?>> ranges = new CaseInsensitiveMap<>()
         Map<String, ?> copyInput = new CaseInsensitiveMap<>(input)
+        copyInput.keySet().retainAll(inputColumns)
         copyInput.put(IGNORE, null)
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         ensuredRequiredInputs(copyInput, fieldAxis)
@@ -259,9 +261,9 @@ class DecisionTable
 
                 // 3. Check discrete decision variables
                 String cellValue = convertToString(decVarValue)
-                if (cellValue == null)
+                if (isEmpty(cellValue))
                 {
-                    cellValue = ''
+                    continue
                 }
                 inputValue = convertToString(inputValue)
                 boolean exclude = cellValue.startsWith('!')

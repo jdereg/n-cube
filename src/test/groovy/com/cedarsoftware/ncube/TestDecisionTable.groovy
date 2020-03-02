@@ -219,6 +219,39 @@ class TestDecisionTable extends NCubeBaseTest
         assert map20[2L]['RaTe'] == 2.0
     }
 
+    @Test
+    void testGetDecision_Simple()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        Map input = [state: 'OH', pet: 'dog']
+        Map decision = dt.getDecision(input)
+        assert 1 == decision.size()
+        Map output = (Map) decision.values().first()
+        assert '15' == output['output']
+    }
+
+    @Test
+    void testGetDecision_ExtraInput()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        Map input = [state: 'OH', pet: 'dog', foo: 'bar']
+        Map decision = dt.getDecision(input)
+        assert 1 == decision.size()
+        Map output = (Map) decision.values().first()
+        assert '15' == output['output']
+    }
+
+    @Test
+    void testGetDecision_EmptyColumn()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        Map input = [state: 'VA', pet: 'horse']
+        Map decision = dt.getDecision(input)
+        assert 1 == decision.size()
+        Map output = (Map) decision.values().first()
+        assert '50' == output['output']
+    }
+
     private static DecisionTable getDecisionTableFromJson(String file)
     {
         String json = NCubeRuntime.getResourceAsString(file)
