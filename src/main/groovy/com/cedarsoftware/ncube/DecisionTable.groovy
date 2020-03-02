@@ -53,6 +53,7 @@ class DecisionTable
     private String fieldAxisName = null
     private String rowAxisName = null
     private Set<String> inputColumns = new HashSet<>()
+    private Set<String> inputKeys = new HashSet<>()
     private Set<String> outputColumns = new HashSet<>()
     private Set<String> rangeColumns = new HashSet<>()
     private static final String BANG = '!'
@@ -73,6 +74,17 @@ class DecisionTable
     }
 
     /**
+     * @return Set<String> All input keys that can be passed to the DecisionTable.getDecision() API.  Extra keys
+     * can be passed, but will be ignored.
+     */
+    Set<String> getInputKeys()
+    {
+        return inputKeys
+    }
+
+    // TODO: return required keys
+
+    /**
      * Main API for querying a Decision Table.
      * @param input Map containing key/value pairs for all the input_value columns
      * @return List<Comparable, List<outputs>>
@@ -81,7 +93,7 @@ class DecisionTable
     {
         Map<String, Map<String, ?>> ranges = new CaseInsensitiveMap<>()
         Map<String, ?> copyInput = new CaseInsensitiveMap<>(input)
-        copyInput.keySet().retainAll(inputColumns)
+        copyInput.keySet().retainAll(inputKeys)
         copyInput.put(IGNORE, null)
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         ensuredRequiredInputs(copyInput, fieldAxis)
@@ -122,11 +134,14 @@ class DecisionTable
                 }
             }
         }
-        
+
+        Map<String, ?> closureInput = new CaseInsensitiveMap<>(input)
+        closureInput.dvs = copyInput
+
         Map options = [
                 (NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): inputColumns,
                 (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): outputColumns,
-                input: [dvs:copyInput]
+                input: closureInput
         ]
 
         Map<Comparable, ?> result = decisionTable.mapReduce(fieldAxisName, decisionTableClosure, options)
@@ -170,7 +185,7 @@ class DecisionTable
     /**
      * Return the values defined in the decision table for every input_value column. The values represent the possible
      * values of the input_value columns. The values do not account for cells that are left blank which would match on
-     * andy input value passed.
+     * any input value passed.
      * @return Map<String, Set<String> Map with keys representing the input_value columns and values representing
      * all values defined in the cells associated to those columns
      */
@@ -369,9 +384,12 @@ class DecisionTable
         for (Column column : decisionTable.getAxis(fieldAxisName).columnsWithoutDefault)
         {
             Map colMetaProps = column.metaProperties
+            String columnValue = column.value
             if (colMetaProps.containsKey(INPUT_VALUE))
             {
-                inputColumns.add((String) column.value)
+
+                inputColumns.add(columnValue)
+                inputKeys.add(columnValue)
             }
 
             if (colMetaProps.containsKey(INPUT_LOW) || colMetaProps.containsKey(INPUT_HIGH))
@@ -379,16 +397,22 @@ class DecisionTable
                 String dataType = colMetaProps.get(DATA_TYPE)
                 if (dataType == null || !['LONG', 'DOUBLE', 'DATE', 'BIG_DECIMAL'].contains(dataType.toUpperCase()))
                 {
-                    throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${decisionTable.name}, column: ${column.value}. Valid values are DATE, LONG, DOUBLE, BIG_DECIMAL.")
+                    throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${decisionTable.name}, column: ${columnValue}. Valid values are DATE, LONG, DOUBLE, BIG_DECIMAL.")
                 }
-                inputColumns.add((String) column.value)
-                rangeColumns.add((String) column.value)
+                inputColumns.add(columnValue)
+                rangeColumns.add(columnValue)
                 RangeSpec rangeSpec
                 String inputVarName
                 
                 if (colMetaProps.containsKey(INPUT_LOW))
                 {
+                    Object inputVariableName = colMetaProps.get(INPUT_LOW)
+                    if (!(inputVariableName instanceof String))
+                    {
+                        throw new IllegalStateException("INPUT_LOW meta-property value must be of type String.  Column: ${columnValue}, ncube: ${decisionTable.name}")
+                    }
                     inputVarName = colMetaProps.get(INPUT_LOW)
+                    inputKeys.add(inputVarName)
                     rangeSpec = rangeSpecs.get(inputVarName)
                     if (rangeSpec == null)
                     {
@@ -402,7 +426,13 @@ class DecisionTable
                 }
                 else
                 {
+                    Object inputVariableName = colMetaProps.get(INPUT_HIGH)
+                    if (!(inputVariableName instanceof String))
+                    {
+                        throw new IllegalStateException("INPUT_HIGH meta-property value must be of type String.  Column: ${columnValue}, ncube: ${decisionTable.name}")
+                    }
                     inputVarName = colMetaProps.get(INPUT_HIGH)
+                    inputKeys.add(inputVarName)
                     rangeSpec = rangeSpecs.get(inputVarName)
                     if (rangeSpec == null)
                     {
@@ -412,7 +442,7 @@ class DecisionTable
                     {
                         throw new IllegalStateException("More than one high range column with same input variable name found: ${INPUT_LOW}. Each range variable should have a unique name.")
                     }
-                    rangeSpec.highColumnName = column.value
+                    rangeSpec.highColumnName = columnValue
                 }
                 rangeSpec.dataType = dataType
                 rangeSpecs.put(inputVarName, rangeSpec)
@@ -424,13 +454,13 @@ class DecisionTable
                 {
                     throw new IllegalStateException("Range columns must have 'data_type' meta-property set, ncube: ${decisionTable.name}, column: ${column.value}. Valid values are DATE, LONG, DOUBLE, BIG_DECIMAL.")
                 }
-                inputColumns.add((String) column.value)
-                rangeColumns.add((String) column.value)
+                inputColumns.add(columnValue)
+                rangeColumns.add(columnValue)
             }
 
             if (colMetaProps.containsKey(OUTPUT_VALUE))
             {
-                outputColumns.add((String) column.value)
+                outputColumns.add(columnValue)
             }
         }
 
@@ -623,7 +653,7 @@ class DecisionTable
         Column priorityColumn = fieldAxis.findColumn(PRIORITY)
         Set<String> colsToProcess = new CaseInsensitiveSet<>(inputColumns)
         colsToProcess.removeAll(rangeColumns)
-        
+
         for (Column row : rows)
         {
             Comparable rowValue = row.value
@@ -709,7 +739,10 @@ class DecisionTable
                         ids.add(blowout.getAxis(key).findColumn(value).id)
                     }
 
-                    populateRangeCell(badRows, blowout, new LongHashSet(ids), coordinate, range, rowValue)
+                    if (!populateRangeCell(blowout, new LongHashSet(ids), coordinate, range))
+                    {
+                        badRows.add(rowValue)
+                    }
                     done = !incrementVariableRadixCount(counters, bindings, axisNames)
                 }
             }
@@ -756,26 +789,28 @@ class DecisionTable
         return range
     }
 
-    private static void populateRangeCell(Set<Comparable> badRows, NCube blowout, Set<Long> idCoord, Map<String, ?> coordinate, Range candidate, Comparable rowValue)
+    private static boolean populateRangeCell(NCube blowout, Set<Long> idCoord, Map<String, ?> coordinate, Range candidate)
     {
         Ranges ranges = blowout.getCellById(idCoord, coordinate, [:])
         if (ranges == null)
         {
             ranges = new Ranges()
-            ranges.addRange(candidate, rowValue)
+            ranges.addRange(candidate)
             blowout.setCellById(ranges, idCoord)
+            return true
         }
         else if (ranges.overlaps(candidate))
         {
-            badRows.add(rowValue)
+            return false
         }
         else
         {
             // "Ranges" pulled from cell duplicated so that the interned version is not modified directly.
             // setCellById() below will intern if possible, otherwise this new instance will exist.
             Ranges copy = ranges.duplicate()
-            copy.addRange(candidate, rowValue)
+            copy.addRange(candidate)
             blowout.setCellById(copy, idCoord)
+            return true
         }
     }
 

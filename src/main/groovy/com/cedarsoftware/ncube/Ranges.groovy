@@ -26,19 +26,16 @@ import groovy.transform.CompileStatic
 class Ranges
 {
     List<Range> ranges = []
-    List<Comparable> rows = []
 
-    void addRange(Range range, Comparable row)
+    void addRange(Range range)
     {
         ranges.add(range)
-        rows.add(row)
     }
 
     Ranges duplicate()
     {
         Ranges copy = new Ranges()
         copy.ranges = new ArrayList<>(ranges)
-        copy.rows = new ArrayList<>(rows)
         return copy
     }
 

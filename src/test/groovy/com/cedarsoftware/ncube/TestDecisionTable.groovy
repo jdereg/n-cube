@@ -54,7 +54,7 @@ class TestDecisionTable extends NCubeBaseTest
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/commission.json')
 
-        for (int i = 0; i < 3; i ++)
+        for (int i = 0; i < 10; i ++)
         {
             long start = System.nanoTime()
             Set<Comparable> badRows = dt.validateDecisionTable()
@@ -250,6 +250,14 @@ class TestDecisionTable extends NCubeBaseTest
         assert 1 == decision.size()
         Map output = (Map) decision.values().first()
         assert '50' == output['output']
+    }
+    
+    @Test
+    void testGetDeterminedAxisNames()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/high-low-output.json')
+        assert dt.decisionAxisName == 'Column'
+        assert dt.decisionRowName == 'Row'
     }
 
     private static DecisionTable getDecisionTableFromJson(String file)
