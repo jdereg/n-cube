@@ -114,34 +114,21 @@ class DecisionTable
             Column column = fieldAxis.findColumn(colValue)
             Map colMetaProps = column.metaProperties
 
-            if (colMetaProps.containsKey(INPUT_LOW))
-            {   // Allow ranges to be processed in ANY order (even intermixed with other ranges)
-                String inputVarName = colMetaProps.get(INPUT_LOW)
-                Map<String, ?> spec = getRangeSpec(ranges, inputVarName)
-                spec.put(INPUT_LOW, column.value)
+            [INPUT_LOW, INPUT_HIGH].each { String highLow ->
+                if (colMetaProps.containsKey(highLow))
+                {   // Allow ranges to be processed in ANY order (even intermixed with other ranges)
+                    String inputVarName = colMetaProps.get(highLow)
+                    Map<String, ?> spec = getRangeSpec(ranges, inputVarName)
+                    spec.put(highLow, column.value)
 
-                if (!spec.containsKey(INPUT_VALUE))
-                {   // Last range post (high or low) processed, sets the input_value, data_type, and copies the range spec to the input map.
-                    // ["date": date instance] becomes ("date": [low:1900, high:2100, input_value: date instance, data_type: DATE])
-                    Comparable value = convertDataType((Comparable)copyInput.get(inputVarName), (String)colMetaProps.get(DATA_TYPE))
-                    spec.put(INPUT_VALUE, value)
-                    spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
-                    copyInput.put(inputVarName, spec)
-                }
-            }
-
-            if (colMetaProps.containsKey(INPUT_HIGH))
-            {   // Allow ranges to be processed in ANY order (even intermixed with other ranges)
-                String inputVarName = colMetaProps.get(INPUT_HIGH)
-                Map<String, ?> spec = getRangeSpec(ranges, inputVarName)
-                spec.put(INPUT_HIGH, column.value)
-                
-                if (!spec.containsKey(INPUT_VALUE))
-                {
-                    Comparable value = convertDataType((Comparable)copyInput.get(inputVarName), (String)colMetaProps.get(DATA_TYPE))
-                    spec.put(INPUT_VALUE, value)
-                    spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
-                    copyInput.put(inputVarName, spec)
+                    if (!spec.containsKey(INPUT_VALUE))
+                    {   // Last range post (high or low) processed, sets the input_value, data_type, and copies the range spec to the input map.
+                        // ["date": date instance] becomes ("date": [low:1900, high:2100, input_value: date instance, data_type: DATE])
+                        Comparable value = convertDataType((Comparable)copyInput.get(inputVarName), (String)colMetaProps.get(DATA_TYPE))
+                        spec.put(INPUT_VALUE, value)
+                        spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
+                        copyInput.put(inputVarName, spec)
+                    }
                 }
             }
         }
@@ -269,16 +256,8 @@ class DecisionTable
                     Comparable high = (Comparable)rowValues.get((String) inputValue[INPUT_HIGH])
                     Comparable value = (Comparable)inputValue[INPUT_VALUE]
 
-                    if (value == null)
+                    if (value == null || value < low || value >= high)
                     {   // null is never between ranges
-                        return false
-                    }
-                    if (value.compareTo(low) < 0)
-                    {
-                        return false
-                    }
-                    else if (value.compareTo(high) >= 0)
-                    {
                         return false
                     }
                     continue

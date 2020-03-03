@@ -1,5 +1,5 @@
 {
-  "ncube":"2dv_range",
+  "ncube":"2dv_range_bad_datatype",
   "default_view_axis_order":"[\"row\",\"field\"]",
   "axes":[
     {
@@ -25,8 +25,7 @@
           "id":3000258603792,
           "type":"string",
           "input_low":"number",
-          "data_type":"long",
-          "required":true,
+          "data_type":"song",
           "value":"low"
         },
         {
@@ -34,7 +33,6 @@
           "type":"string",
           "input_high":"number",
           "data_type":"long",
-          "required":true,
           "value":"high"
         },
         {
@@ -58,11 +56,6 @@
           "id":4001762860459,
           "type":"long",
           "value":1
-        },
-        {
-          "id":4000365880973,
-          "type":"long",
-          "value":2
         }
       ]
     }
@@ -70,19 +63,11 @@
   "cells":[
     {
       "id":[
-        3000322296561,
-        4000365880973
-      ],
-      "type":"string",
-      "value":"20"
-    },
-    {
-      "id":[
         3000272818329,
-        4000365880973
+        4001762860459
       ],
       "type":"string",
-      "value":"100"
+      "value":"6"
     },
     {
       "id":[
@@ -91,22 +76,6 @@
       ],
       "type":"string",
       "value":"15"
-    },
-    {
-      "id":[
-        3000258603792,
-        4000365880973
-      ],
-      "type":"string",
-      "value":"6"
-    },
-    {
-      "id":[
-        3000272818329,
-        4001762860459
-      ],
-      "type":"string",
-      "value":"6"
     },
     {
       "id":[

@@ -19,6 +19,7 @@
             "type":"exp",
             "value":"input.state"
           },
+          "required": true,
           "value":"state"
         },
         {

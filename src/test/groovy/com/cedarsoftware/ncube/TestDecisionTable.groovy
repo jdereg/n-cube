@@ -108,6 +108,12 @@ class TestDecisionTable extends NCubeBaseTest
         DecisionTable dt = getDecisionTableFromJson('decision-tables/1dv_pos.json')
         Set<Comparable> badRows = dt.validateDecisionTable()
         assert badRows.empty
+        assert dt.requiredKeys.size() == 0
+        Map result = dt.getDecision([state:'OH'])
+        Map row = result[1L] as Map
+        assert row.output == '15'
+        result = dt.getDecision([state:'KY'])
+        assert result.isEmpty()
     }
 
     @Test
@@ -327,7 +333,7 @@ class TestDecisionTable extends NCubeBaseTest
         assert '50' == output['output']
 
         assert dt.inputKeys.containsAll(['state', 'pet'])
-        assert dt.requiredKeys.empty
+        assert dt.requiredKeys.size() == 1
     }
     
     @Test
@@ -353,6 +359,7 @@ class TestDecisionTable extends NCubeBaseTest
         assert dt.getDecision([number:-1d]).isEmpty()
         assert dt.getDecision([number:101d]).isEmpty()
         assert dt.getDecision([number:null]).isEmpty()
+        assert dt.requiredKeys.size() == 1
     }
 
     @Test
@@ -366,6 +373,20 @@ class TestDecisionTable extends NCubeBaseTest
         catch(IllegalStateException e)
         {
             assertContainsIgnoreCase(e.message, 'must have', 'one axis', 'meta', 'property')
+        }
+    }
+
+    @Test
+    void testRangeWithBadDataType()
+    {
+        try
+        {
+            getDecisionTableFromJson('decision-tables/2dv_range_bad_datatype.json')
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'must have', 'data_type', 'date', 'long', 'double', 'big_decimal')
         }
     }
 
