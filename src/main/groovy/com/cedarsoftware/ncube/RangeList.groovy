@@ -23,7 +23,7 @@ import groovy.transform.CompileStatic
  */
 
 @CompileStatic
-class Ranges
+class RangeList
 {
     List<Range> ranges = []
 
@@ -32,9 +32,9 @@ class Ranges
         ranges.add(range)
     }
 
-    Ranges duplicate()
+    RangeList duplicate()
     {
-        Ranges copy = new Ranges()
+        RangeList copy = new RangeList()
         copy.ranges = new ArrayList<>(ranges)
         return copy
     }
@@ -58,12 +58,12 @@ class Ranges
         {
             return true
         }
-        if (!(other instanceof Ranges))
+        if (!(other instanceof RangeList))
         {
             return false
         }
 
-        Ranges that = (Ranges) other
+        RangeList that = (RangeList) other
         return ranges.equals(that.ranges)
     }
 

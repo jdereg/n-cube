@@ -22,6 +22,7 @@
           "type":"string",
           "input_low":"AGE",
           "data_type":"LONG",
+          "required": true,
           "value":"lower"
         }
       ]

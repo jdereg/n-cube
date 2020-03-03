@@ -15,6 +15,7 @@
           "type":"string",
           "INPUT_HIGH":"age",
           "DATA_TYPE":"long",
+          "required": true,
           "value":"upper"
         },
         {

@@ -1,7 +1,11 @@
 ### Revision History
+* 4.6.14
+  * Many more tests added for DecisionTable.
+  * `DecisionTable.getRequiredKeys()` API added that returns the required (minimum set) of keys required to call `getDecision()`.
 * 4.6.13
   * Performance: validating DecisionTables has been sped up significantly.
-  * More validation checks are performed against the NCube that the DecisionTable is built from. 
+  * More validation checks are performed against the `NCube` that the `DecisionTable` is built from.
+  * `DecisionTable.getInputKeys()` API added that returns all input keys (columns) to access the `DecisionTable`. 
 * 4.6.12
   * Added `DecisionTable` class.  See [Decision Table Developer Guide.](README-decision.md)
   * Test are still being added for DecisionTable, so it is considered 'beta' at this point. 

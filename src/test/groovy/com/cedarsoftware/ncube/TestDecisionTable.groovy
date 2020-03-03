@@ -54,7 +54,7 @@ class TestDecisionTable extends NCubeBaseTest
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/commission.json')
 
-        for (int i = 0; i < 10; i ++)
+        for (int i = 0; i < 1; i ++)
         {
             long start = System.nanoTime()
             Set<Comparable> badRows = dt.validateDecisionTable()
@@ -203,6 +203,11 @@ class TestDecisionTable extends NCubeBaseTest
         assert map20[2L]['UPPER'] == 22
         assert map20[2L]['LOWER'] == 16
         assert map10 != map20
+
+        assert dt.inputKeys.contains('age')
+        assert dt.inputKeys.size() == 1
+        assert dt.requiredKeys.contains('age')
+        assert dt.requiredKeys.size() == 1
     }
 
     @Test
@@ -250,6 +255,9 @@ class TestDecisionTable extends NCubeBaseTest
         assert 1 == decision.size()
         Map output = (Map) decision.values().first()
         assert '50' == output['output']
+
+        assert dt.inputKeys.containsAll(['state', 'pet'])
+        assert dt.requiredKeys.empty
     }
     
     @Test
@@ -258,6 +266,11 @@ class TestDecisionTable extends NCubeBaseTest
         DecisionTable dt = getDecisionTableFromJson('decision-tables/high-low-output.json')
         assert dt.decisionAxisName == 'Column'
         assert dt.decisionRowName == 'Row'
+
+        assert dt.inputKeys.contains('age')
+        assert dt.inputKeys.size() == 1
+        assert dt.requiredKeys.contains('age')
+        assert dt.requiredKeys.size() == 1
     }
 
     private static DecisionTable getDecisionTableFromJson(String file)
