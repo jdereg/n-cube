@@ -146,11 +146,14 @@ class DecisionTable
             }
         }
 
+        Set<String> colsToSearch = new CaseInsensitiveSet<>(inputColumns)
+        // OK to add IGNORE column, even if axis does not have it (mapReduce() is now forgiving on this)
+        colsToSearch.add(IGNORE)
         Map<String, ?> closureInput = new CaseInsensitiveMap<>(input)
         closureInput.dvs = copyInput
 
         Map options = [
-                (NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): inputColumns,
+                (NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): colsToSearch,
                 (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): outputColumns,
                 input: closureInput
         ]
@@ -625,14 +628,10 @@ class DecisionTable
         NCube blowout = new NCube('validation')
         Map<String, Comparable> coord = [:]
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        Set<String> discreteCols = inputColumns - rangeColumns
 
-        for (String colValue : inputColumns)
+        for (String colValue : discreteCols)
         {
-            if (rangeColumns.contains(colValue))
-            {
-                continue
-            }
-
             Column field = fieldAxis.findColumn(colValue)
             String fieldValue = field.value
             Axis axis = new Axis(fieldValue, AxisType.DISCRETE, AxisValueType.CISTRING, false)
@@ -672,8 +671,7 @@ class DecisionTable
         Set<Comparable> badRows = []
         Column ignoreColumn = fieldAxis.findColumn(IGNORE)
         Column priorityColumn = fieldAxis.findColumn(PRIORITY)
-        Set<String> colsToProcess = new CaseInsensitiveSet<>(inputColumns)
-        colsToProcess.removeAll(rangeColumns)
+        Set<String> colsToProcess = inputColumns - rangeColumns
 
         for (Column row : rows)
         {
@@ -842,7 +840,7 @@ class DecisionTable
      */
     private void ensuredRequiredInputs(Map<String, ?> input)
     {
-        if (!inputKeys.containsAll(requiredColumns))
+        if (!input.keySet().containsAll(requiredColumns))
         {
             Set<String> missingKeys = requiredColumns - inputKeys
             throw new IllegalArgumentException("Required input keys: ${missingKeys} not found, decision table: ${decisionTable.name}")

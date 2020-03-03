@@ -1242,6 +1242,10 @@ class NCube<T>
 
             for (Column column : whereColumns)
             {
+                if (column == null)
+                {   // Skip unknown 'where' columns
+                    continue
+                }
                 long whereId = column.id
                 ids.add(whereId)
                 commandInput.put(colAxisName, colAxis.getValueToLocateColumn(column))
