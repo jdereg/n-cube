@@ -758,7 +758,7 @@ class DecisionTable
                         ids.add(blowout.getAxis(key).findColumn(value).id)
                     }
 
-                    if (!populateRangeCell(blowout, new LongHashSet(ids), coordinate, range))
+                    if (!populateRangeTableCell(blowout, new LongHashSet(ids), coordinate, range))
                     {
                         badRows.add(rowValue)
                     }
@@ -808,7 +808,7 @@ class DecisionTable
         return range
     }
 
-    private static boolean populateRangeCell(NCube blowout, Set<Long> idCoord, Map<String, ?> coordinate, Range candidate)
+    private static boolean populateRangeTableCell(NCube blowout, Set<Long> idCoord, Map<String, ?> coordinate, Range candidate)
     {
         RangeList ranges = blowout.getCellById(idCoord, coordinate, [:])
         if (ranges == null)

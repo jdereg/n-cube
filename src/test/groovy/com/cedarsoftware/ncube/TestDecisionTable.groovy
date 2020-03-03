@@ -69,6 +69,7 @@ class TestDecisionTable extends NCubeBaseTest
     void testGetDefinedValues()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        dt.validateDecisionTable()
         Map<String, Set<String>> definedValues = dt.definedValues
         assert 2 == definedValues.size()
         Set<String> states = definedValues['state']
@@ -77,6 +78,7 @@ class TestDecisionTable extends NCubeBaseTest
         assert states.contains('IN')
         assert states.contains('KY')
         assert states.contains('MI')
+        assert states.contains('CA')
         assert states.contains('CA')
         Set<String> pets = definedValues['pet']
         assert 4 == pets.size()
@@ -109,11 +111,63 @@ class TestDecisionTable extends NCubeBaseTest
     }
 
     @Test
+    void test_1dv_pos_star()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/1dv_pos_star.json')
+        Set<Comparable> badRows = dt.validateDecisionTable()
+        assert badRows.empty
+        Map out = dt.getDecision([state:'KY'])
+        assert out.size() == 1
+        Map row = out[1L] as Map
+        assert row.output == '15'
+
+        out = dt.getDecision([state:'OH'])
+        assert out.size() == 2
+        row = out[1L] as Map
+        assert row.output == '15'
+        row = out[2L] as Map
+        assert row.output == '20'
+    }
+
+    @Test
+    void test_1dv_pos_star_noDiscrete()
+    {
+        try
+        {
+            getDecisionTableFromJson('decision-tables/1dv_pos_star_noDiscrete.json')
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'field', 'axis', 'must', 'DISCRETE')
+        }
+    }
+
+    @Test
+    void test_1dv_pos_star_noCIString()
+    {
+        try
+        {
+            getDecisionTableFromJson('decision-tables/1dv_pos_star_noCISTRING.json')
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'field', 'axis', 'must', 'CISTRING')
+        }
+    }
+
+    @Test
     void test_1dv_neg_1row()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/1dv_neg.json')
         Set<Comparable> badRows = dt.validateDecisionTable()
         assert badRows.empty
+        assert dt.getDecision([state:'OH']).isEmpty()
+        Map<?, Map<String, ?>> result = dt.getDecision([state:'TX']) as Map
+        assert result.size() == 1
+        Map<String, ?> out = result[1L]
+        assert out.output == '15'
     }
 
     @Test
@@ -228,6 +282,7 @@ class TestDecisionTable extends NCubeBaseTest
     void testGetDecision_Simple()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        dt.validateDecisionTable()
         Map input = [state: 'OH', pet: 'dog']
         Map decision = dt.getDecision(input)
         assert 1 == decision.size()
@@ -236,9 +291,23 @@ class TestDecisionTable extends NCubeBaseTest
     }
 
     @Test
+    void testGetDecision_Ignore()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv_ignore.json')
+        dt.validateDecisionTable()
+        Map input = [state: 'OH', pet: 'dog']
+        Map decision = dt.getDecision(input)
+        assert 0 == decision.size()     // no matches, this row is ignored
+        input = [state: 'KY', pet: 'dog']
+        decision = dt.getDecision(input)
+        assert 0 == decision.size()     // no matches, this row is ignored
+    }
+
+    @Test
     void testGetDecision_ExtraInput()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        dt.validateDecisionTable()
         Map input = [state: 'OH', pet: 'dog', foo: 'bar']
         Map decision = dt.getDecision(input)
         assert 1 == decision.size()
@@ -250,6 +319,7 @@ class TestDecisionTable extends NCubeBaseTest
     void testGetDecision_EmptyColumn()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        dt.validateDecisionTable()
         Map input = [state: 'VA', pet: 'horse']
         Map decision = dt.getDecision(input)
         assert 1 == decision.size()
@@ -264,6 +334,7 @@ class TestDecisionTable extends NCubeBaseTest
     void testGetDeterminedAxisNames()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/high-low-output.json')
+        dt.validateDecisionTable()
         assert dt.decisionAxisName == 'Column'
         assert dt.decisionRowName == 'Row'
 
@@ -271,6 +342,31 @@ class TestDecisionTable extends NCubeBaseTest
         assert dt.inputKeys.size() == 1
         assert dt.requiredKeys.contains('age')
         assert dt.requiredKeys.size() == 1
+    }
+
+    @Test
+    void testRangeBelowAboveAndNull()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv_range.json')
+        Set<Comparable> badRows = dt.validateDecisionTable()
+        assert badRows.empty
+        assert dt.getDecision([number:-1d]).isEmpty()
+        assert dt.getDecision([number:101d]).isEmpty()
+        assert dt.getDecision([number:null]).isEmpty()
+    }
+
+    @Test
+    void test2d_notDecTable()
+    {
+        try
+        {
+            getDecisionTableFromJson('decision-tables/2d_notDecTable.json')
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'must have', 'one axis', 'meta', 'property')
+        }
     }
 
     private static DecisionTable getDecisionTableFromJson(String file)
