@@ -453,6 +453,48 @@ class TestDecisionTable extends NCubeBaseTest
         }
     }
 
+    @Test
+    void testWithRequiredOnNonInputField()
+    {
+        try
+        {
+            getDecisionTableFromJson('decision-tables/1dv_bad_required.json')
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'required','meta','property','found','not','input')
+        }
+    }
+
+    @Test
+    void testWithLowRangeOnly()
+    {
+        try
+        {
+            getDecisionTableFromJson('decision-tables/2dv_range_bad_low_only.json')
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'lower', 'range', 'defined', 'without', 'upper','range')
+        }
+    }
+
+    @Test
+    void testWithHighRangeOnly()
+    {
+        try
+        {
+            getDecisionTableFromJson('decision-tables/2dv_range_bad_high_only.json')
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'upper', 'range', 'defined', 'without', 'lower','range')
+        }
+    }
+
     private static DecisionTable getDecisionTableFromJson(String file)
     {
         String json = NCubeRuntime.getResourceAsString(file)
