@@ -173,7 +173,7 @@ class DecisionTable
      * records, never more.
      * NOTE: Currently, only supports one range variable (low, high) columns.
      * @return Set<Comparable> rowIds of the rows that have duplicate rules.  If the returned Set is empty,
-     * then there are no overlapping rules.
+     * then there are no overlapping rules in the DecisionTable.
      */
     Set<Comparable> validateDecisionTable()
     {
@@ -643,6 +643,12 @@ class DecisionTable
         return blowout
     }
 
+    /**
+     * @param blowout NCube that has an Axis per each DISCRETE input_value column in the DecisionTable.
+     * @param rows List<Column> all rows (Column instances) from the Decision table row axis.
+     * @return Set<Comparable> row pointers (or empty Set in the case of no errors), of rows in a DecisionTable that
+     * conflict.
+     */
     private Set<Comparable> validateDecisionTableRows(NCube blowout, List<Column> rows)
     {
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
@@ -651,6 +657,12 @@ class DecisionTable
         Column ignoreColumn = fieldAxis.findColumn(IGNORE)
         Column priorityColumn = fieldAxis.findColumn(PRIORITY)
         Set<String> colsToProcess = inputColumns - rangeColumns
+        Map<String, Integer> startCounters = new HashMap<>()
+        
+        for (String colValue : colsToProcess)
+        {
+            startCounters.put(colValue, 1)
+        }
 
         for (Column row : rows)
         {
@@ -667,57 +679,11 @@ class DecisionTable
                 }
             }
 
-            Map<String, Integer> counters = [:]
-            Map<String, List<String>> bindings = [:]
-
-            for (String colValue : colsToProcess)
-            {
-                coord.put(fieldAxisName, colValue)
-                Column field = fieldAxis.findColumn(colValue)
-                counters[colValue] = 1
-                bindings.put(colValue, [])
-                Set<Long> idCoord = new LongHashSet([row.id, field.id] as Set)
-                coord.put(fieldAxisName, field.value)
-                String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
-                if (hasContent(cellValue))
-                {
-                    boolean exclude = cellValue.startsWith(BANG)
-                    cellValue -= BANG
-                    Iterable<String> values = COMMA_SPLITTER.split(cellValue)
-
-                    if (exclude)
-                    {
-                        List<Column> columns = blowout.getAxis(colValue).columns
-                        for (Column column : columns)
-                        {
-                            String columnValue = column.value
-                            if (!values.contains(columnValue))
-                            {
-                                bindings.get(colValue).add(columnValue)
-                            }
-                        }
-                    }
-                    else
-                    {
-                        for (String value : values)
-                        {
-                            bindings.get(colValue).add(value)
-                        }
-                    }
-                }
-                else
-                {
-                    List<Column> columns = blowout.getAxis(colValue).columns
-                    for (Column column : columns)
-                    {
-                        String columnValue = column.value
-                        bindings.get(colValue).add(columnValue)
-                    }
-                }
-            }
-
+            Map<String, List<String>> bindings = getImpliedCells(colsToProcess, fieldAxis, row, blowout)
             Range range = buildRange(row.id, rowValue, priorityColumn)
             String[] axisNames = bindings.keySet() as String[]
+            Map<String, Integer> counters = new HashMap<>(startCounters)
+
             if (axisNames.length > 0)
             {   // No discrete variables, only ranges.
                 boolean done = false
@@ -731,8 +697,8 @@ class DecisionTable
 
                     for (String key : axisNames)
                     {
-                        int radix = counters[key]
-                        String value = bindings.get(key)[radix - 1]
+                        int radix = counters.get(key)
+                        String value = bindings.get(key).get(radix - 1)
                         coordinate.put(key, value)
                         ids.add(blowout.getAxis(key).findColumn(value).id)
                     }
@@ -746,6 +712,66 @@ class DecisionTable
             }
         }
         return badRows
+    }
+
+    /**
+     * Get the implied cells in the blowout NCube based on a row in the DecisionTable.
+     * @param colsToProcess Set<String> of DISCRETE input_value column names
+     * @param fieldAxis Axis representing the decision table columns
+     * @param row Column from the Row axis in a DecisionTable.
+     * @param blowout NCube that has an Axis per each DISCRETE input_value column in the DecisionTable.
+     * @return Map<String, List<String>> representing all the discrete input values used for the row, or implied
+     * by the row in the case blank (*) or ! (exclusion) is used.
+     */
+    private Map<String, List<String>> getImpliedCells(Set<String> colsToProcess, Axis fieldAxis, Column row, NCube blowout)
+    {
+        Map<String, List<String>> bindings = [:]
+        Map<String, ?> coord = new CaseInsensitiveMap<>()
+
+        for (String colValue : colsToProcess)
+        {
+            Column field = fieldAxis.findColumn(colValue)
+            bindings.put(colValue, [])
+            Set<Long> idCoord = new LongHashSet([row.id, field.id] as Set)
+            coord.put(fieldAxisName, field.value)
+            String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
+            if (hasContent(cellValue))
+            {
+                boolean exclude = cellValue.startsWith(BANG)
+                cellValue -= BANG
+                Iterable<String> values = COMMA_SPLITTER.split(cellValue)
+
+                if (exclude)
+                {
+                    List<Column> columns = blowout.getAxis(colValue).columns
+                    for (Column column : columns)
+                    {
+                        String columnValue = column.value
+                        if (!values.contains(columnValue))
+                        {
+                            bindings.get(colValue).add(columnValue)
+                        }
+                    }
+                }
+                else
+                {
+                    for (String value : values)
+                    {
+                        bindings.get(colValue).add(value)
+                    }
+                }
+            }
+            else
+            {
+                List<Column> columns = blowout.getAxis(colValue).columns
+                for (Column column : columns)
+                {
+                    String columnValue = column.value
+                    bindings.get(colValue).add(columnValue)
+                }
+            }
+        }
+        return bindings
     }
 
     private Range buildRange(long rowId, Comparable rowValue, Column priorityColumn)

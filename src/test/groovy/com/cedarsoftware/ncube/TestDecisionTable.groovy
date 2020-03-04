@@ -386,7 +386,70 @@ class TestDecisionTable extends NCubeBaseTest
         }
         catch(IllegalStateException e)
         {
-            assertContainsIgnoreCase(e.message, 'must have', 'data_type', 'date', 'long', 'double', 'big_decimal')
+            assertContainsIgnoreCase(e.message, 'range columns', 'must', 'type', 'meta', 'prop')
+        }
+    }
+
+    @Test
+    void testRangeWithBadMetaPropType()
+    {
+        String json = NCubeRuntime.getResourceAsString('decision-tables/2dv_range_bad_meta_prop_type.json')
+        NCube ncube = NCube.fromSimpleJson(json)
+
+        try
+        {
+            new DecisionTable(ncube)
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'input_low', 'meta', 'prop', 'type', 'string')
+        }
+
+        Axis field = ncube.getAxis('field')
+        Column col = field.findColumn('low')
+        col.setMetaProperty('input_low', 'number')
+        new DecisionTable(ncube)
+
+        col = field.findColumn('high')
+        col.setMetaProperty('input_high', 10i)
+
+        try
+        {
+            new DecisionTable(ncube)
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'input_high', 'meta', 'prop', 'type', 'string')
+        }
+    }
+    
+    @Test
+    void testRangeWithTwoSameLowLimits()
+    {
+        try
+        {
+            getDecisionTableFromJson('decision-tables/2dv_bad_low_low.json')
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'more than', 'low', 'same input', 'name')
+        }
+    }
+
+    @Test
+    void testRangeWithTwoSameHighLimits()
+    {
+        try
+        {
+            getDecisionTableFromJson('decision-tables/2dv_bad_high_high.json')
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'more than', 'high', 'same input', 'name')
         }
     }
 
