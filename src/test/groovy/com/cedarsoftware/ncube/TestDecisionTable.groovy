@@ -4,6 +4,7 @@ import groovy.transform.CompileStatic
 import org.junit.Ignore
 import org.junit.Test
 
+import static com.cedarsoftware.util.Converter.convertToDate
 import static com.cedarsoftware.util.TestUtil.assertContainsIgnoreCase
 import static org.junit.Assert.fail
 
@@ -540,9 +541,64 @@ class TestDecisionTable extends NCubeBaseTest
             assertContainsIgnoreCase(e.message, 'values', 'range', 'must', 'instanceof', 'comparable')
         }
     }
-    // TODO: write test that has ranges of DOUBLE and BIG_DECIMAL
+
+    @Test
+    void testRangeWithDoubleDataTypeAndOutputDataType()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv_range_double.json')
+        Map<Long, Map<String, ?>> out = dt.getDecision([number: 0.0d]) as Map
+        assert out[1L]['output'] == 15.0d
+        out = dt.getDecision([number: 6.0d]) as Map
+        assert out[2L]['output'] instanceof Double
+        assert out[2L]['output'] == 20.0d
+        out = dt.getDecision([number: -1.0d]) as Map
+        assert out.isEmpty()
+        out = dt.getDecision([number: 100.0d]) as Map
+        assert out.isEmpty()
+
+        Set<Comparable> badRows = dt.validateDecisionTable()
+        assert badRows.size() == 0
+    }
+
+    @Test
+    void testRangeWithBigDecimalDataTypeAndOutputDataType()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv_range_big_dec.json')
+        Map<Long, Map<String, ?>> out = dt.getDecision([number: 0.0d]) as Map
+        assert out[1L]['output'] == 15.0
+        out = dt.getDecision([number: 6.0]) as Map
+        assert out[2L]['output'] instanceof BigDecimal
+        assert out[2L]['output'] == 20.0
+        out = dt.getDecision([number: -1.0]) as Map
+        assert out.isEmpty()
+        out = dt.getDecision([number: 100.0]) as Map
+        assert out.isEmpty()
+
+        Set<Comparable> badRows = dt.validateDecisionTable()
+        assert badRows.size() == 0
+    }
+
+    @Test
+    void testRangeWithDateDataTypeAndOutputDataType()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv_range_date.json')
+        Map<Long, Map<String, ?>> out = dt.getDecision([date: convertToDate('2020/01/01')]) as Map
+        assert out[1L]['output'] == convertToDate('2021/01/15')
+        out = dt.getDecision([date: convertToDate('2020/07/01')]) as Map
+        assert out[2L]['output'] instanceof Date
+        assert out[2L]['output'] == convertToDate('2021/01/20')
+        out = dt.getDecision([date: convertToDate('1900/01/01')]) as Map
+        assert out.isEmpty()
+        out = dt.getDecision([date: convertToDate('2100/01/01')]) as Map
+        assert out.isEmpty()
+
+        Set<Comparable> badRows = dt.validateDecisionTable()
+        assert badRows.size() == 0
+    }
+
     // TODO: write test that doesn't provide required input on call to getDecision()
-    // TODO: write test to verify that output values are converted to the meta-property data_type
+    // TODO: write test to verify that output values are converted to a bad meta-property data_type
+    // TODO: write test to verify a DecisionTable with 0 discrete variables and only a range.
     // TODO: Cut a bunch of rows off of commission.json and add that to the tests.
 
     private static DecisionTable getDecisionTableFromJson(String file)

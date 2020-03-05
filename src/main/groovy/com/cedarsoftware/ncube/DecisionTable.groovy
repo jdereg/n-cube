@@ -409,9 +409,9 @@ class DecisionTable
             if (colMetaProps.containsKey(INPUT_LOW) || colMetaProps.containsKey(INPUT_HIGH))
             {
                 String dataType = colMetaProps.get(DATA_TYPE)
-                if (dataType == null || !['LONG', 'DOUBLE', 'DATE', 'BIG_DECIMAL'].contains(dataType.toUpperCase()))
+                if (dataType == null || !['LONG', 'DOUBLE', 'DATE', 'BIG_DECIMAL', 'STRING'].contains(dataType.toUpperCase()))
                 {
-                    throw new IllegalStateException("Range columns must have 'data_type' meta-property set, column: ${columnValue}, ncube: ${decisionTable.name}. Valid values are DATE, LONG, DOUBLE, BIG_DECIMAL.")
+                    throw new IllegalStateException("Range columns must have 'data_type' meta-property set, column: ${columnValue}, ncube: ${decisionTable.name}. Valid values are DATE, LONG, DOUBLE, BIG_DECIMAL, STRING.")
                 }
                 inputColumns.add(columnValue)
                 rangeColumns.add(columnValue)
