@@ -527,7 +527,19 @@ class TestDecisionTable extends NCubeBaseTest
         assert badRows.size() == 2
     }
 
-    // TODO: write test that finds a cube with a null range value (in the table definition)
+    @Test
+    void testRangeWithNullInLimitColumm()
+    {
+        try
+        {
+            getDecisionTableFromJson('decision-tables/2dv_range_null_in_col.json')
+            fail()
+        }
+        catch(IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'values', 'range', 'must', 'instanceof', 'comparable')
+        }
+    }
     // TODO: write test that has ranges of DOUBLE and BIG_DECIMAL
     // TODO: write test that doesn't provide required input on call to getDecision()
     // TODO: write test to verify that output values are converted to the meta-property data_type
