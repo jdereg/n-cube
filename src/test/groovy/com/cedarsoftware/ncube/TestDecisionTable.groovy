@@ -495,6 +495,30 @@ class TestDecisionTable extends NCubeBaseTest
         }
     }
 
+    @Test
+    void testWithNullPriority()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/1dv_null_priority.json')
+        NCube ncube  = dt.underlyingNCube
+        def x = ncube.getCell([field:'priority', row:1L])
+        assert Integer.MAX_VALUE == x
+    }
+
+    @Test
+    void testWithMultiPriority()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/1dv_multi_priority.json')
+        Map<Long, Map<String, ?>> out = dt.getDecision([state:'OH']) as Map
+        Map<String, ?> output = out[3L]
+        assert output['output'] == '25'
+    }
+
+    // TODO: write test that finds a cube with a null range value (in the table definition)
+    // TODO: write test that has ranges of DOUBLE and BIG_DECIMAL
+    // TODO: write test that doesn't provide required input on call to getDecision()
+    // TODO: Cut a bunch of rows off of commission.json and add that to the tests.
+
+
     private static DecisionTable getDecisionTableFromJson(String file)
     {
         String json = NCubeRuntime.getResourceAsString(file)

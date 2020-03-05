@@ -134,14 +134,21 @@ class DecisionTable
         }
 
         Set<String> colsToSearch = new CaseInsensitiveSet<>(inputColumns)
-        // OK to add IGNORE column, even if axis does not have it (mapReduce() is now forgiving on this)
-        colsToSearch.add(IGNORE)
+        if (fieldAxis.contains(IGNORE))
+        {   // Add on the IGNORE field if the field axis had it.
+            colsToSearch.add(IGNORE)
+        }
+        Set<String> colsToReturn = new CaseInsensitiveSet<>(outputColumns)
+        if (fieldAxis.findColumn(PRIORITY))
+        {   // Add on the PRIORITY axis if the field axis had it.
+            colsToReturn.add(PRIORITY)
+        }
         Map<String, ?> closureInput = new CaseInsensitiveMap<>(input)
         closureInput.dvs = copyInput
 
         Map options = [
                 (NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): colsToSearch,
-                (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): outputColumns,
+                (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): colsToReturn,
                 input: closureInput
         ]
 
@@ -183,6 +190,20 @@ class DecisionTable
         return badRows
     }
 
+    /**
+     * @return NCube that sits within the DecisionTable.  This is not the original NCube that the DecisionTable
+     * was constructed from.  It is a copy of it that has been modified.  For example, all values in the range
+     * columns are converted to the data_type that is specific on the range column's meta-property data_type
+     * value.  Similarly, all values in the 'ignore' column (if one exists) are converted to boolean.  Also,
+     * all values in the priority column are converted to 'int'.  If there is a null in the priority column,
+     * it will be converted to Integer.MAX_VALUE.  These conversions speed up the responsiveness of the
+     * getDecision() API.
+     */
+    NCube getUnderlyingNCube()
+    {
+        return decisionTable
+    }
+    
     /**
      * Return the values defined in the decision table for every input_value column. The values represent the possible
      * values of the input_value columns. The values do not account for cells that are left blank which would match on

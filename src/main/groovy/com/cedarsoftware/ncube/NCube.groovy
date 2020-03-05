@@ -1286,6 +1286,10 @@ class NCube<T>
                 Map result = colAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap<>() : [:]
                 for (Column column : selectList)
                 {
+                    if (column == null)
+                    {
+                        continue
+                    }
                     def colValue = isDiscrete ? column.value : column.columnName
                     if (whereVars.containsKey(colValue))
                     {
