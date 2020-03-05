@@ -513,11 +513,26 @@ class TestDecisionTable extends NCubeBaseTest
         assert output['output'] == '25'
     }
 
+    @Test
+    void testWithMultiSamePriority()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/1dv_multi_same_priority.json')
+        Map<Long, Map<String, ?>> out = dt.getDecision([state:'OH']) as Map
+        assert out.size() == 3
+        assert out[1L]['output'] == '15'
+        assert out[2L]['output'] == '20'
+        assert out[3L]['output'] == '25'
+
+        println out
+        // TODO: Bug - validateDecisionTable() should throw exception as there is more than one output
+        dt.validateDecisionTable()
+    }
+
     // TODO: write test that finds a cube with a null range value (in the table definition)
     // TODO: write test that has ranges of DOUBLE and BIG_DECIMAL
     // TODO: write test that doesn't provide required input on call to getDecision()
+    // TODO: write test to verify that output values are converted to the meta-property data_type
     // TODO: Cut a bunch of rows off of commission.json and add that to the tests.
-
 
     private static DecisionTable getDecisionTableFromJson(String file)
     {

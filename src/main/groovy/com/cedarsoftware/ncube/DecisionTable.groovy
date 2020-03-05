@@ -509,27 +509,43 @@ class DecisionTable
             }
         }
 
-        // Convert all range values in the table to the data type specified on the column meta-property
+        // Convert all values in the table to the data_type specified on the column meta-property (if there is one)
         Axis rowAxis = decisionTable.getAxis(rowAxisName)
         Map<String, ?> coord = new CaseInsensitiveMap<>()
+        List<Column> rowColumns = rowAxis.columnsWithoutDefault
 
-        for (String colName : rangeColumns)
+        for (String colName : rangeColumns + outputColumns)
         {
-            Column limitCol = fieldAxis.findColumn(colName)
-            String dataType = limitCol.getMetaProperty(DATA_TYPE)
-            coord.put(fieldAxisName, limitCol.value)
+            Column column = fieldAxis.findColumn(colName)
+            String dataType = column.getMetaProperty(DATA_TYPE)
+            if (StringUtilities.isEmpty(dataType))
+            {   // Only convert cell values on columns that have DATA_TYPE
+                continue
+            }
+            Object columnValue = column.value
+            coord.put(fieldAxisName, columnValue)
             
-            for (Column row : rowAxis.columnsWithoutDefault)
+            for (Column row : rowColumns)
             {
                 coord.put(rowAxisName, row.value)
-                Set<Long> idCoord = new LongHashSet([limitCol.id, row.id] as HashSet)
+                Set<Long> idCoord = new LongHashSet([column.id, row.id] as HashSet)
                 Object value = decisionTable.getCellById(idCoord, coord, [:])
-                if (value == null || !(value instanceof Comparable))
-                {
-                    throw new IllegalStateException("Values in range column must be instanceof Comparable, row ${row.value}, field: ${limitCol.value}, ncube: ${decisionTable.name}")
+                
+                if (rangeColumns.contains(columnValue))
+                {   // Convert range column values, ensure their cell values are not null
+                    if (value == null || !(value instanceof Comparable))
+                    {
+                        throw new IllegalStateException("Values in range column must be instanceof Comparable, row ${row.value}, field: ${columnValue}, ncube: ${decisionTable.name}")
+                    }
                 }
-                Comparable limit = (Comparable) value
-                decisionTable.setCellById(convertDataType(limit, dataType), idCoord)
+                else
+                {
+                    if (!(value instanceof Comparable))
+                    {
+                        throw new IllegalStateException("Values in columns with DATA_TYPE meta-property must be instanceof Comparable, row ${row.value}, field: ${columnValue}, ncube: ${decisionTable.name}")
+                    }
+                }
+                decisionTable.setCellById(convertDataType((Comparable) value, dataType), idCoord)
             }
         }
         convertSpecialColumnsToPrimitive()
@@ -612,6 +628,7 @@ class DecisionTable
             {
                 result2.put(entry.key, entry.value)
             }
+            row.remove(PRIORITY)    // Do not return priority field
         }
         return result2
     }
