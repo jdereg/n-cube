@@ -523,9 +523,8 @@ class TestDecisionTable extends NCubeBaseTest
         assert out[2L]['output'] == '20'
         assert out[3L]['output'] == '25'
 
-        println out
-        // TODO: Bug - validateDecisionTable() should throw exception as there is more than one output
-        dt.validateDecisionTable()
+        Set<Comparable> badRows = dt.validateDecisionTable()
+        assert badRows.size() == 2
     }
 
     // TODO: write test that finds a cube with a null range value (in the table definition)
