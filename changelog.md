@@ -1,5 +1,6 @@
 ### Revision History
-* 4.6.14
+* 4.6.14-SNAPSHOT
+  * Ensured `DecisionTable` input keys are returned in the defined order.
   * Many more tests added for DecisionTable.
   * `DecisionTable.getRequiredKeys()` API added that returns the required (minimum set) of keys required to call `getDecision()`.
 * 4.6.13

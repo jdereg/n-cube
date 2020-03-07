@@ -1351,9 +1351,10 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     
     private NCube cacheCube(NCube ncube, boolean force = false)
     {
-        if (!ncube.metaProperties.containsKey(PROPERTY_CACHE) || Boolean.TRUE == ncube.getMetaProperty(PROPERTY_CACHE))
+        ApplicationID appId = ncube.applicationID
+        if (appId.release || !ncube.metaProperties.containsKey(PROPERTY_CACHE) || Boolean.TRUE == ncube.getMetaProperty(PROPERTY_CACHE))
         {
-            Cache cubeCache = ncubeCacheManager.getCache(ncube.applicationID.cacheKey())
+            Cache cubeCache = ncubeCacheManager.getCache(appId.cacheKey())
             String loName = ncube.name.toLowerCase()
 
             if (allowMutableOn || force)

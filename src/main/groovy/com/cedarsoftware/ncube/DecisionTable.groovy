@@ -51,11 +51,11 @@ class DecisionTable
     private NCube decisionTable
     private String fieldAxisName = null
     private String rowAxisName = null
-    private Set<String> inputColumns = new HashSet<>()
-    private Set<String> inputKeys = new HashSet<>()
-    private Set<String> outputColumns = new HashSet<>()
-    private Set<String> rangeColumns = new HashSet<>()
-    private Set<String> requiredColumns = new HashSet<>()
+    private Set<String> inputColumns = new CaseInsensitiveSet<>()
+    private Set<String> inputKeys = new CaseInsensitiveSet<>()
+    private Set<String> outputColumns = new CaseInsensitiveSet<>()
+    private Set<String> rangeColumns = new CaseInsensitiveSet<>()
+    private Set<String> requiredColumns = new CaseInsensitiveSet<>()
     private static final String BANG = '!'
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings()
 
@@ -79,9 +79,9 @@ class DecisionTable
      */
     Set<String> getInputKeys()
     {
-        Set<String> sortedKeys = new TreeSet<>(CASE_INSENSITIVE_ORDER)
-        sortedKeys.addAll(inputKeys)
-        return sortedKeys
+        Set<String> orderedKeys = new CaseInsensitiveSet<>()
+        orderedKeys.addAll(inputKeys)
+        return orderedKeys
     }
 
     /**
@@ -90,9 +90,9 @@ class DecisionTable
      */
     Set<String> getRequiredKeys()
     {
-        Set<String> sortedKeys = new TreeSet<>(CASE_INSENSITIVE_ORDER)
-        sortedKeys.addAll(requiredColumns)
-        return sortedKeys
+        Set<String> requiredKeys = new CaseInsensitiveSet<>()
+        requiredKeys.addAll(requiredColumns)
+        return requiredKeys
     }
 
     /**
@@ -218,13 +218,21 @@ class DecisionTable
         List<Column> rows = rowAxis.columnsWithoutDefault
         Map<String, Set<String>> definedValues = [:]
         Map<String, Comparable> coord = [:]
-        Set<String> discreteInputCols = inputColumns - rangeColumns
+        Set<String> discreteInputCols = inputColumns
         
         for (String colValue : discreteInputCols)
         {
             Column field = fieldAxis.findColumn(colValue)
+            Map colMetaProps = field.metaProperties
             String fieldValue = field.value
             Set<String> values = new TreeSet<>(CASE_INSENSITIVE_ORDER)
+
+            if (colMetaProps.containsKey(INPUT_LOW) || colMetaProps.containsKey(INPUT_HIGH))
+            {
+                String inputKey = colMetaProps[INPUT_LOW] ?: colMetaProps[INPUT_HIGH]
+                definedValues.put(inputKey, values)
+                continue
+            }
 
             for (Column row : rows)
             {
@@ -482,10 +490,11 @@ class DecisionTable
             }
         }
 
-        Set<String> requiredNonInput = requiredColumns - inputKeys
-        if (!requiredNonInput.empty)
+        Set<String> requiredColumnsCopy = new CaseInsensitiveSet<>(requiredColumns)
+        requiredColumnsCopy.removeAll(inputKeys)
+        if (!requiredColumnsCopy.empty)
         {
-            throw new IllegalStateException("REQUIRED meta-property found on columns that are not input_value, input_low, or input_high. These were: ${requiredNonInput}, ncube: ${decisionTable.name}")
+            throw new IllegalStateException("REQUIRED meta-property found on columns that are not input_value, input_low, or input_high. These were: ${requiredColumnsCopy}, ncube: ${decisionTable.name}")
         }
 
         // Throw error if a range is only half-defined (lower with no upper, upper with no lower).
