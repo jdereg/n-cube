@@ -1,8 +1,10 @@
 ### Revision History
-* 4.6.14-SNAPSHOT
+* 4.6.14
   * Ensured `DecisionTable` input keys are returned in the defined order.
+  * On `DecistionTable`, `output_columns` can have `data_type` meta-property, ensuring their return type will match, regardless of value stored in the table (ncube).
   * Many more tests added for DecisionTable.
   * `DecisionTable.getRequiredKeys()` API added that returns the required (minimum set) of keys required to call `getDecision()`.
+  * Bug fix: `ignore` and `priority` now working correctly on `DecisionTable`.
 * 4.6.13
   * Performance: validating DecisionTables has been sped up significantly.
   * More validation checks are performed against the `NCube` that the `DecisionTable` is built from.

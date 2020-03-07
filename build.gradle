@@ -9,7 +9,7 @@ plugins {
 
 group = 'com.cedarsoftware'
 description = 'n-cube'
-version = '4.6.14-SNAPSHOT'
+version = '4.6.14'
 
 // Example builds
 //gradle clean build 
