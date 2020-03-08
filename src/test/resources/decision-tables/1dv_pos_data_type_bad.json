@@ -21,6 +21,7 @@
           "id":3000322296561,
           "type":"string",
           "output_value":true,
+          "data_type":"FOO",
           "value":"output"
         }
       ]

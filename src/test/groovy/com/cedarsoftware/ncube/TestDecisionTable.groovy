@@ -1,7 +1,6 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
-import org.junit.Ignore
 import org.junit.Test
 
 import static com.cedarsoftware.util.Converter.convertToDate
@@ -29,7 +28,7 @@ import static org.junit.Assert.fail
 @CompileStatic
 class TestDecisionTable extends NCubeBaseTest
 {
-    @Ignore
+//    @Ignore
     @Test
     void testGetDecision()
     {
@@ -49,7 +48,7 @@ class TestDecisionTable extends NCubeBaseTest
         }
     }
 
-    @Ignore
+//    @Ignore
     @Test
     void testStuff()
     {
@@ -109,7 +108,7 @@ class TestDecisionTable extends NCubeBaseTest
         DecisionTable dt = getDecisionTableFromJson('decision-tables/1dv_pos.json')
         Set<Comparable> badRows = dt.validateDecisionTable()
         assert badRows.empty
-        assert dt.requiredKeys.size() == 0
+        assert dt.requiredKeys.size() == 1
         Map result = dt.getDecision([state:'OH'])
         Map row = result[1L] as Map
         assert row.output == '15'
@@ -201,6 +200,13 @@ class TestDecisionTable extends NCubeBaseTest
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv_priority.json')
         Set<Comparable> badRows = dt.validateDecisionTable()
         assert badRows.empty
+
+        Map<String, Set<String>> map = dt.definedValues
+        assert map.size() == 2
+        Set pets = map['pet']
+        assert pets.size() == 1
+        Set states = map['state']
+        assert states.size() == 1
     }
 
     @Test
@@ -219,6 +225,13 @@ class TestDecisionTable extends NCubeBaseTest
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv_range.json')
         Set<Comparable> badRows = dt.validateDecisionTable()
         assert badRows.empty
+
+        Map<String, Set<String>> map = dt.definedValues
+        assert map.size() == 2
+        Set pets = map['pet']
+        Set number = map['number']
+        assert pets.empty
+        assert number.empty
     }
 
     @Test
@@ -237,6 +250,14 @@ class TestDecisionTable extends NCubeBaseTest
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv_range_priority.json')
         Set<Comparable> badRows = dt.validateDecisionTable()
         assert badRows.empty
+        
+        Map<String, Set<String>> map = dt.definedValues
+        assert map.size() == 2
+        Set pets = map['pet']
+        Set number = map['number']
+        assert pets.size() == 1
+        assert pets.contains('cat')
+        assert number.empty
     }
 
     @Test
@@ -596,10 +617,61 @@ class TestDecisionTable extends NCubeBaseTest
         assert badRows.size() == 0
     }
 
-    // TODO: write test that doesn't provide required input on call to getDecision()
-    // TODO: write test to verify that output values are converted to a bad meta-property data_type
-    // TODO: write test to verify a DecisionTable with 0 discrete variables and only a range.
-    // TODO: Cut a bunch of rows off of commission.json and add that to the tests.
+    @Test
+    void testRequiredInputNotSuppliedForRange()
+    {
+        try
+        {
+            DecisionTable dt = getDecisionTableFromJson('decision-tables/high-low.json')
+            dt.getDecision([foo: 'bar']) as Map
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'required', 'input', 'not', 'found')
+        }
+    }
+
+    @Test
+    void testRequiredInputNotSuppliedForInput()
+    {
+        try
+        {
+            DecisionTable dt = getDecisionTableFromJson('decision-tables/1dv_pos.json')
+            dt.getDecision([foo: 'bar']) as Map
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'required', 'input', 'not', 'found')
+        }
+    }
+
+    @Test
+    void testOutputDatatypeSupport()
+    {
+        try
+        {
+            DecisionTable dt = getDecisionTableFromJson('decision-tables/1dv_pos_data_type_bad.json')
+            dt.getDecision([state: 'OH']) as Map
+        }
+        catch (IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'data', 'type', 'must', 'be')
+        }
+    }
+
+    @Test
+    void testRangeOnly()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv_range_only.json')
+        Map<Long, ?> map = dt.getDecision([number: 10L]) as Map
+        Map<String, ?> row = map[2L] as Map
+        assert row.output == '20'
+
+        def x = dt.validateDecisionTable()
+        println x
+    }
 
     private static DecisionTable getDecisionTableFromJson(String file)
     {

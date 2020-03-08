@@ -35,6 +35,11 @@ class RangeSet implements Comparable<RangeSet>
         items.add(c)
     }
 
+    RangeSet(RangeSet set)
+    {   // copy constructor
+        items.addAll(set.items)
+    }
+
     void add(Comparable c)
     {
         items.add(c)
@@ -84,6 +89,10 @@ class RangeSet implements Comparable<RangeSet>
         if (!(other instanceof RangeSet))
         {
             return false
+        }
+        if (this.is(other))
+        {
+            return true
         }
 
         RangeSet that = (RangeSet) other
@@ -151,6 +160,20 @@ class RangeSet implements Comparable<RangeSet>
      * than the 'high' value.
      */
     boolean overlap(RangeSet that)
+    {
+        Iterator<Comparable> i = that.iterator()
+        while (i.hasNext())
+        {
+            Comparable c = i.next()
+            if (contains(c))
+            {
+                return true
+            }
+        }
+        return false
+    }
+
+    boolean overlap(Range that)
     {
         Iterator<Comparable> i = that.iterator()
         while (i.hasNext())

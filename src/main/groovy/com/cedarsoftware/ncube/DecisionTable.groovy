@@ -80,7 +80,7 @@ class DecisionTable
     Set<String> getInputKeys()
     {
         Set<String> orderedKeys = new CaseInsensitiveSet<>()
-        orderedKeys.addAll(inputKeys)
+        orderedKeys.addAll(this.inputKeys)
         return orderedKeys
     }
 
@@ -104,7 +104,7 @@ class DecisionTable
     {
         Map<String, Map<String, ?>> ranges = new CaseInsensitiveMap<>()
         Map<String, ?> copyInput = new CaseInsensitiveMap<>(input)
-        copyInput.keySet().retainAll(inputKeys)
+        copyInput.keySet().retainAll(this.inputKeys)
         copyInput.put(IGNORE, null)
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         ensuredRequiredInputs(copyInput)
@@ -407,7 +407,7 @@ class DecisionTable
             if (colMetaProps.containsKey(INPUT_VALUE))
             {
                 inputColumns.add(columnValue)
-                inputKeys.add(columnValue)
+                this.inputKeys.add(columnValue)
                 if (colMetaProps.containsKey(REQUIRED))
                 {
                     requiredColumns.add(columnValue)
@@ -434,7 +434,7 @@ class DecisionTable
                         throw new IllegalStateException("INPUT_LOW meta-property value must be of type String.  Column: ${columnValue}, ncube: ${decisionTable.name}")
                     }
                     inputVarName = colMetaProps.get(INPUT_LOW)
-                    inputKeys.add(inputVarName)
+                    this.inputKeys.add(inputVarName)
                     if (colMetaProps.containsKey(REQUIRED))
                     {
                         requiredColumns.add(inputVarName)
@@ -458,7 +458,7 @@ class DecisionTable
                         throw new IllegalStateException("INPUT_HIGH meta-property value must be of type String.  Column: ${columnValue}, ncube: ${decisionTable.name}")
                     }
                     inputVarName = colMetaProps.get(INPUT_HIGH)
-                    inputKeys.add(inputVarName)
+                    this.inputKeys.add(inputVarName)
                     if (colMetaProps.containsKey(REQUIRED))
                     {
                         requiredColumns.add(inputVarName)
@@ -491,7 +491,7 @@ class DecisionTable
         }
 
         Set<String> requiredColumnsCopy = new CaseInsensitiveSet<>(requiredColumns)
-        requiredColumnsCopy.removeAll(inputKeys)
+        requiredColumnsCopy.removeAll(this.inputKeys)
         if (!requiredColumnsCopy.empty)
         {
             throw new IllegalStateException("REQUIRED meta-property found on columns that are not input_value, input_low, or input_high. These were: ${requiredColumnsCopy}, ncube: ${decisionTable.name}")
@@ -654,39 +654,45 @@ class DecisionTable
         NCube blowout = new NCube('validation')
         Map<String, Comparable> coord = [:]
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
-        Set<String> discreteCols = inputColumns - rangeColumns
 
-        for (String colValue : discreteCols)
+        for (String colValue : this.inputKeys)
         {
             Column field = fieldAxis.findColumn(colValue)
-            String fieldValue = field.value
-            Axis axis = new Axis(fieldValue, AxisType.DISCRETE, AxisValueType.CISTRING, false)
-            blowout.addAxis(axis)
-
-            for (Column row : rows)
+            if (field == null)
+            {   // range variable (described by input_low/input_high) - create axis for range with default column
+                Axis axis = new Axis(colValue, AxisType.DISCRETE, AxisValueType.CISTRING, true)
+                blowout.addAxis(axis)
+            }
+            else
             {
-                String rowValue = row.value
-                coord.put(fieldAxisName, fieldValue)
-                coord.put(rowAxisName, rowValue)
-                Set<Long> idCoord = new LongHashSet([field.id, row.id] as Set)
-                String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
-                if (hasContent(cellValue))
+                String fieldValue = field.value
+                Axis axis = new Axis(fieldValue, AxisType.DISCRETE, AxisValueType.CISTRING, false)
+                blowout.addAxis(axis)
+                
+                for (Column row : rows)
                 {
-                    cellValue -= BANG
-                    Iterable<String> values = COMMA_SPLITTER.split(cellValue)
-
-                    for (String value : values)
+                    String rowValue = row.value
+                    coord.put(fieldAxisName, fieldValue)
+                    coord.put(rowAxisName, rowValue)
+                    Set<Long> idCoord = new LongHashSet([field.id, row.id] as Set)
+                    String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
+                    if (hasContent(cellValue))
                     {
-                        if (!axis.findColumn(value))
+                        cellValue -= BANG
+                        Iterable<String> values = COMMA_SPLITTER.split(cellValue)
+
+                        for (String value : values)
                         {
-                            blowout.addColumn(axis.name, value)
+                            if (!axis.findColumn(value))
+                            {
+                                blowout.addColumn(axis.name, value)
+                            }
                         }
                     }
                 }
+                blowout.addColumn(axis.name, null)
             }
-            blowout.addColumn(axis.name, null)
         }
-
         return blowout
     }
 
@@ -703,10 +709,9 @@ class DecisionTable
         Set<Comparable> badRows = []
         Column ignoreColumn = fieldAxis.findColumn(IGNORE)
         Column priorityColumn = fieldAxis.findColumn(PRIORITY)
-        Set<String> colsToProcess = inputColumns - rangeColumns
         Map<String, Integer> startCounters = new HashMap<>()
         
-        for (String colValue : colsToProcess)
+        for (String colValue : this.inputKeys)
         {
             startCounters.put(colValue, 1)
         }
@@ -726,36 +731,33 @@ class DecisionTable
                 }
             }
 
-            Map<String, List<String>> bindings = getImpliedCells(colsToProcess, fieldAxis, row, blowout)
+            Map<String, List<String>> bindings = getImpliedCells(fieldAxis, row, blowout)
             Range range = buildRange(row.id, rowValue, priorityColumn)
             String[] axisNames = bindings.keySet() as String[]
             Map<String, Integer> counters = new HashMap<>(startCounters)
 
-            if (axisNames.length > 0)
-            {   // No discrete variables, only ranges.
-                boolean done = false
-                Set<Long> ids = new HashSet<>()
-                Map<String, ?> coordinate = new HashMap<>()
+            boolean done = false
+            Set<Long> ids = new HashSet<>()
+            Map<String, ?> coordinate = new HashMap<>()
 
-                // Loop written this way because do-while loops are not in Groovy until version 3
-                while (!done)
+            // Loop written this way because do-while loops are not in Groovy until version 3
+            while (!done)
+            {
+                ids.clear()
+
+                for (String key : axisNames)
                 {
-                    ids.clear()
-
-                    for (String key : axisNames)
-                    {
-                        int radix = counters.get(key)
-                        String value = bindings.get(key).get(radix - 1)
-                        coordinate.put(key, value)
-                        ids.add(blowout.getAxis(key).findColumn(value).id)
-                    }
-
-                    if (!populateRangeTableCell(blowout, new LongHashSet(ids), coordinate, range))
-                    {
-                        badRows.add(rowValue)
-                    }
-                    done = !incrementVariableRadixCount(counters, bindings, axisNames)
+                    int radix = counters.get(key)
+                    String value = bindings.get(key).get(radix - 1)
+                    coordinate.put(key, value)
+                    ids.add(blowout.getAxis(key).findColumn(value).id)
                 }
+
+                if (!populateRangeTableCell(blowout, new LongHashSet(ids), coordinate, range))
+                {
+                    badRows.add(rowValue)
+                }
+                done = !incrementVariableRadixCount(counters, bindings, axisNames)
             }
         }
         return badRows
@@ -763,21 +765,25 @@ class DecisionTable
 
     /**
      * Get the implied cells in the blowout NCube based on a row in the DecisionTable.
-     * @param colsToProcess Set<String> of DISCRETE input_value column names
      * @param fieldAxis Axis representing the decision table columns
      * @param row Column from the Row axis in a DecisionTable.
      * @param blowout NCube that has an Axis per each DISCRETE input_value column in the DecisionTable.
      * @return Map<String, List<String>> representing all the discrete input values used for the row, or implied
      * by the row in the case blank (*) or ! (exclusion) is used.
      */
-    private Map<String, List<String>> getImpliedCells(Set<String> colsToProcess, Axis fieldAxis, Column row, NCube blowout)
+    private Map<String, List<String>> getImpliedCells(Axis fieldAxis, Column row, NCube blowout)
     {
         Map<String, List<String>> bindings = [:]
         Map<String, ?> coord = new CaseInsensitiveMap<>()
 
-        for (String colValue : colsToProcess)
+        for (String colValue : inputKeys)
         {
             Column field = fieldAxis.findColumn(colValue)
+            if (field == null)
+            {   // get default column on the CORRECT range axis (axis with no columns, only default)
+                Axis rangeAxis = blowout.getAxis(colValue)
+                field = rangeAxis.defaultColumn
+            }
             bindings.put(colValue, [])
             Set<Long> idCoord = new LongHashSet([row.id, field.id] as Set)
             coord.put(fieldAxisName, field.value)
@@ -826,11 +832,6 @@ class DecisionTable
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         Map<String, Comparable> coord = [(rowAxisName): rowValue]
 
-        // TODO - add support for validating multiple ranges
-        if (rangeColumns.size() > 2)
-        {
-            throw new IllegalStateException("Multiple ranges not yet supported, ncube: ${decisionTable.name}")
-        }
         Range range = new Range(0, 1)
 
         for (String colValue : rangeColumns)
@@ -862,15 +863,15 @@ class DecisionTable
 
     private static boolean populateRangeTableCell(NCube blowout, Set<Long> idCoord, Map<String, ?> coordinate, Range candidate)
     {
-        RangeList ranges = blowout.getCellById(idCoord, coordinate, [:])
-        if (ranges == null)
+        RangeSet rangeSet = blowout.getCellById(idCoord, coordinate, [:])
+        if (rangeSet == null)
         {
-            ranges = new RangeList()
-            ranges.addRange(candidate)
-            blowout.setCellById(ranges, idCoord)
+            rangeSet = new RangeSet()
+            rangeSet.add(candidate)
+            blowout.setCellById(rangeSet, idCoord)
             return true
         }
-        else if (ranges.overlaps(candidate))
+        else if (rangeSet.overlap(candidate))
         {
             return false
         }
@@ -878,8 +879,8 @@ class DecisionTable
         {
             // "Ranges" pulled from cell duplicated so that the interned version is not modified directly.
             // setCellById() below will intern if possible, otherwise this new instance will exist.
-            RangeList copy = ranges.duplicate()
-            copy.addRange(candidate)
+            RangeSet copy = new RangeSet(rangeSet)
+            copy.add(candidate)
             blowout.setCellById(copy, idCoord)
             return true
         }
@@ -894,8 +895,9 @@ class DecisionTable
     {
         if (!input.keySet().containsAll(requiredColumns))
         {
-            Set<String> missingKeys = requiredColumns - inputKeys
-            throw new IllegalArgumentException("Required input keys: ${missingKeys} not found, decision table: ${decisionTable.name}")
+            Set<String> requiredCopy = new CaseInsensitiveSet<>(requiredColumns)
+            requiredCopy.removeAll(this.inputKeys)
+            throw new IllegalArgumentException("Required input keys: ${requiredCopy} not found, decision table: ${decisionTable.name}")
         }
     }
     
@@ -943,7 +945,11 @@ class DecisionTable
         {
             return convertToBigDecimal(value)
         }
-        throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL. Data type: ${dataType}, value: ${value}, decision table: ${decisionTable.name}")
+        else if (dataType.equalsIgnoreCase('STRING'))
+        {
+            return convertToString(value)
+        }
+        throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL, STRING. Data type: ${dataType}, value: ${value}, decision table: ${decisionTable.name}")
     }
 
     /**

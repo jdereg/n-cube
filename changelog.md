@@ -1,4 +1,6 @@
 ### Revision History
+* 4.6.15-SNAPSHOT
+  * 
 * 4.6.14
   * Ensured `DecisionTable` input keys are returned in the defined order.
   * On `DecistionTable`, `output_columns` can have `data_type` meta-property, ensuring their return type will match, regardless of value stored in the table (ncube).
