@@ -80,7 +80,7 @@ class DecisionTable
     Set<String> getInputKeys()
     {
         Set<String> orderedKeys = new CaseInsensitiveSet<>()
-        orderedKeys.addAll(this.inputKeys)
+        orderedKeys.addAll(inputKeys)
         return orderedKeys
     }
 
@@ -104,7 +104,7 @@ class DecisionTable
     {
         Map<String, Map<String, ?>> ranges = new CaseInsensitiveMap<>()
         Map<String, ?> copyInput = new CaseInsensitiveMap<>(input)
-        copyInput.keySet().retainAll(this.inputKeys)
+        copyInput.keySet().retainAll(inputKeys)
         copyInput.put(IGNORE, null)
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         ensuredRequiredInputs(copyInput)
@@ -407,7 +407,7 @@ class DecisionTable
             if (colMetaProps.containsKey(INPUT_VALUE))
             {
                 inputColumns.add(columnValue)
-                this.inputKeys.add(columnValue)
+                inputKeys.add(columnValue)
                 if (colMetaProps.containsKey(REQUIRED))
                 {
                     requiredColumns.add(columnValue)
@@ -434,7 +434,7 @@ class DecisionTable
                         throw new IllegalStateException("INPUT_LOW meta-property value must be of type String.  Column: ${columnValue}, ncube: ${decisionTable.name}")
                     }
                     inputVarName = colMetaProps.get(INPUT_LOW)
-                    this.inputKeys.add(inputVarName)
+                    inputKeys.add(inputVarName)
                     if (colMetaProps.containsKey(REQUIRED))
                     {
                         requiredColumns.add(inputVarName)
@@ -458,7 +458,7 @@ class DecisionTable
                         throw new IllegalStateException("INPUT_HIGH meta-property value must be of type String.  Column: ${columnValue}, ncube: ${decisionTable.name}")
                     }
                     inputVarName = colMetaProps.get(INPUT_HIGH)
-                    this.inputKeys.add(inputVarName)
+                    inputKeys.add(inputVarName)
                     if (colMetaProps.containsKey(REQUIRED))
                     {
                         requiredColumns.add(inputVarName)
@@ -491,7 +491,7 @@ class DecisionTable
         }
 
         Set<String> requiredColumnsCopy = new CaseInsensitiveSet<>(requiredColumns)
-        requiredColumnsCopy.removeAll(this.inputKeys)
+        requiredColumnsCopy.removeAll(inputKeys)
         if (!requiredColumnsCopy.empty)
         {
             throw new IllegalStateException("REQUIRED meta-property found on columns that are not input_value, input_low, or input_high. These were: ${requiredColumnsCopy}, ncube: ${decisionTable.name}")
@@ -655,7 +655,7 @@ class DecisionTable
         Map<String, Comparable> coord = [:]
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
 
-        for (String colValue : this.inputKeys)
+        for (String colValue : inputKeys)
         {
             Column field = fieldAxis.findColumn(colValue)
             if (field == null)
@@ -711,7 +711,7 @@ class DecisionTable
         Column priorityColumn = fieldAxis.findColumn(PRIORITY)
         Map<String, Integer> startCounters = new HashMap<>()
         
-        for (String colValue : this.inputKeys)
+        for (String colValue : inputKeys)
         {
             startCounters.put(colValue, 1)
         }
@@ -896,7 +896,7 @@ class DecisionTable
         if (!input.keySet().containsAll(requiredColumns))
         {
             Set<String> requiredCopy = new CaseInsensitiveSet<>(requiredColumns)
-            requiredCopy.removeAll(this.inputKeys)
+            requiredCopy.removeAll(inputKeys)
             throw new IllegalArgumentException("Required input keys: ${requiredCopy} not found, decision table: ${decisionTable.name}")
         }
     }
