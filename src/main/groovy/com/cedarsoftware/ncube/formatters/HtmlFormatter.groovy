@@ -7,6 +7,7 @@ import com.cedarsoftware.ncube.Column
 import com.cedarsoftware.ncube.CommandCell
 import com.cedarsoftware.ncube.GroovyBase
 import com.cedarsoftware.ncube.NCube
+import com.cedarsoftware.ncube.RangeSet
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
@@ -607,6 +608,14 @@ th.ncube-dead:hover { background: #76A7FF; }
             return String.valueOf(cellValue)
         }
         else if (cellValue instanceof Point2D || cellValue instanceof Point3D || cellValue instanceof LatLon)
+        {
+            return cellValue.toString()
+        }
+        else if (cellValue instanceof Range)
+        {
+            return cellValue.toString()
+        }
+        else if (cellValue instanceof RangeSet)
         {
             return cellValue.toString()
         }

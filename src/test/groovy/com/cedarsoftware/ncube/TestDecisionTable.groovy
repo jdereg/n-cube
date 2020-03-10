@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
+import org.junit.Ignore
 import org.junit.Test
 
 import static com.cedarsoftware.util.Converter.convertToDate
@@ -28,7 +29,7 @@ import static org.junit.Assert.fail
 @CompileStatic
 class TestDecisionTable extends NCubeBaseTest
 {
-//    @Ignore
+    @Ignore
     @Test
     void testGetDecision()
     {
@@ -39,7 +40,7 @@ class TestDecisionTable extends NCubeBaseTest
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'decision-tables/commission.json')
         DecisionTable decisionTable = new DecisionTable(ncube)
 
-        for (int i=0; i < 10; i++)
+        for (int i=0; i < 1; i++)
         {
             long start = System.nanoTime()
             println decisionTable.getDecision(input)
@@ -48,13 +49,13 @@ class TestDecisionTable extends NCubeBaseTest
         }
     }
 
-//    @Ignore
+    @Ignore
     @Test
     void testStuff()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/commission.json')
 
-        for (int i = 0; i < 1; i ++)
+        for (int i = 0; i < 10; i ++)
         {
             long start = System.nanoTime()
             Set<Comparable> badRows = dt.validateDecisionTable()
@@ -669,10 +670,31 @@ class TestDecisionTable extends NCubeBaseTest
         Map<String, ?> row = map[2L] as Map
         assert row.output == '20'
 
-        def x = dt.validateDecisionTable()
-        println x
+        Set set = dt.validateDecisionTable()
+        assert set.empty
     }
 
+    @Test
+    void test1RangeGood()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv_range_only.json')
+        Map<Long, ?> map = dt.getDecision([number: 10L]) as Map
+        Map<String, ?> row = map[2L] as Map
+        assert row.output == '20'
+
+        Set set = dt.validateDecisionTable()
+        assert set.empty
+    }
+
+    @Test
+    void test2RangesGood()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/multi_range_good.json')
+        Set set = dt.validateDecisionTable()
+        assert set.empty
+    }
+
+    // TODO: in verifyAndCache, set blank low to lowest value of type, set blank high to highest value of type.
     private static DecisionTable getDecisionTableFromJson(String file)
     {
         String json = NCubeRuntime.getResourceAsString(file)

@@ -27,7 +27,7 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class RangeSet implements Comparable<RangeSet>
 {
-    protected final List<Comparable> items = []
+    protected final Set<Comparable> items = new LinkedHashSet<>()
 
     RangeSet() { }
     RangeSet(Comparable c)
@@ -173,7 +173,27 @@ class RangeSet implements Comparable<RangeSet>
         return false
     }
 
+    /**
+     * Does this RangeSet overlap a particular Range value?
+     */
     boolean overlap(Range that)
+    {
+        Iterator<Comparable> i = that.iterator()
+        while (i.hasNext())
+        {
+            Comparable c = i.next()
+            if (contains(c))
+            {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * Does this RangeSet overlap a particular discrete value?
+     */
+    boolean overlap(Comparable that)
     {
         Iterator<Comparable> i = that.iterator()
         while (i.hasNext())

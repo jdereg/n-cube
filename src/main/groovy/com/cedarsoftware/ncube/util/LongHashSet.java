@@ -238,11 +238,16 @@ public class LongHashSet implements Set<Long>
 
     public boolean equals(Object other)
     {
-        if (!(other instanceof Set))
-        {
-            return false;
+        if (other == this)
+        {   // same instance
+            return true;
         }
 
+        if (!(other instanceof Set))
+        {   // incompatible type
+            return false;
+        }
+        
         if (!(other instanceof LongHashSet))
         {   // Use normal Set equals (let 'them' iterate this set, getting O(1) on each check against 'their' Set)
             return other.equals(this);
