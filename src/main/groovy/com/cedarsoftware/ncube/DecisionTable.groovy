@@ -748,6 +748,11 @@ class DecisionTable
         boolean anyRanges = rangeColumns.size() > 0
         boolean anyDiscretes = inputColumns.size() > rangeColumns.size()
         Map<Range, Range> internedRanges = new HashMap<>()
+
+        Set<String> inputKeysCopy = new CaseInsensitiveSet<>(inputKeys)
+        inputKeysCopy.removeAll(rangeKeys)
+        String[] axisNames = inputKeysCopy as String[]
+
         String[] indexToRangeName = new String[rangeKeys.size()]
         int index = 0
         for (String rangeName : rangeKeys)
@@ -773,7 +778,6 @@ class DecisionTable
 
             Map<String, List<Comparable>> bindings = getImpliedCells(fieldAxis, row, blowout)
             int priority = getPriority(coord, rowId, priorityColumn)
-            String[] axisNames = bindings.keySet() as String[]
             System.arraycopy(startCounters, 0, counters, 0, startCounters.length)
             Map<String, Range> rowRanges = getRowRanges(coord, rowId, priority, internedRanges)
             boolean done = false
