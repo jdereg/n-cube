@@ -259,7 +259,7 @@ class DecisionTable
     /**
      * Closure used with mapReduce() on special 2D decision n-cubes.
      */
-    private Closure getDecisionTableClosure()
+    private static Closure getDecisionTableClosure()
     {
         return { Map<String, ?> rowValues, Map<String, ?> input ->
             Map<String, ?> inputMap = (Map<String, ?>) input.get('dvs')
@@ -850,7 +850,6 @@ class DecisionTable
         else
         {
             int len = existingRanges.size()
-            boolean allGood = true
 
             for (int i=0; i < len; i++)
             {   // Loop through however many the table has grown too (a function of how many unique ranges appear).
@@ -869,11 +868,9 @@ class DecisionTable
                         break
                     }
                 }
-
-                allGood &= good
                 
-                if (!allGood)
-                {   // Even if false, the row could still be good.  The discrete variables for this row may be unique.
+                if (!good)
+                {   // Short-circuit - no need to test further, overlap found. 
                     return false
                 }
             }
@@ -1094,7 +1091,7 @@ class DecisionTable
     /**
      * Re-use Range instances.
      */
-    Range internRange(Range candidate, Map<Range, Range> internedRanges)
+    static Range internRange(Range candidate, Map<Range, Range> internedRanges)
     {
         Range internedRange = internedRanges.get(candidate)
         if (internedRange)
