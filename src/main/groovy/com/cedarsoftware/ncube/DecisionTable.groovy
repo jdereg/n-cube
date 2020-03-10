@@ -742,17 +742,13 @@ class DecisionTable
         Set<Comparable> badRows = new CaseInsensitiveSet<>()
         Column ignoreColumn = fieldAxis.findColumn(IGNORE)
         Column priorityColumn = fieldAxis.findColumn(PRIORITY)
-        Map<String, Integer> startCounters = new CaseInsensitiveMap<>()
+        int[] startCounters = new int[inputKeys.size() - rangeKeys.size()]
+        int[] counters = new int[startCounters.length]
         Map<Set<Long>, List<List<Range>>> ranges = new HashMap<>()
         boolean anyRanges = rangeColumns.size() > 0
         boolean anyDiscretes = inputColumns.size() > rangeColumns.size()
         Map<Range, Range> internedRanges = new HashMap<>()
-
-        for (String colValue : inputKeys)
-        {
-            startCounters.put(colValue, 1)
-        }
-
+        
         for (Column row : rows)
         {
             Comparable rowValue = row.value
@@ -772,7 +768,7 @@ class DecisionTable
             Map<String, List<Comparable>> bindings = getImpliedCells(fieldAxis, row, blowout)
             int priority = getPriority(coord, rowId, rowValue, priorityColumn)
             String[] axisNames = bindings.keySet() as String[]
-            Map<String, Integer> counters = new HashMap<>(startCounters)
+            System.arraycopy(startCounters, 0, counters, 0, startCounters.length)
             Map<String, Range> rowRanges = getRowRanges(coord, rowId, priority, internedRanges)
             boolean done = false
             Set<Long> ids = new HashSet<>()
@@ -783,10 +779,11 @@ class DecisionTable
             {
                 ids.clear()
 
+                int idx = 0;
                 for (String axisName : axisNames)
                 {   // this loop skipped if there are no discrete variables (range(s) only)
-                    int radix = counters.get(axisName)
-                    Comparable value = bindings.get(axisName).get(radix - 1)
+                    int radix = counters[idx++]
+                    Comparable value = bindings.get(axisName).get(radix)
                     coordinate.put(axisName, value)
                     ids.add(blowout.getAxis(axisName).findColumn(value).id)
                 }
@@ -1109,11 +1106,10 @@ class DecisionTable
     }
 
     /**
-     * Increment the variable radix number passed in.  The number is represented by a Map, where the keys are the
-     * digit names (axis names), and the values are the associated values for the number.
+     * Increment the variable radix number passed in.  The number is represented by an Object[].
      * @return false if more incrementing can be done, otherwise true.
      */
-    private static boolean incrementVariableRadixCount(final Map<String, Integer> counters,
+    private static boolean incrementVariableRadixCount(int[] counters,
                                                        final Map<String, List<Comparable>> bindings,
                                                        final String[] axisNames)
     {
@@ -1122,20 +1118,20 @@ class DecisionTable
         while (true)
         {
             final String axisName = axisNames[digit]
-            final int count = counters.get(axisName)
+            final int count = counters[digit]
             final List<Comparable> cols = bindings.get(axisName)
 
-            if (count >= cols.size())
+            if (count >= cols.size() - 1)
             {   // Reach max value for given dimension (digit)
                 if (digit == 0)
                 {   // we have reached the max radix for the most significant digit - we are done
                     return false
                 }
-                counters.put(axisNames[digit--], 1)
+                counters[digit--] = 0
             }
             else
             {
-                counters.put(axisName, count + 1)  // increment counter
+                counters[digit] = count + 1
                 return true
             }
         }
