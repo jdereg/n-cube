@@ -55,6 +55,7 @@ class DecisionTable
     private Set<String> inputKeys = new CaseInsensitiveSet<>()
     private Set<String> outputColumns = new CaseInsensitiveSet<>()
     private Set<String> rangeColumns = new CaseInsensitiveSet<>()
+    private Set<String> rangeKeys = new CaseInsensitiveSet<>()
     private Set<String> requiredColumns = new CaseInsensitiveSet<>()
     private Map<String, Range> inputVarNameToRangeColumns = new CaseInsensitiveMap<>()
     private static final String BANG = '!'
@@ -519,6 +520,9 @@ class DecisionTable
             }
         }
 
+        rangeKeys = new CaseInsensitiveSet<>(inputKeys)
+        rangeKeys.removeAll(inputColumns)
+        
         // Convert all values in the table to the data_type specified on the column meta-property (if there is one)
         Axis rowAxis = decisionTable.getAxis(rowAxisName)
         Map<String, ?> coord = new CaseInsensitiveMap<>()
@@ -742,6 +746,7 @@ class DecisionTable
         Map<Set<Long>, List<List<Range>>> ranges = new HashMap<>()
         boolean anyRanges = rangeColumns.size() > 0
         boolean anyDiscretes = inputColumns.size() > rangeColumns.size()
+        Map<Range, Range> internedRanges = new HashMap<>()
 
         for (String colValue : inputKeys)
         {
@@ -771,6 +776,7 @@ class DecisionTable
             boolean done = false
             Set<Long> ids = new HashSet<>()
             Map<String, ?> coordinate = new HashMap<>()
+            Map<String, Range> rowRanges = getRowRanges(coord, row.id, priority, internedRanges)
 
             // Loop written this way because do-while loops are not in Groovy until version 3
             while (!done)
@@ -792,8 +798,7 @@ class DecisionTable
 
                 if (anyRanges)
                 {   // get all Ranges for row, track them by name
-                    Map<String, Range> rowRanges = getRowRanges(coord, row.id, priority)
-                    areRangesGood = checkRangesOnRowForOverlap(rowRanges, ranges, cellPtr)
+                    areRangesGood = checkRowRangesForOverlap(rowRanges, ranges, cellPtr)
                     done = true
                 }
 
@@ -803,10 +808,7 @@ class DecisionTable
                     done = !incrementVariableRadixCount(counters, bindings, axisNames)
                 }
 
-                if (areDiscretesUnique || areRangesGood)
-                {
-                }
-                else
+                if (!areDiscretesUnique && !areRangesGood)
                 {
                     badRows.add(rowValue)
                 }
@@ -815,18 +817,13 @@ class DecisionTable
         return badRows
     }
 
-    private boolean checkRangesOnRowForOverlap(Map<String, Range> rowRanges, Map<Set<Long>, List<List<Range>>> ranges, Set<Long> cellPtr)
+    private boolean checkRowRangesForOverlap(Map<String, Range> rowRanges, Map<Set<Long>, List<List<Range>>> ranges, Set<Long> cellPtr)
     {
         List<List<Range>> existingRanges = ranges.get(cellPtr)
         if (existingRanges == null)
         {
             existingRanges = []
-            List<Range> list = new ArrayList<>()
-            for (Map.Entry<String, Range> entry : rowRanges.entrySet())
-            {
-                list.add(entry.value)
-            }
-            existingRanges.add(list)
+            existingRanges.add(rowRanges.values() as List)
             ranges.put(cellPtr, existingRanges)
             return true
         }
@@ -840,54 +837,49 @@ class DecisionTable
             }
             
             int len = existingRanges.size()
-            boolean alive = true
+            boolean allGood = true
 
             for (int i=0; i < len; i++)
-            {
-                List<Range> lineRange = existingRanges[i]
-                int len2 = lineRange.size()
+            {   // Loop through however many the table has grown too (a function of how many unique ranges appear).
+                List<Range> existingRange = existingRanges[i]
+                int len2 = existingRange.size()
                 boolean good = false
 
                 for (int j=0; j < len2; j++)
-                {
+                {   // loop through all range variables ranges (age, salary, date)
                     String rangeName = indexToRange.get(j)
-                    Range range = lineRange[j]
+                    Range range = existingRange[j]
                     if (!range.overlap(rowRanges.get(rangeName)))
-                    {
+                    {   // If any one range doesn't overlap, then this range is OK against another existing range
                         good = true
                         break
                     }
                 }
 
-                alive &= good
+                allGood &= good
             }
 
-            if (!alive)
-            {
+            if (!allGood)
+            {   // Even if false, the row could still be good.  The discrete variables for this row may be unique.
                 return false
             }
 
-            List<Range> list = new ArrayList<>()
-            for (Map.Entry<String, Range> entry : rowRanges.entrySet())
-            {
-                list.add(entry.value)
-            }
-            existingRanges.add(list)
+            existingRanges.add(rowRanges.values() as List)
             return true
         }
     }
 
     /**
      * Get all ranges in a given row of the decision table
+     * @param Coord Map<String, ?> specifying the n-cube coordinate.  The 'rowAxisName' must already
+     * be set before calling this method.
      * @return Map that maps a range name to its ranges on a given row.
      */
-    private Map<String, Range> getRowRanges(Map<String, ?> coord, long rowId, int priority)
+    private Map<String, Range> getRowRanges(Map<String, ?> coord, long rowId, int priority, Map<Range, Range> internedRanges)
     {
-        Set<String> rangeVarNames = new CaseInsensitiveSet<>(inputKeys)
-        rangeVarNames.removeAll(inputColumns)
         Map<String, Range> ranges = new CaseInsensitiveMap<>()
 
-        for (String rangeName : rangeVarNames)
+        for (String rangeName : rangeKeys)
         {
             Range bounds = inputVarNameToRangeColumns.get(rangeName)
             Column lowColumn = (Column) bounds.low
@@ -901,8 +893,8 @@ class DecisionTable
             idCoord = new LongHashSet([highColumn.id, rowId] as Set)
             range.high = decisionTable.getCellById(idCoord, coord, [:])
             range.priority = priority
-
-            ranges.put(rangeName, range)
+            
+            ranges.put(rangeName, internRange(range, internedRanges))
         }
         return ranges
     }
@@ -970,6 +962,10 @@ class DecisionTable
         return bindings
     }
 
+    /**
+     * Fetch the 'int' priority value from the 'Priority' column, if it exists.  If not, then
+     * return INTEGER.MAX_VALUE as the priority (lowest).
+     */
     private int getPriority(Map<String, ?> coord, long rowId, Comparable rowValue, Column priorityColumn)
     {
         if (priorityColumn)
@@ -1079,6 +1075,20 @@ class DecisionTable
             return convertToString(value)
         }
         throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL, STRING. Data type: ${dataType}, value: ${value}, decision table: ${decisionTable.name}")
+    }
+
+    /**
+     * Re-use Range instances.
+     */
+    Range internRange(Range candidate, Map<Range, Range> internedRanges)
+    {
+        Range internedRange = internedRanges.get(candidate)
+        if (internedRange)
+        {
+            return internedRange
+        }
+        internedRanges.put(candidate, candidate)
+        return candidate
     }
 
     /**
