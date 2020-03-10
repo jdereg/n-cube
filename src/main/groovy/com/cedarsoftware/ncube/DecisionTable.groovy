@@ -756,12 +756,13 @@ class DecisionTable
         for (Column row : rows)
         {
             Comparable rowValue = row.value
+            Long rowId = row.id
             coord.put(rowAxisName, rowValue)
 
             if (ignoreColumn)
             {
                 coord.put(fieldAxisName, IGNORE)
-                Set<Long> idCoord = new LongHashSet([row.id, ignoreColumn.id] as Set)
+                Set<Long> idCoord = new LongHashSet([rowId, ignoreColumn.id] as Set)
                 if (decisionTable.getCellById(idCoord, coord, [:]))
                 {
                     continue
@@ -769,14 +770,13 @@ class DecisionTable
             }
 
             Map<String, List<Comparable>> bindings = getImpliedCells(fieldAxis, row, blowout)
-            int priority = getPriority(coord, row.id, rowValue, priorityColumn)
+            int priority = getPriority(coord, rowId, rowValue, priorityColumn)
             String[] axisNames = bindings.keySet() as String[]
             Map<String, Integer> counters = new HashMap<>(startCounters)
-
+            Map<String, Range> rowRanges = getRowRanges(coord, rowId, priority, internedRanges)
             boolean done = false
             Set<Long> ids = new HashSet<>()
             Map<String, ?> coordinate = new HashMap<>()
-            Map<String, Range> rowRanges = getRowRanges(coord, row.id, priority, internedRanges)
 
             // Loop written this way because do-while loops are not in Groovy until version 3
             while (!done)
@@ -784,8 +784,7 @@ class DecisionTable
                 ids.clear()
 
                 for (String axisName : axisNames)
-                {
-                    // this loop skipped if there are no discrete variables (range(s) only)
+                {   // this loop skipped if there are no discrete variables (range(s) only)
                     int radix = counters.get(axisName)
                     Comparable value = bindings.get(axisName).get(radix - 1)
                     coordinate.put(axisName, value)
@@ -804,7 +803,7 @@ class DecisionTable
 
                 if (anyDiscretes)
                 {
-                    areDiscretesUnique = populateCellWithPriority(blowout, cellPtr, coordinate, priority)
+                    areDiscretesUnique = checkDiscretesForOverlap(blowout, cellPtr, coordinate, priority)
                     done = !incrementVariableRadixCount(counters, bindings, axisNames)
                 }
 
@@ -817,6 +816,24 @@ class DecisionTable
         return badRows
     }
 
+    /**
+     * Check the passed in rowRanges against the 'ranges' passed for complete overlap (for the given cellPtr).
+     * If there is complete overlap, return false, otherwise true.
+     * Example of List<List<Ranges>>:
+     *             age           salary
+     *     [0] [Range(0, 16),  Range(0, 40000)]
+     *     [1] [Range(16, 35), Range(0, 40000)]
+     *     [2] [Range(35, 70), Range(0, 40000)]
+     *
+     * The outer List is the length of the number of unique ranges encountered per cellPtr (unique coordinate
+     * representing all discrete decision variables).  The inner lists are prior row's ranges that have been
+     * encountered, that were non-overlapping - meaning they did not overlap this list (unique in at least one
+     * range [age or salary, ...]
+     *
+     * Although this method can indict a row's ranges (saying that they overlap another row elsewhere in the
+     * DecisionTable), the associated discrete variables can be unique (unique cellPtr), thereby the row is
+     * still good.
+     */
     private boolean checkRowRangesForOverlap(Map<String, Range> rowRanges, Map<Set<Long>, List<List<Range>>> ranges, Set<Long> cellPtr)
     {
         List<List<Range>> existingRanges = ranges.get(cellPtr)
@@ -986,7 +1003,7 @@ class DecisionTable
      * return false (we've identified a duplicate rule in the DecisionTable).   If the RangeSet is there, but
      * it does not contain the same priority passed in, add it.
      */
-    private static boolean populateCellWithPriority(NCube blowout, Set<Long> idCoord, Map<String, ?> coordinate, int priority)
+    private static boolean checkDiscretesForOverlap(NCube blowout, Set<Long> idCoord, Map<String, ?> coordinate, int priority)
     {
         RangeSet rangeSet = blowout.getCellById(idCoord, coordinate, [:])
         if (rangeSet == null)

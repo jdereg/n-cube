@@ -55,7 +55,7 @@ class TestDecisionTable extends NCubeBaseTest
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/commission.json')
 
-        for (int i = 0; i < 10; i ++)
+        for (int i = 0; i < 1; i ++)
         {
             long start = System.nanoTime()
             Set<Comparable> badRows = dt.validateDecisionTable()
