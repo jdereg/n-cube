@@ -1038,7 +1038,7 @@ class DecisionTable
         if (!input.keySet().containsAll(requiredColumns))
         {
             Set<String> requiredCopy = new CaseInsensitiveSet<>(requiredColumns)
-            requiredCopy.removeAll(inputKeys)
+            requiredCopy.removeAll(input.keySet())
             throw new IllegalArgumentException("Required input keys: ${requiredCopy} not found, decision table: ${decisionTable.name}")
         }
     }

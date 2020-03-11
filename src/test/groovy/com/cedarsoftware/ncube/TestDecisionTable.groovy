@@ -629,7 +629,7 @@ class TestDecisionTable extends NCubeBaseTest
         }
         catch (IllegalArgumentException e)
         {
-            assertContainsIgnoreCase(e.message, 'required', 'input', 'not', 'found')
+            assertContainsIgnoreCase(e.message, 'required', 'input', '[age]', 'not', 'found')
         }
     }
 
@@ -644,7 +644,7 @@ class TestDecisionTable extends NCubeBaseTest
         }
         catch (IllegalArgumentException e)
         {
-            assertContainsIgnoreCase(e.message, 'required', 'input', 'not', 'found')
+            assertContainsIgnoreCase(e.message, 'required', 'input', '[state]', 'not', 'found')
         }
     }
 
