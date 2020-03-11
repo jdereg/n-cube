@@ -205,7 +205,7 @@ class DecisionTable
     {
         return decisionTable
     }
-    
+
     /**
      * Return the values defined in the decision table for every input_value column. The values represent the possible
      * values of the input_value columns. The values do not account for cells that are left blank which would match on
@@ -221,7 +221,7 @@ class DecisionTable
         Map<String, Set<String>> definedValues = [:]
         Map<String, Comparable> coord = [:]
         Set<String> discreteInputCols = inputColumns
-        
+
         for (String colValue : discreteInputCols)
         {
             Column field = fieldAxis.findColumn(colValue)
@@ -427,7 +427,7 @@ class DecisionTable
                 rangeColumns.add(columnValue)
                 RangeSpec rangeSpec
                 String inputVarName
-                
+
                 if (colMetaProps.containsKey(INPUT_LOW))
                 {
                     Object inputVariableName = colMetaProps.get(INPUT_LOW)
@@ -506,7 +506,7 @@ class DecisionTable
             String boundName2 = null
             if (StringUtilities.isEmpty(rangeSpec.lowColumnName))
             {
-                boundName1 = 'Upper' 
+                boundName1 = 'Upper'
                 boundName2 = 'lower'
             }
             else if (StringUtilities.isEmpty(rangeSpec.highColumnName))
@@ -522,7 +522,7 @@ class DecisionTable
 
         rangeKeys = new CaseInsensitiveSet<>(inputKeys)
         rangeKeys.removeAll(inputColumns)
-        
+
         // Convert all values in the table to the data_type specified on the column meta-property (if there is one)
         Axis rowAxis = decisionTable.getAxis(rowAxisName)
         Map<String, ?> coord = new CaseInsensitiveMap<>()
@@ -538,13 +538,13 @@ class DecisionTable
             }
             Object columnValue = column.value
             coord.put(fieldAxisName, columnValue)
-            
+
             for (Column row : rowColumns)
             {
                 coord.put(rowAxisName, row.value)
                 Set<Long> idCoord = new LongHashSet([column.id, row.id] as HashSet)
                 Object value = decisionTable.getCellById(idCoord, coord, [:])
-                
+
                 if (rangeColumns.contains(columnValue))
                 {   // Convert range column values, ensure their cell values are not null
                     if (value == null || !(value instanceof Comparable))
@@ -630,7 +630,7 @@ class DecisionTable
         for (String colValue : inputColumns)
         {
             Column field = fieldAxis.findColumn(colValue)
-            if (field.metaProps.containsKey(INPUT_LOW))
+            if (field.metaProperties.containsKey(INPUT_LOW))    // calling field.metaProperties to ensure the field is loaded
             {
                 Range pair = inputVarNameToRangeColumns.get(field.metaProps.get(INPUT_LOW))
                 if (pair == null)
@@ -730,6 +730,8 @@ class DecisionTable
     }
 
     /**
+     * Validate whether any input rules in the DecisionTable overlap.  An overlap would happen if
+     * the same input to the DecisionTable caused two (2) or more rows to be returned.
      * @param blowout NCube that has an Axis per each DISCRETE input_value column in the DecisionTable.
      * @param rows List<Column> all rows (Column instances) from the Decision table row axis.
      * @return Set<Comparable> row pointers (or empty Set in the case of no errors), of rows in a DecisionTable that
@@ -759,7 +761,7 @@ class DecisionTable
         {
             indexToRangeName[index++] = rangeName
         }
-        
+
         for (Column row : rows)
         {
             Comparable rowValue = row.value
@@ -862,19 +864,19 @@ class DecisionTable
                 boolean good = false
 
                 for (int j=0; j < len2; j++)
-                {   // loop through all range variables ranges (age, salary, date)
+                {   // Loop through all range variables ranges (age, salary, date)
                     String rangeName = indexToRangeName[j]
                     Range range = existingRange.get(j)
-                    
+
                     if (!range.overlap(rowRanges.get(rangeName)))
-                    {   // If any one range doesn't overlap, then this range is OK against another existing range
+                    {   // If any one range doesn't overlap, then this List of ranges is OK against another existing List of ranges
                         good = true
                         break
                     }
                 }
-                
+
                 if (!good)
-                {   // Short-circuit - no need to test further, overlap found. 
+                {   // Short-circuit - no need to test further, overlap found.
                     return false
                 }
             }
@@ -908,12 +910,12 @@ class DecisionTable
             idCoord = new LongHashSet([highColumn.id, rowId] as Set)
             range.high = decisionTable.getCellById(idCoord, coord, [:])
             range.priority = priority
-            
+
             ranges.put(rangeName, internRange(range, internedRanges))
         }
         return ranges
     }
-    
+
     /**
      * Get the implied cells in the blowout NCube based on a row in the DecisionTable.
      * @param fieldAxis Axis representing the decision table columns
@@ -937,7 +939,7 @@ class DecisionTable
             Set<Long> idCoord = new LongHashSet([row.id, field.id] as Set)
             coord.put(fieldAxisName, field.value)
             String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
-            
+
             if (hasContent(cellValue))
             {
                 boolean exclude = cellValue.startsWith(BANG)
@@ -1040,7 +1042,7 @@ class DecisionTable
             throw new IllegalArgumentException("Required input keys: ${requiredCopy} not found, decision table: ${decisionTable.name}")
         }
     }
-    
+
     /**
      * Get the range spec Map out of the 'ranges' map by input variable name.  If not there, create a new
      * empty range spec Map and place it there.

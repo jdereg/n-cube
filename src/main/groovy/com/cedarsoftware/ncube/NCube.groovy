@@ -465,7 +465,7 @@ class NCube<T>
      * If no coordinate is supplied for an axis (or axes) that has a default column, then the default
      * column will be bound to for that axis (or axes).
      */
-    boolean containsCellById(final Collection<Long> coordinate)
+    boolean containsCellById(final Set<Long> coordinate)
     {
         Set<Long> ids = ensureFullCoordinate(coordinate)
         return cells.containsKey(ids)
@@ -1695,25 +1695,43 @@ class NCube<T>
      * passed in [16, 35]
      * returned [16, 35, 2.def, 4.def]  // 2.def = ID of default column on axis 2, 4.def (ditto)
      */
-    protected Set<Long> ensureFullCoordinate(Collection<Long> coordinate)
+    protected Set<Long> ensureFullCoordinate(Set<Long> coordinate)
     {
         if (coordinate == null)
         {
             coordinate = new LongHashSet()
         }
+        Map<Long, Long> axisToCoord = new HashMap<>()
+        int numDim = numDimensions
+        if (coordinate.size() >= numDim)
+        {   // Fast-path (no default column projecting)
+            Iterator<Long> i = coordinate.iterator()
+
+            while (i.hasNext())
+            {
+                Long id = i.next()
+                axisToCoord.put(id.intdiv(Axis.BASE_AXIS_ID).longValue(), id)
+            }
+
+            if (axisToCoord.size() == numDim)
+            {
+                return coordinate instanceof LongHashSet ? coordinate : new LongHashSet(coordinate)
+            }
+        }
+
+        // Help-out - add default column binds, etc.
         Set<Long> ids = new LongHashSet()
         Iterator<Long> i = coordinate.iterator()
-        Map<Long, Long> axisToCoord = [:]
 
         while (i.hasNext())
         {
             Long id = i.next()
-            axisToCoord[id.intdiv(Axis.BASE_AXIS_ID).longValue()] = id
+            axisToCoord.put(id.intdiv(Axis.BASE_AXIS_ID).longValue(), id)
         }
 
         for (axis in axisList.values())
         {
-            Long coordId = axisToCoord[axis.id]
+            Long coordId = axisToCoord.get(axis.id)
             if (coordId)
             {
                 ids.add(coordId)
@@ -1723,7 +1741,7 @@ class NCube<T>
                 ids.add(axis.defaultColId)
             }
         }
-        if (ids.size() != numDimensions)
+        if (ids.size() != numDim)
         {
             return null
         }

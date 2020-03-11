@@ -692,6 +692,51 @@ class TestDecisionTable extends NCubeBaseTest
         DecisionTable dt = getDecisionTableFromJson('decision-tables/multi_range_good.json')
         Set set = dt.validateDecisionTable()
         assert set.empty
+        Map<Long, ?> map = dt.getDecision([age:70,salary:30000]) as Map
+        assertContainsIgnoreCase(map.toString(), '5','factor', '5.0')
+    }
+
+    @Test
+    void test2RangesBad()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/multi_range_bad.json')
+        Set set = dt.validateDecisionTable()
+        assert set.size() == 1
+        assert set.contains(10L)
+    }
+
+    @Test
+    void test2RangesGoodPriority()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/multi_range_good_priority.json')
+        Set set = dt.validateDecisionTable()
+        assert set.empty
+        Map<Long, ?> map = dt.getDecision([age:70,salary:30000]) as Map
+        assertContainsIgnoreCase(map.toString(), '10','factor', '10.0')
+    }
+
+    @Test
+    void test2RangesGoodIgnore()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/multi_range_good_ignore.json')
+        Set set = dt.validateDecisionTable()
+        assert set.empty
+        Map<Long, ?> map = dt.getDecision([age:70,salary:30000]) as Map
+        assertContainsIgnoreCase(map.toString(), '5','factor', '5.0')
+    }
+
+    @Test
+    void test2Ranges2DiscretesGood()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/multi_range_multi_discrete_good.json')
+        Set set = dt.validateDecisionTable()
+        assert set.empty
+
+        Map map = dt.getDecision(['PROFIT center':2700,symbol:'c', age:40, salary: 25000])
+        assertContainsIgnoreCase(map.toString(), '4','factor', '4.0')
+
+        map = dt.getDecision(['PROFIT center':2800,symbol:'z', age:54, salary: 39000])
+        assertContainsIgnoreCase(map.toString(), '9','factor', '9.0')
     }
 
     // TODO: in verifyAndCache, set blank low to lowest value of type, set blank high to highest value of type.
