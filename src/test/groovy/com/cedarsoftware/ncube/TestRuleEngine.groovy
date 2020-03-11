@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube
 
-
 import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.util.CaseInsensitiveMap
@@ -8,7 +7,10 @@ import groovy.transform.CompileStatic
 import org.junit.Test
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
-import static org.junit.Assert.*
+import static org.junit.Assert.assertFalse
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertNull
+import static org.junit.Assert.fail
 
 /**
  * NCube RuleEngine Tests
@@ -1218,5 +1220,16 @@ class TestRuleEngine extends NCubeBaseTest
         println x
         println "------- output -------"
         println output
+    }
+
+    @Test
+    void testRuleNameDuringExecution()
+    {
+        NCube ncube = ncubeRuntime.getNCubeFromResource(ApplicationID.testAppId, 'ruleNameDuringExecution.json')
+        Map input = [attribute:'command']
+        Map output = [:]
+        ncube.getCell(input, output)
+        assert output.out.toString() == '[1, 3]'
+        assert output.desc.toString() == '[foo, baz]'
     }
 }

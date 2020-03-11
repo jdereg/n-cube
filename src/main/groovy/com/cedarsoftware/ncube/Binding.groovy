@@ -95,7 +95,7 @@ class Binding
 
     String toHtml(boolean tagsOK)
     {
-        String spaces = padString('    ', getDepth())
+        String spaces = padString('    ', depth)
         StringBuilder s = new StringBuilder(spaces)
         s.append(cubeName)
         s.append(newLine)

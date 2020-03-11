@@ -666,15 +666,12 @@ class NCube<T>
                         final Column boundColumn = selectedColumns.get(axisName).get(counters[axisName] - 1)
 
                         if (axis.type == AxisType.RULE)
-                        {
-                            if (input.get(axisName) == null)
-                            {   // If rule axis name is unbound (common case - executing all rules), then temporarily
-                                // bind the rule condition's column name to input[axisName] as a GString.  This will
-                                // be unbound later.  Why? This allows cells that call back into the same rule cube
-                                // to start on the rule from which they are running.
-                                input.put(axisName, "${boundColumn.columnName}")
-                            }
+                        {   // Place value bound to rule axis name on input (that was bound to the input[axisName]).
+                            // into a Wrapper class that acts like a String for rebinding to the rule axis, for nested
+                            // use() calls, but contains a pointer to the original value (and delegates calls to it).
+                            input.put(axisName, new GStringWrapper(boundColumn.columnName, input.get(axisName)))
                             Object conditionValue
+                            
                             if (!cachedConditionValues.containsKey(boundColumn.id))
                             {   // Has the condition on the Rule axis been run this execution?  If not, run it and cache it.
                                 CommandCell cmd = (CommandCell) boundColumn.value
@@ -731,6 +728,10 @@ class NCube<T>
                             bindings.add(binding)
                         }
                         lastStatementValue = executeAssociatedStatement(input, output, ruleInfo, binding)
+                    }
+                    else
+                    {
+                        restoreWrappedValues(input)
                     }
 
                     // Step #3 increment counters (variable radix increment)
@@ -832,23 +833,27 @@ class NCube<T>
         }
         finally
         {
-            // Remove temporarily bound rule condition name (that was bound to the input[axisName]).  This was
-            // bound because no rulename was set, and a call back into the rule cube will then start on the same
-            // rule.
-            for (Long id : binding.idCoordinate)
-            {
-                Axis axis = getAxisFromColumnId(id)
-                if (axis != null && axis.type == AxisType.RULE)
-                {
-                    Column column = axis.getColumnById(id)
-                    if (column != null)
-                    {   // If rule name was bound above (but not originally there), remove it.
-                        if (input.get(axis.name) instanceof GString)
-                        {
-                            input.remove(axis.name)
-                        }
-                    }
-                }
+            // Replace value bound to rule axis name on input (that was bound to the input[axisName]). The replaced
+            // value acts like a String for rebinding to the rule axis (nested use() calls), but contains a pointer
+            // to the original value (and delegates calls to it).
+            restoreWrappedValues(input)
+        }
+    }
+    
+    /**
+     * Restore temporarily bound rule condition name (that was bound to the input[axisName]).  The rule name
+     * is bound right before executing the associated statement, so that a call back into the rule cube will
+     * start on the same rule.  After execution, the rule name's original associated value is restored.
+     * @param input Map<String, ?> typical coordinate input
+     */
+    private void restoreWrappedValues(Map<String, Object> input)
+    {
+        for (Map.Entry<String, Object> entry: input.entrySet())
+        {
+            if (entry.value instanceof GStringWrapper)
+            {   // Replace any value that was wrapped with the original value.
+                def value = ((GStringWrapper) entry.value).originalValue
+                entry.value = value
             }
         }
     }
