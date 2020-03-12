@@ -6,27 +6,32 @@ represents rows.
 #### Example
 ![Decision Table](images/DecisionTree.png)  
 
-Decision **inputs** in the above picture are `profit center`, `symbol`, `seniority` (range input), and `distance` (range input).
+Decision **inputs** in the above picture are **profit center**, **symbol**, **seniority** (range input), and **distance** (range input).
 These are indicated by `meta-properties` on the columns.
    
 ---
 
 ![Discrete input value meta-properties](images/Symbol_meta_props.png)  
 
-For the case of profit center and symbol, they have the
-`input_value` key (type `Boolean`) with the value `true`.
+For the case of **profit center** and **symbol**, they have the `input_value` key (type `Boolean`) with the value `true`.
  
 ---
 
 ![Range input value meta-properties](images/Seniority_low.png)  
 
 For `range` inputs (**seniority** and **distance**), there are two meta-properties to define on the Column. The
-key of `input_low` is mapped to the name of the input variable (age).  The `data_type` key is mapped to the 
+key of `input_low` is mapped to the name of the input variable (**seniority**).  The `data_type` key is mapped to the 
 data type of the values that will be compared (`Long`, `Date`, `Double`, `Big_decimal`, `String`).  Both the keys and the values
 are *case insensitive*.
 
 For both `input_value` (single discrete input) and `input_low/input_high`, a `required` meta-property can be set as well. 
-If this is set, and a call is made to .getDecision(Map) and the input variable is missing, an `IllegalArgumentException` will 
+If this is set, and a call is made to
+```groovy
+   DecisionTable decisionTable
+   ...
+   dt.getDecision(Map)
+```
+ and the input variable is missing on the input `Map`, an `IllegalArgumentException` will 
 be thrown to the caller, indicating which `required` keys are missing.
  
 ---
@@ -36,9 +41,31 @@ be thrown to the caller, indicating which `required` keys are missing.
 **Price** is an **output**.  It takes two meta-properties to define a `DecisionTable` output.  There must be an `output_value`
 meta-property key (`boolean` type) with the value `true`.  Also, a `data_type` meta-property must be specified. 
 It can have one of the following values: (`Long`, `Date`, `Double`, `Big_decimal`, `String`).  Both the keys and the values
-are *case insensitive*.  The output from a call to the DecisionTable will consist of the columns marked with `output_value`
+are **case insensitive**.  The output from a call to the `DecisionTable` will consist of the columns marked with `output_value`
 and the values will be `cast' to the `data_type` specified.
 
+The output looks like this:
+```json
+    "row 1 id" :{"outputColName1": output1-1, "outputColName2": output2-1, ...}
+    "row 17 id":{"outputColName1": output17-1, "outputColName2": output2-17, ...}    
+```
+Normally, there would only be `0` or `1` row.  In most cases, an output of more than `1` row indicates and overlap in the 
+rule definitions.
+
+--- 
+ 
+#### Validation
+To verify that only one (or zero) rows are going to be returned, you can call the
+
+```groovy
+    DecisionTable decisionTable
+    ...
+    Set rows = dt.vadlidateDecisionTable()
+``` 
+API.  This API will **'bike lock'** all inputs and test against each row, looking for an instance where more than one
+row is returned.  The returned `Set` will be empty if there are no overlaps, otherwise the `Set` will contain the IDs for
+each row that overlaps some other row. 
+ 
 ---
 
 #### Ignore
