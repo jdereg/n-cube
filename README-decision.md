@@ -3,20 +3,20 @@ The `DecisionTable` class is instantiated with a 2D `NCube`, where one axis cont
 decision columns and output columns, denoted by meta-properties, and the other axis
 represents rows.
 
-#### Example:
-![](images/DecisionTree.png)  
+#### Example
+![Decision Table](images/DecisionTree.png)  
 
-Decision *inputs* in the above picture are `profit center`, `symbol`, `seniority` (range input), and `distance` (range input).
+Decision **inputs** in the above picture are `profit center`, `symbol`, `seniority` (range input), and `distance` (range input).
 These are indicated by `meta-properties` on the columns.   
 ---
-![](images/Symbol_meta_props.png)  
+![Discrete input value meta-properties](images/Symbol_meta_props.png)  
 
 For the case of profit center and symbol, they have the
 `input_value` key (type `Boolean`) with the value `true`. 
 ---
-![](images/Seniority_low.png)  
+![Range input value meta-properties](images/Seniority_low.png)  
 
-For `range` inputs (*seniority* and *distance*), there are two meta-properties to define on the Column. The
+For `range` inputs (**seniority** and **distance**), there are two meta-properties to define on the Column. The
 key of `input_low` is mapped to the name of the input variable (age).  The `data_type` key is mapped to the 
 data type of the values that will be compared (`Long`, `Date`, `Double`, `Big_decimal`, `String`).  Both the keys and the values
 are *case insensitive*.
@@ -25,9 +25,9 @@ For both `input_value` (single discrete input) and `input_low/input_high`, a `re
 If this is set, and a call is made to .getDecision(Map) and the input variable is missing, an `IllegalArgumentException` will 
 be thrown to the caller, indicating which `required` keys are missing. 
 ---
-![](images/Price_output.png)
+![Output value](images/Price_output.png)
 
-*Price* is an *output*.  It takes two meta-properties to define a `DecisionTable` output.  There must be an `output_value`
+**Price** is an **output**.  It takes two meta-properties to define a `DecisionTable` output.  There must be an `output_value`
 meta-property key (`boolean` type) with the value `true`.  Also, a `data_type` meta-property must be specified. 
 It can have one of the following values: (`Long`, `Date`, `Double`, `Big_decimal`, `String`).  Both the keys and the values
 are *case insensitive*.  The output from a call to the DecisionTable will consist of the columns marked with `output_value`
@@ -94,8 +94,8 @@ cell in the `Ignore` column evaluates to boolean `true`.  This column is optiona
 
 On the field axis, if you name a column `Priority` (case does not matter), any two or more rows match, only the rows
 with the highest matching priority will be returned.  `1` is considered the highest priority.  This column is optional.
-
-###Row axis
+---
+### Row axis
 The row axis typically has values 1 through the number of rows.  This axis must be `DISCRETE`, however, the axis value
 type can be `LONG`, `STRING`, `CISTRING`, `DOUBLE`, `EXPRESSION`, `BIG_DECIMAL`, or `COMPARABLE`.  The values from
 the `Columns` on the row axis are not matched against any input, however, they are used as the keys in the `Map` of 
