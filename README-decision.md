@@ -64,7 +64,7 @@ rule definitions.
 To verify that only `1` (or `0`) rows are going to be returned, you can call the
 
 ```
-    Set rows = dt.vadlidateDecisionTable()
+    Set rows = dt.validateDecisionTable()
 ``` 
 API.  This API will **'bike lock'** all input values defined for each input column in the `DecisionTable`, and test 
 against each row, looking for an instance where more than one row is returned.  The returned `Set` will be empty if there 
@@ -130,9 +130,9 @@ Here are all the special meta-properties and their meanings:
     `Map` contains a key of `date: 2020/02/14` then it will match the range if the input date is >= (greater than or equal) to
     the row value in the 'low' column and < (less than) the value in the 'high' column.
 * `DATA_TYPE` must be specified on range columns (ones marked with `INPUT_LOW` and `INPUT_HIGH`).  This indicates the
-data type that will be compared against the ranges. Valid values are `DATE`, `LONG`, `BIG_DECIMAL`, and `DOUBLE`.
-* `REQUIRED` is used only in input columns (`input_value`, `input_low`, and `input_high`) to enforce that the input supplied to
-`getDecision(input)` API has all the **required** input keys.
+data type that will be compared against the ranges. Valid values are `DATE`, `LONG`, `BIG_DECIMAL`, `DOUBLE`, and 'STRING'.
+* `REQUIRED` is used only in input columns (`input_value`, `input_low`, and `input_high`) to enforce that the input
+supplied to the `getDecision(input)` API has all the **required** input keys.
 
 ---
 
