@@ -11,9 +11,11 @@ These are indicated by `meta-properties` on the columns.
 
 ##### Lists
 
-Note that in the symbol column, there are some lists of values. Also, there are lists of values that start with `!`.
-If a value on a discrete input Map matches any value in the list, it will be considered a match.  If the value (or list 
-of values) start with `!`, then any value but those listed, will be considered a match for that column. 
+Note that in the **symbol** column some of the cells have lists of values. Also, there cell values that start with `!`.
+If a value on a discrete input matches any value in the list, it will be 
+considered a match.  If the value (or list of values) start with `!`, then any value but those listed, will be considered 
+a match for that column.  The `list` feature is available in columns that are marked with the meta-property `input_value`. 
+Ranges (defined with `input_low` and `input_high` meta-properties) cannot have lists in their cells. 
    
 ---
 
