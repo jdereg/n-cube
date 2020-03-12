@@ -33,13 +33,13 @@ It can have one of the following values: (`Long`, `Date`, `Double`, `Big_decimal
 are *case insensitive*.  The output from a call to the DecisionTable will consist of the columns marked with `output_value`
 and the values will be `cast' to the `data_type` specified.
 ---
-##### Ignore
+#### Ignore
 In the first picture, there is an `ignore` column.  The ignore column is indicated
 by the meta-property `ignore` with the boolean value of `true`.  The column can be named `ignore` instead
 of using a meta-property.  When attempting to match rows in the `DecisionTable`, rows with a value of boolean `true`
 will not be considered. The value in the column can be `1` or `0`, `true` or `false`, or `"true"` or `"false"`.
 ---
-##### Priority
+#### Priority
 In the first picture, there is a `priority` column.  The priority column is indicated
 by the meta-property `priority` with the `integer` value of `0 to max int`.  The column can be named `priority` instead of
 using a meta-property.  The priority is used to specify which row is picked if more than one row matches.  This allows 
@@ -71,8 +71,8 @@ In this example, the input was:
 ```
 and that input matched row `134` which had a value of `OH` for `state` and the value `12345` for `SKU`.
 Both the `state` column and the `SKU` column have the meta-property `INPUT_VALUE: true`.
-
-###Field axis
+---
+#### Field axis
 The field axis contains the top columns of the decision table.  The axis can have any name you want.
 The field axis must be a `DISCRETE` axis, with the value type of `CISTRING`.
 
@@ -95,7 +95,7 @@ cell in the `Ignore` column evaluates to boolean `true`.  This column is optiona
 On the field axis, if you name a column `Priority` (case does not matter), any two or more rows match, only the rows
 with the highest matching priority will be returned.  `1` is considered the highest priority.  This column is optional.
 ---
-### Row axis
+#### Row axis
 The row axis typically has values 1 through the number of rows.  This axis must be `DISCRETE`, however, the axis value
 type can be `LONG`, `STRING`, `CISTRING`, `DOUBLE`, `EXPRESSION`, `BIG_DECIMAL`, or `COMPARABLE`.  The values from
 the `Columns` on the row axis are not matched against any input, however, they are used as the keys in the `Map` of 
