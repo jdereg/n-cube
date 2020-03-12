@@ -60,13 +60,13 @@ To verify that only `1` (or `0`) rows are going to be returned, you can call the
 ``` 
 API.  This API will **'bike lock'** all input values defined for each input column in the `DecisionTable`, and test 
 against each row, looking for an instance where more than one row is returned.  The returned `Set` will be empty if there 
-are no overlaps, otherwise the `Set` will contain the IDs for each row that overlaps some other row. 
+are no overlaps, otherwise the `Set` will contain the IDs for each row that overlaps another row. 
  
 ---
 
 #### Ignore
 In the first picture, there is an `ignore` column.  The ignore column is indicated
-by the meta-property `ignore` with the boolean value of `true`.  The column can be named `ignore` instead
+by the meta-property `ignore` with the boolean value of `true` (not yet supported).  The column can be named `ignore` instead
 of using a meta-property.  When attempting to match rows in the `DecisionTable`, rows with a value of boolean `true`
 will not be considered. The value in the column can be `1` or `0`, `true` or `false`, or `"true"` or `"false"`.
 
@@ -74,7 +74,7 @@ will not be considered. The value in the column can be `1` or `0`, `true` or `fa
 
 #### Priority
 In the first picture, there is a `priority` column.  The priority column is indicated
-by the meta-property `priority` with the `integer` value of `1 to max int`.  The column can be named `priority` instead of
+by the meta-property `priority` with the `boolean` value of `true` (not yet supported).  The column can be named `priority` instead of
 using a meta-property.  The priority is used to specify which row is picked if more than one row matches.  This allows 
 having a large date range (for example), and then smaller 'spot' ranges to be added, without having to carefully line
 up the "edges" (because overlap is allow with priority).  If the large spanning date range has a priority of `5000` and 
