@@ -63,7 +63,7 @@ class DecisionTable
 
     DecisionTable(NCube decisionCube)
     {
-        decisionTable = decisionCube.duplicate("${decisionCube.name}.copy")
+        decisionTable = decisionCube
         verifyAndCache()
     }
 

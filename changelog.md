@@ -1,6 +1,9 @@
 ### Revision History
-* 4.6.15-SNAPSHOT
-  * 
+* 4.7.0 
+  * `DecisionTable` officially available. See [Decision Table Developer Guide.](README-decision.md)
+  * `DecisionTable` supports multiple discrete and relational (greater than, less than) inputs supported.
+  * `DecisionTable` can be validated for overlapping rules - it will indicate any such cases.
+  * Bug fix: Bound rule name was not updating on non-executed rules (condition false), which caused re-entrant access `[use()]` to fail. Defect found by: @HonorKnight 
 * 4.6.14
   * Ensured `DecisionTable` input keys are returned in the defined order.
   * On `DecistionTable`, `output_columns` can have `data_type` meta-property, ensuring their return type will match, regardless of value stored in the table (ncube).
