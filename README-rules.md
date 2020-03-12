@@ -108,7 +108,7 @@ All rule groups need not be defined with rule categories. If they are defined wi
 Rule orchestrations are defined in NCubes. 
 A rule orchestration defines the order in which rules should be executed and the path of the graph being traversed.
 An NCube used to define a rule orchestration must have the following:
-- Axis `rule`, type `RULE`, data type `EXPRESSION`, check `Fire all matching`
+- Axis `rules`, type `RULE`, data type `EXPRESSION`, check `Fire all matching`
 
 Cells may contain simple references to rules.  
 The rule class defined in the rule groups NCube gets put on `input.rule` so that rule methods can be called easily.  

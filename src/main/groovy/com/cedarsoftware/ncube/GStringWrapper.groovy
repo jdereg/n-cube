@@ -55,6 +55,11 @@ class GStringWrapper extends GStringImpl
         return originalValue.metaClass.getProperty(originalValue, name)
     }
 
+    def propertyMissing(String name, def value)
+    {
+        originalValue.metaClass.setProperty(originalValue, name, value)
+    }
+
     def methodMissing(String name, Object args)
     {
         return originalValue.invokeMethod(name, args)

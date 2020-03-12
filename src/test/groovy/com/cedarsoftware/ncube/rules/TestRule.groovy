@@ -7,6 +7,8 @@ import groovy.transform.CompileStatic
 @CompileStatic
 class TestRule extends BusinessRule
 {
+    Map foo
+
     TestRule(Map root)
     {
         super(root)

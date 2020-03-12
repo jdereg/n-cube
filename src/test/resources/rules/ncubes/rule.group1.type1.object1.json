@@ -3,7 +3,7 @@
   "axes":[
     {
       "id":3,
-      "name":"rule",
+      "name":"rules",
       "hasDefault":false,
       "type":"RULE",
       "valueType":"EXPRESSION",
@@ -28,17 +28,17 @@
   "cells":[
     {
       "id":[
-        3001217742526
-      ],
-      "type":"exp",
-      "value":"at([:] , 'rule.group1.type1.object2')"
-    },
-    {
-      "id":[
         3000361744439
       ],
       "type":"exp",
       "value":"input.rule.rule1()"
+    },
+    {
+      "id":[
+        3001217742526
+      ],
+      "type":"exp",
+      "value":"at([:] , 'rule.group1.type1.object2')\ninput.rule.foo = [:]"
     }
   ]
 }

@@ -3,7 +3,7 @@
   "axes":[
     {
       "id":3,
-      "name":"rule",
+      "name":"rules",
       "hasDefault":false,
       "type":"RULE",
       "valueType":"EXPRESSION",

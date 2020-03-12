@@ -30,7 +30,7 @@ class RulesEngine
     static final String AXIS_RULE_GROUP = 'ruleGroup'
     static final String AXIS_CATEGORY = 'category'
     static final String AXIS_ATTRIBUTE = 'attribute'
-    static final String AXIS_RULE = 'rule'
+    static final String AXIS_RULE = 'rules'
     static final String COL_CLASS = 'className'
     static final String COL_NCUBE = 'ncube'
     static final String COL_EXCEPTION = 'throwException'
@@ -383,12 +383,12 @@ class RulesEngine
         String entityName = Splitter.on('.').split(ncubeName).last()
         List methods = []
         NCube rulesNCube = ncubeRuntime.getCube(appId, ncubeName)
-        Axis ruleAxis = rulesNCube.getAxis('rule')
+        Axis ruleAxis = rulesNCube.getAxis(AXIS_RULE)
         List<Column> columns = ruleAxis.columns
         for (Column column : columns)
         {
             // TODO - enhance this part of the code if rule orchestration gets scoped (for example, by clientName)
-            GroovyExpression expression = (GroovyExpression) rulesNCube.getCellNoExecute([rule: column.columnName])
+            GroovyExpression expression = (GroovyExpression) rulesNCube.getCellNoExecute([(AXIS_RULE): column.columnName])
             String cmd = expression.cmd
             String condition = ((GroovyExpression) column.value).cmd
 
@@ -602,7 +602,7 @@ class RulesEngine
         }
         else
         {
-            throw new IllegalStateException("RulesEngine: ${name}, AppId: ${appId}, NCube: ${ncube.name} must have Axis: rule.")
+            throw new IllegalStateException("RulesEngine: ${name}, AppId: ${appId}, NCube: ${ncube.name} must have Axis: rules.")
         }
 
         verifiedOrchestrations[ncube.name] = true
