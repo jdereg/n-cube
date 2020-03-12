@@ -1,4 +1,6 @@
 ### Revision History
+* 4.7.1-SNAPSHOT
+  * 
 * 4.7.0 
   * `DecisionTable` officially available. See [Decision Table Developer Guide.](README-decision.md)
   * `DecisionTable` supports multiple discrete and relational (greater than, less than) inputs supported.
