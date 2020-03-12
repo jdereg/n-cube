@@ -65,17 +65,17 @@ are no overlaps, otherwise the `Set` will contain the IDs for each row that over
 ---
 
 #### Ignore
-In the first picture, there is an `ignore` column.  The **ignore** column is indicated by the column being named `ignored`.
-When attempting to match rows in the `DecisionTable`, rows with a value of boolean `true`
-will not be considered. The value in the column can be `1` or `0`, `true` or `false`, or `"true"` or `"false"`.
+In the first picture, there is an `ignore` column.  The **ignore** column is indicated by the column being named `ignore`.
+When attempting to match rows in the `DecisionTable`, rows with a value of boolean `true` in this column,
+will not match (nor be considered in validation). The value in the column can be `1` or `0`, `true` or `false`, or `"true"` or `"false"`.
 
 ---
 
 #### Priority
 In the first picture, there is a `priority` column.  The **priority** column is indicated by the column being named `priority`.
-The priority is used to specify which row is picked if more than one row matches.  This allows 
-having a large date range (for example), and then smaller 'spot' ranges to be added, without having to carefully line
-up the "edges" (because overlap is allow with priority).  If the large spanning date range has a priority of `5000` and 
+The priority is used to specify which row is picked if more than one row matches the supplied inputs.  This allows 
+having a large date range (for example), and then smaller 'spot' or specific ranges, without having to carefully line
+up the "edges" (because overlap is allowed with **priority**).  If the large spanning date range has a priority of `5000` and 
 the smaller 'spot' range has a priority of `1000`, then the row returned will be the one with the priority closest to `1`.  
 The values can range from `1` to `2 billion`.
 
