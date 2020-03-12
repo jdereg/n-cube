@@ -53,7 +53,7 @@ rule definitions.
 --- 
  
 #### Validation
-To verify that only one (or zero) rows are going to be returned, you can call the
+To verify that only `1` (or `0`) rows are going to be returned, you can call the
 
 ```
     Set rows = dt.vadlidateDecisionTable()
@@ -74,11 +74,12 @@ will not be considered. The value in the column can be `1` or `0`, `true` or `fa
 
 #### Priority
 In the first picture, there is a `priority` column.  The priority column is indicated
-by the meta-property `priority` with the `integer` value of `0 to max int`.  The column can be named `priority` instead of
+by the meta-property `priority` with the `integer` value of `1 to max int`.  The column can be named `priority` instead of
 using a meta-property.  The priority is used to specify which row is picked if more than one row matches.  This allows 
-having a large date range (for example), and then smaller 'spot' ranges to be added.  If the large spanning date range has a 
-priority of 5000 and the smaller 'spot' range has a priority of '1000', then the row returned will be the one with
-the priority closest to 1.  The values can range from 1 to 2 billion.
+having a large date range (for example), and then smaller 'spot' ranges to be added, without having to carefully line
+up the "edges" (because overlap is allow with priority).  If the large spanning date range has a priority of `5000` and 
+the smaller 'spot' range has a priority of `1000`, then the row returned will be the one with the priority closest to `1`.  
+The values can range from `1` to `2 billion`.
 
 ---
   
