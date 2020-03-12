@@ -76,8 +76,7 @@ In the first picture, there is a `priority` column.  The **priority** column is 
 The priority is used to specify which row is picked if more than one row matches the supplied inputs.  This allows 
 having a large date range (for example), and then smaller 'spot' or specific ranges, without having to carefully line
 up the "edges" (because overlap is allowed with **priority**).  If the large spanning date range has a priority of `5000` and 
-the smaller 'spot' range has a priority of `1000`, then the row returned will be the one with the priority closest to `1`.  
-The values can range from `1` to `2 billion`.
+the smaller 'spot' range has a priority of `1000`, then the row returned will be the one with the priority closest to `1`. The values can range from `1` to `2 billion`.
 
 ---
   
@@ -124,11 +123,13 @@ Here are all the special meta-properties and their meanings:
     the row value in the 'low' column and < (less than) the value in the 'high' column.
 * `DATA_TYPE` must be specified on range columns (ones marked with `INPUT_LOW` and `INPUT_HIGH`).  This indicates the
 data type that will be compared against the ranges. Valid values are `DATE`, `LONG`, `BIG_DECIMAL`, and `DOUBLE`.
+* `REQUIRED` is used only in input columns (`input_value`, `input_low`, and `input_high`) to enforce that the input supplied to
+`getDecision(input)` API has all the **required** input keys.
 
 ---
 
 #### Row axis
-The row axis typically has values 1 through the number of rows.  This axis must be `DISCRETE`, however, the axis value
-type can be `LONG`, `STRING`, `CISTRING`, `DOUBLE`, `EXPRESSION`, `BIG_DECIMAL`, or `COMPARABLE`.  The values from
+The row axis typically has values `1` through the number of rows.  This axis must be `DISCRETE`, however, the axis value
+type can be `LONG`, `STRING`, `CISTRING`, `DOUBLE`, `BIG_DECIMAL`, or `COMPARABLE`.  The values from
 the `Columns` on the row axis are not matched against any input, however, they are used as the keys in the `Map` of 
 the returned matching rows. 
