@@ -3,7 +3,7 @@ The `DecisionTable` class is instantiated with a 2D `NCube`, where one axis cont
 decision columns and output columns, denoted by meta-properties, and the other axis
 represents rows.
 
-####Example:
+#### Example:
 ![](images/DecisionTree.png)  
 
 Decision *inputs* in the above picture are `profit center`, `symbol`, `seniority` (range input), and `distance` (range input).
@@ -33,13 +33,13 @@ It can have one of the following values: (`Long`, `Date`, `Double`, `Big_decimal
 are *case insensitive*.  The output from a call to the DecisionTable will consist of the columns marked with `output_value`
 and the values will be `cast' to the `data_type` specified.
 ---
-#####Ignore
+##### Ignore
 In the first picture, there is an `ignore` column.  The ignore column is indicated
 by the meta-property `ignore` with the boolean value of `true`.  The column can be named `ignore` instead
 of using a meta-property.  When attempting to match rows in the `DecisionTable`, rows with a value of boolean `true`
 will not be considered. The value in the column can be `1` or `0`, `true` or `false`, or `"true"` or `"false"`.
 ---
-#####Priority
+##### Priority
 In the first picture, there is a `priority` column.  The priority column is indicated
 by the meta-property `priority` with the `integer` value of `0 to max int`.  The column can be named `priority` instead of
 using a meta-property.  The priority is used to specify which row is picked if more than one row matches.  This allows 
@@ -47,7 +47,7 @@ having a large date range (for example), and then smaller 'spot' ranges to be ad
 priority of 5000 and the smaller 'spot' range has a priority of '1000', then the row returned will be the one with
 the priority closest to 1.  The values can range from 1 to 2 billion.
 ---  
-####API 
+#### API 
 The main API is `getDecision(Map<String, ?> input)` which scans the table using the input coordinate, 
 and returns the rows that match it.  The `Map<> input` contains the keys that match columns with
 `INPUT_VALUE: true` on their meta-properties.  The key value has the same text as the column value
