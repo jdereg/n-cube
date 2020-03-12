@@ -1,6 +1,7 @@
 ### Revision History
 * 4.7.1-SNAPSHOT
-  * 
+  * Rules engine modified to enforce that the rule-axis is named "rules" (case insensitive).
+  * `GStringWrapper` updated to support 'set property' delegation (it already supported get property delegation).
 * 4.7.0 
   * `DecisionTable` officially available. See [Decision Table Developer Guide.](README-decision.md)
   * `DecisionTable` supports multiple discrete and relational (greater than, less than) inputs supported.
