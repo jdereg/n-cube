@@ -19,16 +19,14 @@ For the case of **profit center** and **symbol**, they have the `input_value` ke
 
 ![Range input value meta-properties](images/Seniority_low.png)  
 
-For `range` inputs (**seniority** and **distance**), there are two meta-properties to define on the Column. The
+For `range` inputs (**seniority** and **distance**), there are two meta-properties to define on the `Column`. The
 key of `input_low` is mapped to the name of the input variable (**seniority**).  The `data_type` key is mapped to the 
 data type of the values that will be compared (`Long`, `Date`, `Double`, `Big_decimal`, `String`).  Both the keys and the values
-are *case insensitive*.
+are **case insensitive**.
 
 For both `input_value` (single discrete input) and `input_low/input_high`, a `required` meta-property can be set as well. 
 If this is set, and a call is made to
-```groovy
-   DecisionTable decisionTable
-   ...
+```
    dt.getDecision(Map)
 ```
  and the input variable is missing on the input `Map`, an `IllegalArgumentException` will 
@@ -42,12 +40,12 @@ be thrown to the caller, indicating which `required` keys are missing.
 meta-property key (`boolean` type) with the value `true`.  Also, a `data_type` meta-property must be specified. 
 It can have one of the following values: (`Long`, `Date`, `Double`, `Big_decimal`, `String`).  Both the keys and the values
 are **case insensitive**.  The output from a call to the `DecisionTable` will consist of the columns marked with `output_value`
-and the values will be `cast' to the `data_type` specified.
+and the values will be `cast` to the `data_type` specified.
 
 The output looks like this:
-```json
-    "row 1 id" :{"outputColName1": output1-1, "outputColName2": output2-1, ...}
-    "row 17 id":{"outputColName1": output17-1, "outputColName2": output2-17, ...}    
+```
+    "row_1_id" :{"outputColName1": output1-1, "outputColName2": output2-1, ...}
+    "row_17_id":{"outputColName1": output17-1, "outputColName2": output2-17, ...}    
 ```
 Normally, there would only be `0` or `1` row.  In most cases, an output of more than `1` row indicates and overlap in the 
 rule definitions.
@@ -57,14 +55,12 @@ rule definitions.
 #### Validation
 To verify that only one (or zero) rows are going to be returned, you can call the
 
-```groovy
-    DecisionTable decisionTable
-    ...
+```
     Set rows = dt.vadlidateDecisionTable()
 ``` 
-API.  This API will **'bike lock'** all inputs and test against each row, looking for an instance where more than one
-row is returned.  The returned `Set` will be empty if there are no overlaps, otherwise the `Set` will contain the IDs for
-each row that overlaps some other row. 
+API.  This API will **'bike lock'** all input values defined for each input column in the `DecisionTable`, and test 
+against each row, looking for an instance where more than one row is returned.  The returned `Set` will be empty if there 
+are no overlaps, otherwise the `Set` will contain the IDs for each row that overlaps some other row. 
  
 ---
 
