@@ -7,7 +7,13 @@ represents rows.
 ![Decision Table](images/DecisionTree.png)  
 
 Decision **inputs** in the above picture are **profit center**, **symbol**, **seniority** (range input), and **distance** (range input).
-These are indicated by `meta-properties` on the columns.
+These are indicated by `meta-properties` on the columns.  
+
+##### Lists
+
+Note that in the symbol column, there are some lists of values. Also, there are lists of values that start with `!`.
+If a value on a discrete input Map matches any value in the list, it will be considered a match.  If the value (or list 
+of values) start with `!`, then any value but those listed, will be considered a match for that column. 
    
 ---
 
