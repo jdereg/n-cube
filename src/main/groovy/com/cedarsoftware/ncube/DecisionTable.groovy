@@ -735,7 +735,7 @@ class DecisionTable
     private static class BlowoutCell
     {
         private static TIntHashSet blank = new TIntHashSet()
-        List<List<Range>> ranges
+        List<List<Range>> ranges = []
         TIntHashSet discretePriorities = blank  // This field is tested (empty), then always overwritten
     }
 
@@ -818,15 +818,23 @@ class DecisionTable
                 boolean areDiscretesUnique = false
                 boolean areRangesGood = false
 
+                // Grab the blowoutCell (List<List<Range>>)
+                BlowoutCell blowoutCell = blowout.getCellById(cellPtr, coordinate, [:])
+                if (blowoutCell == null)
+                {
+                    blowoutCell = new BlowoutCell()
+                    blowout.setCellById(blowoutCell, cellPtr)
+                }
+
                 if (anyRanges)
                 {   // get all Ranges for row, track them by name
-                    areRangesGood = checkRowRangesForOverlap(blowout, cellPtr, coordinate, indexToRangeName, rowRanges, internedLists)
+                    areRangesGood = checkRowRangesForOverlap(blowoutCell, indexToRangeName, rowRanges, internedLists)
                     done = true
                 }
 
                 if (anyDiscretes)
                 {
-                    areDiscretesUnique = checkDiscretesForOverlap(blowout, cellPtr, coordinate, priority, internedIntSets)
+                    areDiscretesUnique = checkDiscretesForOverlap(blowoutCell, priority, internedIntSets)
                     done = !incrementVariableRadixCount(counters, bindings, axisNames)
                 }
 
@@ -857,55 +865,38 @@ class DecisionTable
      * DecisionTable), the associated discrete variables can be unique (unique cellPtr), thereby the row is
      * still good.
      */
-    private static boolean checkRowRangesForOverlap(NCube blowout, Set<Long> cellPtr, Map<String, ?> coordinate, String[] indexToRangeName, Map<String, Range> rowRanges, Map<List<Range>, List<Range>> internedLists)
+    private static boolean checkRowRangesForOverlap(BlowoutCell blowoutCell, String[] indexToRangeName, Map<String, Range> rowRanges, Map<List<Range>, List<Range>> internedLists)
     {
-        BlowoutCell blowoutCell = blowout.getCellById(cellPtr, coordinate, [:])
-        if (blowoutCell == null)
-        {
-            blowoutCell = new BlowoutCell()
-            List<Range> list = new ArrayList<>(rowRanges.values())
-            blowoutCell.ranges = []
-            blowoutCell.ranges.add(internList(list, internedLists))
-            blowout.setCellById(blowoutCell, cellPtr)
-            return true
-        }
-        else
-        {
-            if (blowoutCell.ranges == null)
-            {
-                blowoutCell.ranges = []
-            }
-            int len = blowoutCell.ranges.size()
-            List existingRanges = blowoutCell.ranges
+        int len = blowoutCell.ranges.size()
+        List existingRanges = blowoutCell.ranges
 
-            for (int i=0; i < len; i++)
-            {   // Loop through however many the table has grown too (a function of how many unique ranges appear).
-                List<Range> existingRange = existingRanges.get(i)
-                int len2 = existingRange.size()
-                boolean good = false
+        for (int i=0; i < len; i++)
+        {   // Loop through however many the table has grown too (a function of how many unique ranges appear).
+            List<Range> existingRange = existingRanges.get(i)
+            int len2 = existingRange.size()
+            boolean good = false
 
-                for (int j=0; j < len2; j++)
-                {   // Loop through all range variables ranges (age, salary, date)
-                    String rangeName = indexToRangeName[j]
-                    Range range = existingRange.get(j)
+            for (int j=0; j < len2; j++)
+            {   // Loop through all range variables ranges (age, salary, date)
+                String rangeName = indexToRangeName[j]
+                Range range = existingRange.get(j)
 
-                    if (!range.overlap(rowRanges.get(rangeName)))
-                    {   // If any one range doesn't overlap, then this List of ranges is OK against another existing List of ranges
-                        good = true
-                        break
-                    }
-                }
-
-                if (!good)
-                {   // Short-circuit - no need to test further, overlap found.
-                    return false
+                if (!range.overlap(rowRanges.get(rangeName)))
+                {   // If any one range doesn't overlap, then this List of ranges is OK against another existing List of ranges
+                    good = true
+                    break
                 }
             }
 
-            List<Range> list = new ArrayList<>(rowRanges.values())
-            existingRanges.add(internList(list, internedLists))
-            return true
+            if (!good)
+            {   // Short-circuit - no need to test further, overlap found.
+                return false
+            }
         }
+
+        List<Range> list = new ArrayList<>(rowRanges.values())
+        existingRanges.add(internList(list, internedLists))
+        return true
     }
 
     /**
@@ -1025,34 +1016,23 @@ class DecisionTable
      * return false (we've identified a duplicate rule in the DecisionTable).   If the RangeSet is there, but
      * it does not contain the same priority passed in, add it.
      */
-    private static boolean checkDiscretesForOverlap(NCube blowout, Set<Long> cellPtr, Map<String, ?> coordinate, int priority, Map<TIntHashSet, TIntHashSet> internedIntSets)
+    private static boolean checkDiscretesForOverlap(BlowoutCell cell, int priority, Map<TIntHashSet, TIntHashSet> internedIntSets)
     {
-        BlowoutCell blowoutCell = blowout.getCellById(cellPtr, coordinate, [:])
-        if (blowoutCell == null)
-        {
-            blowoutCell = new BlowoutCell()
-            TIntHashSet setPriorityCached = new TIntHashSet()
-            setPriorityCached.add(priority)
-            blowoutCell.discretePriorities = internSet(setPriorityCached, internedIntSets)
-            blowout.setCellById(blowoutCell, cellPtr)
-            return true
-        }
-        else if (blowoutCell.discretePriorities.contains(priority))
+        if (cell.discretePriorities.contains(priority))
         {
             return false
         }
         else
         {
-            // "Set<Integer>" pulled from blowout cell duplicated so that the interned version is not modified directly.
-            // setCellById() below will intern if possible, otherwise this new instance will exist.
+            // "TIntHashSet" pulled from blowout cell duplicated so that the interned version is not modified directly.
             TIntHashSet copy = new TIntHashSet()
-            TIntIterator i = blowoutCell.discretePriorities.iterator()
+            TIntIterator i = cell.discretePriorities.iterator()
             while (i.hasNext())
             {
                 copy.add(i.next())
             }
             copy.add(priority)
-            blowoutCell.discretePriorities = internSet(copy, internedIntSets)
+            cell.discretePriorities = internSet(copy, internedIntSets)
             return true
         }
     }
