@@ -819,22 +819,22 @@ class DecisionTable
                 boolean areRangesGood = false
 
                 // Grab the blowoutCell (List<List<Range>>)
-                BlowoutCell blowoutCell = blowout.getCellById(cellPtr, coordinate, [:])
-                if (blowoutCell == null)
+                BlowoutCell cell = blowout.getCellById(cellPtr, coordinate, [:])
+                if (cell == null)
                 {
-                    blowoutCell = new BlowoutCell()
-                    blowout.setCellById(blowoutCell, cellPtr)
+                    cell = new BlowoutCell()
+                    blowout.setCellById(cell, cellPtr)
                 }
 
                 if (anyRanges)
                 {   // get all Ranges for row, track them by name
-                    areRangesGood = checkRowRangesForOverlap(blowoutCell, indexToRangeName, rowRanges, internedLists)
+                    areRangesGood = checkRowRangesForOverlap(cell, indexToRangeName, rowRanges, internedLists)
                     done = true
                 }
 
                 if (anyDiscretes)
                 {
-                    areDiscretesUnique = checkDiscretesForOverlap(blowoutCell, priority, internedIntSets)
+                    areDiscretesUnique = checkDiscretesForOverlap(cell, priority, internedIntSets)
                     done = !incrementVariableRadixCount(counters, bindings, axisNames)
                 }
 

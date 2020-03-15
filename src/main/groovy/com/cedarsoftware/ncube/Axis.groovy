@@ -123,12 +123,12 @@ class Axis
         this.valueToCol = valueType == AxisValueType.CISTRING ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
         preferredOrder = order
         this.fireAll = fireAll
-        if (type == AxisType.RULE)
+        if (AxisType.RULE.is(type))
         {
             preferredOrder = DISPLAY
             this.valueType = AxisValueType.EXPRESSION
         }
-        else if (type == AxisType.NEAREST)
+        else if (AxisType.NEAREST.is(type))
         {
             preferredOrder = SORTED
             this.valueType = valueType
@@ -244,16 +244,16 @@ class Axis
 
     private void verifyAxisType()
     {
-        if (type == AxisType.RULE)
+        if (AxisType.RULE.is(type))
         {
             rangeToCol = null
             valueToCol = null
         }
-        else if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        else if (AxisType.DISCRETE.is(type) || AxisType.NEAREST.is(type))
         {
             rangeToCol = null
         }
-        else if (type == AxisType.RANGE || type == AxisType.SET)
+        else if (AxisType.RANGE.is(type) || AxisType.SET.is(type))
         {
             valueToCol = null
         }
@@ -538,15 +538,15 @@ class Axis
         }
         displayOrder.put(order, column)
 
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        if (AxisType.DISCRETE.is(type) || AxisType.NEAREST.is(type))
         {
             valueToColumn.put(standardizeColumnValue(column.value), column)
         }
-        else if (type == AxisType.RANGE)
+        else if (AxisType.RANGE.is(type))
         {
             rangeToCol.put(valueToRange(column.value), column)
         }
-        else if (type == AxisType.SET)
+        else if (AxisType.SET.is(type))
         {
             RangeSet set = (RangeSet)column.value
             final int len = set.size()
@@ -643,7 +643,7 @@ class Axis
     {
         valueType = newValueType
         NavigableMap<Comparable, Column> existing = valueToCol
-        valueToCol = valueType == AxisValueType.CISTRING ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
+        valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
         if (existing)
         {
             valueToCol.putAll(existing)
@@ -715,21 +715,21 @@ class Axis
             {
                 throw new IllegalArgumentException("Cannot add default column to axis '${name}' because it already has a default column.")
             }
-            if (type == AxisType.NEAREST)
+            if (AxisType.NEAREST.is(type))
             {
                 throw new IllegalArgumentException("Cannot add default column to NEAREST axis '${name}' as it would never be chosen.")
             }
         }
         else
         {
-            if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+            if (AxisType.DISCRETE.is(type) || AxisType.NEAREST.is(type))
             {
                 if (valueToColumn.containsKey(value))
                 {
                     throw new AxisOverlapException("Passed in value '${value}' matches a value already on axis '${name}'")
                 }
             }
-            else if (type == AxisType.RANGE)
+            else if (AxisType.RANGE.is(type))
             {
                 Range range = (Range)value
                 if (doesOverlap(range))
@@ -737,7 +737,7 @@ class Axis
                     throw new AxisOverlapException("Passed in Range overlaps existing Range on axis: ${name}, value: ${value}")
                 }
             }
-            else if (type == AxisType.SET)
+            else if (AxisType.SET.is(type))
             {
                 RangeSet set = (RangeSet)value
                 if (doesOverlap(set))
@@ -745,7 +745,7 @@ class Axis
                     throw new AxisOverlapException("Passed in RangeSet overlaps existing RangeSet on axis: ${name}, value: ${value}")
                 }
             }
-            else if (type == AxisType.RULE)
+            else if (AxisType.RULE.is(type))
             {
                 if (!(value instanceof CommandCell))
                 {
@@ -807,7 +807,7 @@ class Axis
             defaultCol = column
         }
 
-        if (type == AxisType.RULE && !column.default)
+        if (AxisType.RULE.is(type) && !column.default)
         {
             String colName = column.columnName
             if (isEmpty(colName))
@@ -880,22 +880,22 @@ class Axis
             colNameToCol.remove(col.columnName)
         }
         displayOrder.remove(col.displayOrder)
-        if (col.value == null || type == AxisType.RULE)
+        if (col.value == null || AxisType.RULE.is(type))
         {   // Default Column is not indexed by value/range (null), so we are done.
             // Rule columns are not indexed by value/range
             return
         }
 
         // Remove from 'value' storage
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        if (AxisType.DISCRETE.is(type) || AxisType.NEAREST.is(type))
         {   // O(1) remove
             valueToColumn.remove(standardizeColumnValue(col.value))
         }
-        else if (type == AxisType.RANGE)
+        else if (AxisType.RANGE.is(type))
         {   // O(Log n) remove
             rangeToCol.remove(valueToRange(col.value))
         }
-        else if (type == AxisType.SET)
+        else if (AxisType.SET.is(type))
         {   // O(Log n) remove
             RangeSet set = (RangeSet) col.value
             Iterator<Comparable> i = set.iterator()
@@ -1210,11 +1210,11 @@ class Axis
         {
             return null
         }
-        else if (type == AxisType.DISCRETE)
+        else if (AxisType.DISCRETE.is(type))
         {
             return promoteValue(valueType, value)
         }
-        else if (type == AxisType.RULE)
+        else if (AxisType.RULE.is(type))
         {
             if (value instanceof String)
             {
@@ -1226,7 +1226,7 @@ class Axis
             }
             return value
         }
-        else if (type == AxisType.RANGE)
+        else if (AxisType.RANGE.is(type))
         {
             if (value instanceof String)
             {
@@ -1238,7 +1238,7 @@ class Axis
             }
             return promoteRange((Range)value)
         }
-        else if (type == AxisType.SET)
+        else if (AxisType.SET.is(type))
         {
             if (value instanceof String)
             {
@@ -1269,7 +1269,7 @@ class Axis
             }
             return set
         }
-        else if (type == AxisType.NEAREST)
+        else if (AxisType.NEAREST.is(type))
         {	// Standardizing a NEAREST axis entails ensuring conformity amongst values (must all be Point2D, LatLon, Date, Long, String, etc.)
             value = promoteValue(valueType, value)
             if ((defaultCol != null && size() == 1) || (defaultCol == null && size() == 0))
@@ -1584,7 +1584,7 @@ class Axis
      */
     protected Comparable getValueToLocateColumn(Column column)
     {
-        if (type == AxisType.RULE)
+        if (AxisType.RULE.is(type))
         {
             return hasContent(column.columnName) ? column.columnName : column.id
         }
@@ -1606,17 +1606,17 @@ class Axis
 
         final Comparable promotedValue = promoteValue(valueType, value)
 
-        if (type == AxisType.DISCRETE)
+        if (AxisType.DISCRETE.is(type))
         {
             Column colToFind = valueToColumn.get(promotedValue)
             return colToFind == null ? defaultCol : colToFind
         }
-        else if (type == AxisType.RANGE || type == AxisType.SET)
+        else if (AxisType.RANGE.is(type) || AxisType.SET.is(type))
         {	// RANGE axis searched in O(Log n) time using a binary search
             Column column = rangeToCol.get(promotedValue)
             return column == null ? defaultCol : column
         }
-        else if (type == AxisType.RULE)
+        else if (AxisType.RULE.is(type))
         {
             if (promotedValue instanceof Long)
             {
@@ -1632,7 +1632,7 @@ class Axis
                 throw new IllegalArgumentException("A column on a rule axis can only be located by the 'name' attribute (String) or ID (long), axis: ${name}, value: ${promotedValue}")
             }
         }
-        else if (type == AxisType.NEAREST)
+        else if (AxisType.NEAREST.is(type))
         {
             return findNearest(promotedValue)   // O(Log n)
         }
@@ -1808,15 +1808,15 @@ class Axis
      */
     List<Column> getColumnsWithoutDefault()
     {
-        if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+        if (AxisType.DISCRETE.is(type) || AxisType.NEAREST.is(type))
         {
             return new ArrayList<>((preferredOrder == SORTED) ? valueToColumn.values() : displayOrder.values())
         }
-        if (type == AxisType.RULE)
+        if (AxisType.RULE.is(type))
         {
             return new ArrayList<>(displayOrder.values())
         }
-        if (type == AxisType.RANGE || type == AxisType.SET)
+        if (AxisType.RANGE.is(type) || AxisType.SET.is(type))
         {
             List<Column> cols = new ArrayList<>(size())
             if (preferredOrder == SORTED)
@@ -1893,7 +1893,7 @@ class Axis
             return column
         }
 
-        if (type == AxisType.RULE)
+        if (AxisType.RULE.is(type))
         {
             return findColumn(source.columnName)
         }
@@ -1907,7 +1907,7 @@ class Axis
     {
         if (valueToCol == null)
         {
-            valueToCol = valueType == AxisValueType.CISTRING ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
+            valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
         }
         return valueToCol
     }
