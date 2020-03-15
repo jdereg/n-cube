@@ -5,6 +5,9 @@ import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.StringUtilities
 import com.google.common.base.Splitter
+import gnu.trove.THashMap
+import gnu.trove.TIntHashSet
+import gnu.trove.TIntIterator
 import groovy.transform.CompileStatic
 
 import static com.cedarsoftware.ncube.NCubeConstants.DATA_TYPE
@@ -729,6 +732,13 @@ class DecisionTable
         return blowout
     }
 
+    private static class BlowoutCell
+    {
+        private static TIntHashSet blank = new TIntHashSet()
+        List<List<Range>> ranges
+        TIntHashSet discretePriorities = blank  // This field is tested (empty), then always overwritten
+    }
+
     /**
      * Validate whether any input rules in the DecisionTable overlap.  An overlap would happen if
      * the same input to the DecisionTable caused two (2) or more rows to be returned.
@@ -746,10 +756,14 @@ class DecisionTable
         Column priorityColumn = fieldAxis.findColumn(PRIORITY)
         int[] startCounters = new int[inputKeys.size() - rangeKeys.size()]
         int[] counters = new int[startCounters.length]
-        Map<Set<Long>, List<List<Range>>> ranges = new HashMap<>()
         boolean anyRanges = rangeColumns.size() > 0
         boolean anyDiscretes = inputColumns.size() > rangeColumns.size()
-        Map<Range, Range> internedRanges = new HashMap<>()
+        
+        // Caches to dramatically reduce memory footprint while this method is executing
+        Map<List<Range>, List<Range>> internedLists = new THashMap()
+        Map<Range, Range> internedRanges = new THashMap()
+        Map<TIntHashSet, TIntHashSet> internedIntSets = new THashMap()
+        Map<Comparable, Comparable> primitives = new THashMap()
 
         Set<String> inputKeysCopy = new CaseInsensitiveSet<>(inputKeys)
         inputKeysCopy.removeAll(rangeKeys)
@@ -781,7 +795,7 @@ class DecisionTable
             Map<String, List<Comparable>> bindings = getImpliedCells(fieldAxis, row, blowout)
             int priority = getPriority(coord, rowId, priorityColumn)
             System.arraycopy(startCounters, 0, counters, 0, startCounters.length)
-            Map<String, Range> rowRanges = getRowRanges(coord, rowId, priority, internedRanges)
+            Map<String, Range> rowRanges = getRowRanges(coord, rowId, priority, internedRanges, primitives)
             boolean done = false
             Set<Long> ids = new HashSet<>()
             Map<String, ?> coordinate = new HashMap<>()
@@ -806,13 +820,13 @@ class DecisionTable
 
                 if (anyRanges)
                 {   // get all Ranges for row, track them by name
-                    areRangesGood = checkRowRangesForOverlap(indexToRangeName, rowRanges, ranges, cellPtr)
+                    areRangesGood = checkRowRangesForOverlap(blowout, cellPtr, coordinate, indexToRangeName, rowRanges, internedLists)
                     done = true
                 }
 
                 if (anyDiscretes)
                 {
-                    areDiscretesUnique = checkDiscretesForOverlap(blowout, cellPtr, coordinate, priority)
+                    areDiscretesUnique = checkDiscretesForOverlap(blowout, cellPtr, coordinate, priority, internedIntSets)
                     done = !incrementVariableRadixCount(counters, bindings, axisNames)
                 }
 
@@ -843,19 +857,26 @@ class DecisionTable
      * DecisionTable), the associated discrete variables can be unique (unique cellPtr), thereby the row is
      * still good.
      */
-    private static boolean checkRowRangesForOverlap(String[] indexToRangeName, Map<String, Range> rowRanges, Map<Set<Long>, List<List<Range>>> ranges, Set<Long> cellPtr)
+    private static boolean checkRowRangesForOverlap(NCube blowout, Set<Long> cellPtr, Map<String, ?> coordinate, String[] indexToRangeName, Map<String, Range> rowRanges, Map<List<Range>, List<Range>> internedLists)
     {
-        List<List<Range>> existingRanges = ranges.get(cellPtr)
-        if (existingRanges == null)
+        BlowoutCell blowoutCell = blowout.getCellById(cellPtr, coordinate, [:])
+        if (blowoutCell == null)
         {
-            existingRanges = []
-            existingRanges.add(rowRanges.values() as List)
-            ranges.put(cellPtr, existingRanges)
+            blowoutCell = new BlowoutCell()
+            List<Range> list = new ArrayList<>(rowRanges.values())
+            blowoutCell.ranges = []
+            blowoutCell.ranges.add(internList(list, internedLists))
+            blowout.setCellById(blowoutCell, cellPtr)
             return true
         }
         else
         {
-            int len = existingRanges.size()
+            if (blowoutCell.ranges == null)
+            {
+                blowoutCell.ranges = []
+            }
+            int len = blowoutCell.ranges.size()
+            List existingRanges = blowoutCell.ranges
 
             for (int i=0; i < len; i++)
             {   // Loop through however many the table has grown too (a function of how many unique ranges appear).
@@ -881,7 +902,8 @@ class DecisionTable
                 }
             }
 
-            existingRanges.add(rowRanges.values() as List)
+            List<Range> list = new ArrayList<>(rowRanges.values())
+            existingRanges.add(internList(list, internedLists))
             return true
         }
     }
@@ -892,7 +914,7 @@ class DecisionTable
      * be set before calling this method.
      * @return Map that maps a range name to its ranges on a given row.
      */
-    private Map<String, Range> getRowRanges(Map<String, ?> coord, long rowId, int priority, Map<Range, Range> internedRanges)
+    private Map<String, Range> getRowRanges(Map<String, ?> coord, long rowId, int priority, Map<Range, Range> internedRanges, Map<Comparable, Comparable> primitives)
     {
         Map<String, Range> ranges = new CaseInsensitiveMap<>()
 
@@ -903,15 +925,15 @@ class DecisionTable
             coord.put(fieldAxisName, lowColumn.value)
             Set<Long> idCoord = new LongHashSet([lowColumn.id, rowId] as Set)
             Range range = new Range()
-            range.low = decisionTable.getCellById(idCoord, coord, [:])
+            range.low = (Comparable) decisionTable.getCellById(idCoord, coord, [:])
 
             Column highColumn = (Column) bounds.high
             coord.put(fieldAxisName, highColumn.value)
             idCoord = new LongHashSet([highColumn.id, rowId] as Set)
-            range.high = decisionTable.getCellById(idCoord, coord, [:])
+            range.high = (Comparable) decisionTable.getCellById(idCoord, coord, [:])
             range.priority = priority
 
-            ranges.put(rangeName, internRange(range, internedRanges))
+            ranges.put(rangeName, internRange(range, internedRanges, primitives))
         }
         return ranges
     }
@@ -1003,27 +1025,34 @@ class DecisionTable
      * return false (we've identified a duplicate rule in the DecisionTable).   If the RangeSet is there, but
      * it does not contain the same priority passed in, add it.
      */
-    private static boolean checkDiscretesForOverlap(NCube blowout, Set<Long> idCoord, Map<String, ?> coordinate, int priority)
+    private static boolean checkDiscretesForOverlap(NCube blowout, Set<Long> cellPtr, Map<String, ?> coordinate, int priority, Map<TIntHashSet, TIntHashSet> internedIntSets)
     {
-        RangeSet rangeSet = blowout.getCellById(idCoord, coordinate, [:])
-        if (rangeSet == null)
+        BlowoutCell blowoutCell = blowout.getCellById(cellPtr, coordinate, [:])
+        if (blowoutCell == null)
         {
-            rangeSet = new RangeSet()
-            rangeSet.add(priority)
-            blowout.setCellById(rangeSet, idCoord)
+            blowoutCell = new BlowoutCell()
+            TIntHashSet setPriorityCached = new TIntHashSet()
+            setPriorityCached.add(priority)
+            blowoutCell.discretePriorities = internSet(setPriorityCached, internedIntSets)
+            blowout.setCellById(blowoutCell, cellPtr)
             return true
         }
-        else if (rangeSet.overlap(priority))
+        else if (blowoutCell.discretePriorities.contains(priority))
         {
             return false
         }
         else
         {
-            // "Ranges" pulled from cell duplicated so that the interned version is not modified directly.
+            // "Set<Integer>" pulled from blowout cell duplicated so that the interned version is not modified directly.
             // setCellById() below will intern if possible, otherwise this new instance will exist.
-            RangeSet copy = new RangeSet(rangeSet)
+            TIntHashSet copy = new TIntHashSet()
+            TIntIterator i = blowoutCell.discretePriorities.iterator()
+            while (i.hasNext())
+            {
+                copy.add(i.next())
+            }
             copy.add(priority)
-            blowout.setCellById(copy, idCoord)
+            blowoutCell.discretePriorities = internSet(copy, internedIntSets)
             return true
         }
     }
@@ -1097,14 +1126,63 @@ class DecisionTable
     /**
      * Re-use Range instances.
      */
-    static Range internRange(Range candidate, Map<Range, Range> internedRanges)
+    static Range internRange(Range candidate, Map<Range, Range> internedRanges, Map<Comparable, Comparable> primitives)
     {
         Range internedRange = internedRanges.get(candidate)
-        if (internedRange)
+        if (internedRange != null)
         {
             return internedRange
         }
+
+        Comparable low = primitives.get(candidate.low)
+        if (low != null)
+        {
+            candidate.low = low
+        }
+        else
+        {
+            primitives.put(candidate.low, candidate.low)
+        }
+
+        Comparable high = primitives.get(candidate.high)
+        if (high != null)
+        {
+            candidate.high = high
+        }
+        else
+        {
+            primitives.put(candidate.high, candidate.high)
+        }
+
         internedRanges.put(candidate, candidate)
+        return candidate
+    }
+
+    /**
+     * Re-use Set<Integer> instances.
+     */
+    static TIntHashSet internSet(TIntHashSet candidate, Map<TIntHashSet, TIntHashSet> internedSets)
+    {
+        TIntHashSet internedSet = internedSets.get(candidate)
+        if (internedSet != null)
+        {
+            return internedSet
+        }
+        internedSets.put(candidate, candidate)
+        return candidate
+    }
+
+    /**
+     * Re-use List<Range> instances
+     */
+    static List<Range> internList(List<Range> candidate, Map<List<Range>, List<Range>> internedLists)
+    {
+        List<Range> internedList = internedLists.get(candidate)
+        if (internedList != null)
+        {
+            return internedList
+        }
+        internedLists.put(candidate, candidate)
         return candidate
     }
 

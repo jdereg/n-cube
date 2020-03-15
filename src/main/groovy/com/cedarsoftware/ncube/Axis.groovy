@@ -1325,31 +1325,31 @@ class Axis
      */
     static Comparable promoteValue(AxisValueType srcValueType, Comparable value)
     {
-        if (AxisValueType.STRING == srcValueType || AxisValueType.CISTRING == srcValueType)
+        if (AxisValueType.STRING.is(srcValueType) || AxisValueType.CISTRING.is(srcValueType))
         {
             return convertToString(value)
         }
-        else if (AxisValueType.LONG == srcValueType)
+        else if (AxisValueType.LONG.is(srcValueType))
         {
             return convertToLong(value)
         }
-        else if (AxisValueType.BIG_DECIMAL == srcValueType)
+        else if (AxisValueType.BIG_DECIMAL.is(srcValueType))
         {
             return convertToBigDecimal(value)
         }
-        else if (AxisValueType.DATE == srcValueType)
+        else if (AxisValueType.DATE.is(srcValueType))
         {
             return convertToDate(value)
         }
-        else if (AxisValueType.DOUBLE == srcValueType)
+        else if (AxisValueType.DOUBLE.is(srcValueType))
         {
             return convertToDouble(value)
         }
-        else if (AxisValueType.EXPRESSION == srcValueType)
+        else if (AxisValueType.EXPRESSION.is(srcValueType))
         {
             return value
         }
-        else if (AxisValueType.COMPARABLE == srcValueType)
+        else if (AxisValueType.COMPARABLE.is(srcValueType))
         {
             if (value instanceof String)
             {

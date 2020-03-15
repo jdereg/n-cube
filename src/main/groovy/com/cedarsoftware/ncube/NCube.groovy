@@ -506,7 +506,7 @@ class NCube<T>
         {
             throw new InvalidCoordinateException("Unable to setCellById() into n-cube: ${name}, appId: ${appId} using coordinate: ${coordinate}. Add column(s) before assigning cells.", name)
         }
-        return cells[ids] = (T)internValue(value)
+        return cells.put(ids, (T)internValue(value))
     }
 
     /**
@@ -518,7 +518,7 @@ class NCube<T>
     def getCellByIdNoExecute(final Set<Long> coordinate)
     {
         Set<Long> ids = ensureFullCoordinate(coordinate)
-        return cells[ids]
+        return cells.get(ids)
     }
 
     /**
@@ -534,7 +534,7 @@ class NCube<T>
     def getCellNoExecute(final Map coordinate)
     {
         Set<Long> ids = getCoordinateKey(coordinate)
-        return cells[ids]
+        return cells.get(ids)
     }
 
     /**
