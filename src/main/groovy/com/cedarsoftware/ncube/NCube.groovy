@@ -2409,7 +2409,7 @@ class NCube<T>
      */
     Axis getAxis(final String axisName)
     {
-        return axisList[axisName]
+        return axisList.get(axisName)
     }
 
     /**
