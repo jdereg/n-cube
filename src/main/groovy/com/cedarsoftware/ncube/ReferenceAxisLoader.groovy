@@ -52,7 +52,7 @@ class ReferenceAxisLoader implements Axis.AxisRefProvider
 
     private String cubeName
     private String axisName
-    private Map args
+    private Map<String, Object> args
 
     /**
      * @param containingCubeName String name of cube that holds the 'pointer' (referring) axis

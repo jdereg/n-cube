@@ -79,7 +79,7 @@ class Axis
     private final transient TLongObjectHashMap<Column> idToCol = new TLongObjectHashMap<>()
     private final transient Map<String, Column> colNameToCol = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
-    private transient NavigableMap<Comparable, Column> valueToCol
+    private transient Map<Comparable, Column> valueToCol
     protected transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()
 
     private static final ThreadLocal<Random> LOCAL_RANDOM = new ThreadLocal<Random>() {
@@ -120,7 +120,6 @@ class Axis
         this.id = id
         this.name = name
         this.type = type
-        this.valueToCol = valueType == AxisValueType.CISTRING ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
         preferredOrder = order
         this.fireAll = fireAll
         if (AxisType.RULE.is(type))
@@ -138,6 +137,7 @@ class Axis
         {
             this.valueType = valueType
         }
+        this.valueToCol = createValueToColMap()
 
         if (hasDefault && type != AxisType.NEAREST)
         {
@@ -540,7 +540,7 @@ class Axis
 
         if (AxisType.DISCRETE.is(type) || AxisType.NEAREST.is(type))
         {
-            valueToColumn.put(standardizeColumnValue(column.value), column)
+            valueToColumnMap.put(standardizeColumnValue(column.value), column)
         }
         else if (AxisType.RANGE.is(type))
         {
@@ -642,12 +642,35 @@ class Axis
     protected void setValueType(AxisValueType newValueType)
     {
         valueType = newValueType
-        NavigableMap<Comparable, Column> existing = valueToCol
-        valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
+        Map<Comparable, Column> existing = valueToCol
+        valueToCol = createValueToColMap()
+
         if (existing)
         {
             valueToCol.putAll(existing)
         }
+    }
+
+    private Map<Comparable, Column> getValueToColumnMap()
+    {
+        if (valueToCol == null)
+        {
+            valueToCol = createValueToColMap()
+        }
+        return valueToCol
+    }
+
+    private Map createValueToColMap()
+    {
+        if (AxisType.NEAREST.is(type))
+        {
+            valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
+        }
+        else
+        {
+            valueToCol = AxisValueType.CISTRING.is(valueType) ? new CaseInsensitiveMap<Comparable, Column>() : new HashMap<Comparable, Column>()
+        }
+        return valueToCol
     }
 
     protected void clearIndexes()
@@ -724,7 +747,7 @@ class Axis
         {
             if (AxisType.DISCRETE.is(type) || AxisType.NEAREST.is(type))
             {
-                if (valueToColumn.containsKey(value))
+                if (valueToColumnMap.containsKey(value))
                 {
                     throw new AxisOverlapException("Passed in value '${value}' matches a value already on axis '${name}'")
                 }
@@ -889,7 +912,7 @@ class Axis
         // Remove from 'value' storage
         if (AxisType.DISCRETE.is(type) || AxisType.NEAREST.is(type))
         {   // O(1) remove
-            valueToColumn.remove(standardizeColumnValue(col.value))
+            valueToColumnMap.remove(standardizeColumnValue(col.value))
         }
         else if (AxisType.RANGE.is(type))
         {   // O(Log n) remove
@@ -1608,7 +1631,7 @@ class Axis
 
         if (AxisType.DISCRETE.is(type))
         {
-            Column colToFind = valueToColumn.get(promotedValue)
+            Column colToFind = valueToColumnMap.get(promotedValue)
             return colToFind == null ? defaultCol : colToFind
         }
         else if (AxisType.RANGE.is(type) || AxisType.SET.is(type))
@@ -1656,20 +1679,22 @@ class Axis
 
     private Column findNearest(final Comparable promotedValue)
     {
-        if (valueToColumn.isEmpty())
+        if (valueToColumnMap.isEmpty())
         {
             return null
         }
 
-        if (valueToCol.size() == 1)
+        NavigableMap<Comparable, Column> navMap = (NavigableMap<Comparable, Column>) valueToCol
+
+        if (navMap.size() == 1)
         {
-            return valueToCol.firstEntry().value
+            return navMap.firstEntry().value
         }
 
         if (promotedValue instanceof Number)
         {   // Provide O(Log n) access when Number (any Number derivative) used on a NEAREST axis
-            Map.Entry<Comparable, Column> entry1 = valueToCol.floorEntry(promotedValue as Comparable)
-            Map.Entry<Comparable, Column> entry2 = valueToCol.higherEntry(promotedValue as Comparable)
+            Map.Entry<Comparable, Column> entry1 = navMap.floorEntry(promotedValue as Comparable)
+            Map.Entry<Comparable, Column> entry2 = navMap.higherEntry(promotedValue as Comparable)
             if (entry1 == null)
             {
                 return entry2.value
@@ -1691,8 +1716,8 @@ class Axis
         }
         else if (promotedValue instanceof Date)
         {   // Provide O(Log n) access when Date (any Date derivative) used on a NEAREST axis
-            Map.Entry<Comparable, Column> entry1 = valueToCol.floorEntry(promotedValue as Comparable)
-            Map.Entry<Comparable, Column> entry2 = valueToCol.higherEntry(promotedValue as Comparable)
+            Map.Entry<Comparable, Column> entry1 = navMap.floorEntry(promotedValue as Comparable)
+            Map.Entry<Comparable, Column> entry2 = navMap.higherEntry(promotedValue as Comparable)
             if (entry1 == null)
             {
                 return entry2.value
@@ -1783,7 +1808,7 @@ class Axis
     }
 
     /**
-     * @return List<Column> representing all of the Columns on this list.  This is a copy, so operations
+     * @return List<Column> representing all of the Columns on this Axis.  This is a copy, so operations
      * on the List will not affect the Axis columns.  However, the Column instances inside the List are
      * not 'deep copied' so modifications to them should not be made, as it would violate the internal
      * Map structures maintaining the column indexing. The Columms are in SORTED or DISPLAY order
@@ -1808,15 +1833,47 @@ class Axis
      */
     List<Column> getColumnsWithoutDefault()
     {
-        if (AxisType.DISCRETE.is(type) || AxisType.NEAREST.is(type))
+        if (AxisType.DISCRETE.is(type))
         {
-            return new ArrayList<>((preferredOrder == SORTED) ? valueToColumn.values() : displayOrder.values())
+            if (preferredOrder == DISPLAY)
+            {
+                return new ArrayList<>(displayOrder.values())
+            }
+            
+            if (AxisValueType.CISTRING.is(valueType))
+            {
+                List<Column> cols = new ArrayList<>(valueToColumnMap.values())
+                Collections.sort(cols, new Comparator<Column>() {
+                    int compare(Column c1, Column c2)
+                    {
+                        String v1 = c1.value
+                        String v2 = c2.value
+                        return v1.compareToIgnoreCase(v2)
+                    }
+                })
+                return cols
+            }
+            else
+            {
+                List<Column> cols = new ArrayList<>(valueToColumnMap.values())
+                Collections.sort(cols, new Comparator<Column>() {
+                    int compare(Column c1, Column c2)
+                    {
+                        return c1.value <=> c2.value
+                    }
+                })
+                return cols
+            }
         }
-        if (AxisType.RULE.is(type))
+        else if (AxisType.NEAREST.is(type))
+        {
+            return new ArrayList<>((preferredOrder == SORTED) ? valueToColumnMap.values() : displayOrder.values())
+        }
+        else if (AxisType.RULE.is(type))
         {
             return new ArrayList<>(displayOrder.values())
         }
-        if (AxisType.RANGE.is(type) || AxisType.SET.is(type))
+        else if (AxisType.RANGE.is(type) || AxisType.SET.is(type))
         {
             List<Column> cols = new ArrayList<>(size())
             if (preferredOrder == SORTED)
@@ -1901,14 +1958,5 @@ class Axis
         {
             return findColumn(source.value)
         }
-    }
-
-    private NavigableMap<Comparable, Column> getValueToColumn()
-    {
-        if (valueToCol == null)
-        {
-            valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
-        }
-        return valueToCol
     }
 }

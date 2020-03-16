@@ -702,7 +702,7 @@ class DecisionTable
         for (String colValue : colsToProcess)
         {
             Column field = fieldAxis.findColumn(colValue)
-            Axis axis = new Axis(colValue, AxisType.DISCRETE, AxisValueType.CISTRING, false)
+            Axis axis = new Axis(colValue, AxisType.DISCRETE, AxisValueType.STRING, false)
             blowout.addAxis(axis)
             String fieldValue = field.value
             coord.put(fieldAxisName, fieldValue)
