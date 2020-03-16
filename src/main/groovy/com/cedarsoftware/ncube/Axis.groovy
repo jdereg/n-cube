@@ -1843,7 +1843,7 @@ class Axis
             if (AxisValueType.CISTRING.is(valueType))
             {
                 List<Column> cols = new ArrayList<>(valueToColumnMap.values())
-                Collections.sort(cols, new Comparator<Column>() {
+                cols.sort(new Comparator<Column>() {
                     int compare(Column c1, Column c2)
                     {
                         String v1 = c1.value
@@ -1856,7 +1856,7 @@ class Axis
             else
             {
                 List<Column> cols = new ArrayList<>(valueToColumnMap.values())
-                Collections.sort(cols, new Comparator<Column>() {
+                cols.sort(new Comparator<Column>() {
                     int compare(Column c1, Column c2)
                     {
                         return c1.value <=> c2.value
