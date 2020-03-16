@@ -62,9 +62,9 @@ public class LongHashSet implements Set<Long>
         return Arrays.binarySearch(elems, ((Number)item).longValue()) >= 0;
     }
 
-    public Iterator iterator()
+    public Iterator<Long> iterator()
     {
-        Iterator it = new Iterator() {
+        return new Iterator<Long>() {
             private int currentIndex = 0;
 
             public boolean hasNext()
@@ -86,7 +86,6 @@ public class LongHashSet implements Set<Long>
                 throw new UnsupportedOperationException();
             }
         };
-        return it;
     }
 
     public Object[] toArray()

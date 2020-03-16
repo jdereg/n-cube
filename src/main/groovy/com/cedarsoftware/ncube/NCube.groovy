@@ -1687,6 +1687,23 @@ class NCube<T>
     }
 
     /**
+     * @param coordinate Set<Long> coordinate usuable by getCellById(), setCellByEdit(), ...
+     * @return Map<Long, Long> which maps an axis ID to the Column ID on that axis.
+     */
+    private Map<Long, Long> getAxisToCoord(Set<Long> coordinate)
+    {
+        Iterator<Long> i = coordinate.iterator()
+        Map<Long, Long> axisToCoord = new HashMap<>()
+
+        while (i.hasNext())
+        {
+            Long id = i.next()
+            axisToCoord.put(id.intdiv(Axis.BASE_AXIS_ID).longValue(), id)
+        }
+        return axisToCoord
+    }
+    
+    /**
      * Make sure the returned Set<Long> contains a column ID for each axis, even if the input set does
      * not have a coordinate for an axis, but the axis has a default column (the default column's ID will
      * be added to the returned Set).
@@ -1706,33 +1723,29 @@ class NCube<T>
         {
             coordinate = new LongHashSet()
         }
-        Map<Long, Long> axisToCoord = new HashMap<>()
         int numDim = numDimensions
+
         if (coordinate.size() >= numDim)
         {   // Fast-path (no default column projecting)
+            Map<Long, Long> axisToCoord = new HashMap<>()
             Iterator<Long> i = coordinate.iterator()
 
             while (i.hasNext())
             {
                 Long id = i.next()
-                axisToCoord.put(id.intdiv(Axis.BASE_AXIS_ID).longValue(), id)
+                // Fast way to get unique Axis ids without division
+                axisToCoord.put(id - (id % Axis.BASE_AXIS_ID), 0L)
             }
 
             if (axisToCoord.size() == numDim)
-            {
+            {   // Switch to LongHashSet if the instance passed in is not already LongHashSet
                 return coordinate instanceof LongHashSet ? coordinate : new LongHashSet(coordinate)
             }
         }
 
         // Help-out - add default column binds, etc.
         Set<Long> ids = new LongHashSet()
-        Iterator<Long> i = coordinate.iterator()
-
-        while (i.hasNext())
-        {
-            Long id = i.next()
-            axisToCoord.put(id.intdiv(Axis.BASE_AXIS_ID).longValue(), id)
-        }
+        Map<Long, Long> axisToCoord = getAxisToCoord(coordinate)
 
         for (axis in axisList.values())
         {
@@ -1746,11 +1759,8 @@ class NCube<T>
                 ids.add(axis.defaultColId)
             }
         }
-        if (ids.size() != numDim)
-        {
-            return null
-        }
-        return ids
+
+        return ids.size() == numDim ? ids : null
     }
 
     /**
