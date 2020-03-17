@@ -77,7 +77,7 @@ class Axis
 
     // Internal indexes
     private final transient TLongObjectHashMap<Column> idToCol = new TLongObjectHashMap<>()
-    private final transient Map<String, Column> colNameToCol = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
+    private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
     private transient Map<Comparable, Column> valueToCol
     protected transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()
@@ -145,7 +145,7 @@ class Axis
             indexColumn(defaultCol)
         }
 
-        verifyAxisType()
+        dropIrrelevantIndexes()
     }
 
     /**
@@ -173,7 +173,7 @@ class Axis
         }
 
         // Verify that the axis is indeed valid
-        verifyAxisType()
+        dropIrrelevantIndexes()
 
         if (!AxisValueType.values().contains(valueType))
         {
@@ -242,7 +242,7 @@ class Axis
         }
     }
 
-    private void verifyAxisType()
+    private void dropIrrelevantIndexes()
     {
         if (AxisType.RULE.is(type))
         {

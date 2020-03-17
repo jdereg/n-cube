@@ -1065,7 +1065,7 @@ class NCube<T>
             def defColValue
             if (columnDefaultCache?.containsKey(colId))
             {
-                defColValue = columnDefaultCache[colId]
+                defColValue = columnDefaultCache.get(colId)
             }
             else
             {
