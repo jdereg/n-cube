@@ -865,10 +865,10 @@ class DecisionTable
      * DecisionTable), the associated discrete variables can be unique (unique cellPtr), thereby the row is
      * still good.
      */
-    private static boolean checkRowRangesForOverlap(BlowoutCell blowoutCell, String[] indexToRangeName, Map<String, Range> rowRanges, Map<List<Range>, List<Range>> internedLists)
+    private static boolean checkRowRangesForOverlap(BlowoutCell cell, String[] indexToRangeName, Map<String, Range> rowRanges, Map<List<Range>, List<Range>> internedLists)
     {
-        int len = blowoutCell.ranges.size()
-        List existingRanges = blowoutCell.ranges
+        int len = cell.ranges.size()
+        List existingRanges = cell.ranges
 
         for (int i=0; i < len; i++)
         {   // Loop through however many the table has grown too (a function of how many unique ranges appear).
