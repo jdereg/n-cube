@@ -121,4 +121,5 @@ interface NCubeConstants
     final String PRIORITY = 'priority'
     final String IGNORE = 'ignore'
     final String REQUIRED = 'required'
+    final String DECISION_TABLE = 'decision_table'
 }

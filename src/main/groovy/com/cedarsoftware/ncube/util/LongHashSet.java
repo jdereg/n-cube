@@ -30,6 +30,32 @@ public class LongHashSet implements Set<Long>
     public LongHashSet()
     { }
 
+    public LongHashSet(long x)
+    {
+        elems = new long[] { x };
+    }
+
+    public LongHashSet(long x, long y)
+    {
+        if (x > y)
+        {
+            elems = new long[] { y, x };
+        }
+        else
+        {
+            elems = new long[] { x, y };
+        }
+    }
+
+    public LongHashSet(long x, long y, long z)
+    {
+        elems = new long[3];
+        elems[0] = x;
+        elems[1] = y;
+        elems[2] = z;
+        Arrays.sort(elems);
+    }
+
     public LongHashSet(Set col)
     {
         long[] items = new long[col.size()];

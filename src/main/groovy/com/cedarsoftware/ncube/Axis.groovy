@@ -77,7 +77,7 @@ class Axis
 
     // Internal indexes
     private final transient TLongObjectHashMap<Column> idToCol = new TLongObjectHashMap<>()
-    private final transient Map<String, Column> colNameToCol = new TreeMap<>(String.CASE_INSENSITIVE_ORDER)
+    private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
     private transient Map<Comparable, Column> valueToCol
     protected transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()
@@ -145,7 +145,7 @@ class Axis
             indexColumn(defaultCol)
         }
 
-        verifyAxisType()
+        dropIrrelevantIndexes()
     }
 
     /**
@@ -173,7 +173,7 @@ class Axis
         }
 
         // Verify that the axis is indeed valid
-        verifyAxisType()
+        dropIrrelevantIndexes()
 
         if (!AxisValueType.values().contains(valueType))
         {
@@ -242,7 +242,7 @@ class Axis
         }
     }
 
-    private void verifyAxisType()
+    private void dropIrrelevantIndexes()
     {
         if (AxisType.RULE.is(type))
         {
@@ -535,6 +535,7 @@ class Axis
         if (displayOrder.containsKey(column.displayOrder))
         {   // collision - move it to end
             order = displayOrder.lastKey() + 1
+            column.displayOrder = order
         }
         displayOrder.put(order, column)
 
@@ -662,15 +663,18 @@ class Axis
 
     private Map createValueToColMap()
     {
-        if (AxisType.NEAREST.is(type))
-        {
-            valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
-        }
-        else
-        {
-            valueToCol = AxisValueType.CISTRING.is(valueType) ? new CaseInsensitiveMap<Comparable, Column>() : new HashMap<Comparable, Column>()
-        }
+        valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
         return valueToCol
+//        if (AxisType.NEAREST.is(type))
+//        {
+//            valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
+//        }
+//        else
+//        {
+//            // Note: the code below makes findColumn() faster, but then getColumnsWithoutDefault() is slower()
+//            valueToCol = AxisValueType.CISTRING.is(valueType) ? new CaseInsensitiveMap<Comparable, Column>() : new HashMap<Comparable, Column>()
+//        }
+//        return valueToCol
     }
 
     protected void clearIndexes()
@@ -1835,35 +1839,35 @@ class Axis
     {
         if (AxisType.DISCRETE.is(type))
         {
-            if (preferredOrder == DISPLAY)
-            {
-                return new ArrayList<>(displayOrder.values())
-            }
-            
-            if (AxisValueType.CISTRING.is(valueType))
-            {
-                List<Column> cols = new ArrayList<>(valueToColumnMap.values())
-                cols.sort(new Comparator<Column>() {
-                    int compare(Column c1, Column c2)
-                    {
-                        String v1 = c1.value
-                        String v2 = c2.value
-                        return v1.compareToIgnoreCase(v2)
-                    }
-                })
-                return cols
-            }
-            else
-            {
-                List<Column> cols = new ArrayList<>(valueToColumnMap.values())
-                cols.sort(new Comparator<Column>() {
-                    int compare(Column c1, Column c2)
-                    {
-                        return c1.value <=> c2.value
-                    }
-                })
-                return cols
-            }
+            Collection<Column> col = preferredOrder == DISPLAY ? displayOrder.values() : valueToColumnMap.values()
+            return new ArrayList<>(col)
+//            // Note: If we decide that findColumn should be O(1) not O(logN), then we can add the code below.
+//            // Note: However, this is slower than returning the values() side of the map (about 3x times slower).
+//            if (AxisValueType.CISTRING.is(valueType))
+//            {
+//                List<Column> cols = new ArrayList<>(valueToColumnMap.values())
+//                // Note: If we decide that findColumn should be O(1) not O(logN), then we can add this
+//                cols.sort(new Comparator<Column>() {
+//                    int compare(Column c1, Column c2)
+//                    {
+//                        String v1 = c1.value
+//                        String v2 = c2.value
+//                        return v1.compareToIgnoreCase(v2)
+//                    }
+//                })
+//                return cols
+//            }
+//            else
+//            {
+//                List<Column> cols = new ArrayList<>(valueToColumnMap.values())
+//                cols.sort(new Comparator<Column>() {
+//                    int compare(Column c1, Column c2)
+//                    {
+//                        return c1.value <=> c2.value
+//                    }
+//                })
+//                return cols
+//            }
         }
         else if (AxisType.NEAREST.is(type))
         {

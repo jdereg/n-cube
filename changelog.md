@@ -1,5 +1,9 @@
 ### Revision History
-* 4.7.1-SNAPSHOT
+* 4.7.2
+  * `DecisionTable.getDecision()` - when no input is supplied for optional input, input is automatically assigned a value that will only match blank (wildcard) cells.
+  * `NCube.mapReduce()` - when `MAP_REDUCE_SHOULD_EXECUTE` is `false`, defaults are applied (column default, then table, then default argument) as they are normally done in `getCell()`. 
+  * Performance: validation `DecisionTable` performance improvements. 
+* 4.7.1
   * Rules engine modified to enforce that the rule-axis is named "rules" (case insensitive).
   * `GStringWrapper` updated to support 'set property' delegation (it already supported get property delegation).
 * 4.7.0 
@@ -14,7 +18,7 @@
   * `DecisionTable.getRequiredKeys()` API added that returns the required (minimum set) of keys required to call `getDecision()`.
   * Bug fix: `ignore` and `priority` now working correctly on `DecisionTable`.
 * 4.6.13
-  * Performance: validating DecisionTables has been sped up significantly.
+  * Performance: validating `DecisionTable` has been sped up significantly.
   * More validation checks are performed against the `NCube` that the `DecisionTable` is built from.
   * `DecisionTable.getInputKeys()` API added that returns all input keys (columns) to access the `DecisionTable`. 
 * 4.6.12

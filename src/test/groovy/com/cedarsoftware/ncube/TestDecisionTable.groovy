@@ -4,6 +4,8 @@ import groovy.transform.CompileStatic
 import org.junit.Ignore
 import org.junit.Test
 
+import java.security.SecureRandom
+
 import static com.cedarsoftware.util.Converter.convertToDate
 import static com.cedarsoftware.util.TestUtil.assertContainsIgnoreCase
 import static org.junit.Assert.fail
@@ -124,16 +126,18 @@ class TestDecisionTable extends NCubeBaseTest
         Set<Comparable> badRows = dt.validateDecisionTable()
         assert badRows.empty
         Map out = dt.getDecision([state:'KY'])
-        assert out.size() == 1
+        assert out.size() == 0
+        out = dt.getDecision([state:'KY', sku: 1])
         Map row = out[1L] as Map
         assert row.output == '15'
 
-        out = dt.getDecision([state:'OH'])
-        assert out.size() == 2
-        row = out[1L] as Map
-        assert row.output == '15'
+        out = dt.getDecision([state:'OH', sku: 2])
+        assert out.size() == 1
         row = out[2L] as Map
         assert row.output == '20'
+
+        out = dt.getDecision([:])
+        assert out.size() == 0
     }
 
     @Test
@@ -739,7 +743,70 @@ class TestDecisionTable extends NCubeBaseTest
         assertContainsIgnoreCase(map.toString(), '9','factor', '9.0')
     }
 
-    // TODO: in verifyAndCache, set blank low to lowest value of type, set blank high to highest value of type.
+    @Test
+    void testOptionalInputNotSupplied()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/optional_input.json')
+        Set set = dt.validateDecisionTable()
+        assert set.empty
+
+        Map decision = dt.getDecision([profitCenter: 23, date: new Date()])
+        assert decision.size() == 1
+        assert decision.containsKey('1581788642877000415')
+    }
+
+    @Test
+    void testBigDecisionTablePerformance()
+    {
+        int numInputs = 10
+        int numRows = 1000
+
+        NCube ncube = new NCube('BigDecisionTable')
+        Axis fields = new Axis('field', AxisType.DISCRETE, AxisValueType.CISTRING, false, Axis.DISPLAY)
+        for (int i = 0; i < numInputs; i++)
+        {
+            Column column = fields.addColumn("i${i}".toString())
+            column.setMetaProperty(INPUT_VALUE, Boolean.TRUE)
+        }
+        Column price = fields.addColumn('price')
+        price.setMetaProperty(OUTPUT_VALUE, Boolean.TRUE)
+
+        Axis rows = new Axis('row', AxisType.DISCRETE, AxisValueType.LONG, false, Axis.DISPLAY)
+        for (int i = 0; i < numRows; i++)
+        {
+            rows.addColumn(i)
+        }
+        ncube.addAxis(fields)
+        ncube.addAxis(rows)
+
+        Random random = new SecureRandom()
+        Map<String, ?> coord = new HashMap<>()
+
+        for (int i = 0; i < numInputs; i++)
+        {
+            coord.put('field', "i${i}".toString())
+            for (int j = 0; j < numRows; j++)
+            {
+                coord.put('row', j)
+                ncube.setCell(random.nextInt(1000), coord)
+            }
+        }
+
+        coord.put('field', 'price')
+        for (int j = 0; j < numRows; j++)
+        {
+            coord.put('row', j)
+            ncube.setCell(j, coord)
+        }
+
+        DecisionTable dt = new DecisionTable(ncube)
+        long start = System.nanoTime()
+        println dt.validateDecisionTable()
+        long stop = System.nanoTime()
+
+        println "${numInputs} decision variables by ${numRows} rules validation time: ${(stop - start) / 1000000}"
+    }
+
     private static DecisionTable getDecisionTableFromJson(String file)
     {
         String json = NCubeRuntime.getResourceAsString(file)

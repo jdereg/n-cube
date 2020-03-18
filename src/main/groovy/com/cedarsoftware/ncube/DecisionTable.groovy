@@ -11,6 +11,7 @@ import gnu.trove.TIntIterator
 import groovy.transform.CompileStatic
 
 import static com.cedarsoftware.ncube.NCubeConstants.DATA_TYPE
+import static com.cedarsoftware.ncube.NCubeConstants.DECISION_TABLE
 import static com.cedarsoftware.ncube.NCubeConstants.IGNORE
 import static com.cedarsoftware.ncube.NCubeConstants.INPUT_HIGH
 import static com.cedarsoftware.ncube.NCubeConstants.INPUT_LOW
@@ -138,16 +139,33 @@ class DecisionTable
             }
         }
 
+        // Add on the IGNORE column if the field axis had it.
         Set<String> colsToSearch = new CaseInsensitiveSet<>(inputColumns)
         if (fieldAxis.contains(IGNORE))
-        {   // Add on the IGNORE field if the field axis had it.
+        {
             colsToSearch.add(IGNORE)
         }
+
+        // Add on the PRIORITY column if the field axis had it.
         Set<String> colsToReturn = new CaseInsensitiveSet<>(outputColumns)
         if (fieldAxis.findColumn(PRIORITY))
-        {   // Add on the PRIORITY axis if the field axis had it.
+        {
             colsToReturn.add(PRIORITY)
         }
+
+        // Ensure user-supplied input has values for all keys.  For optional keys, supply a sentinal value associated
+        // to the optional key if they did not include the optional key.
+        for (String key : inputKeys)
+        {
+            if (!requiredColumns.contains(key))
+            {   // Only look at non-required input keys.
+                if (!copyInput.containsKey(key))
+                {   
+                    copyInput.put(key, Axis.DONT_CARE)
+                }
+            }
+        }
+
         Map<String, ?> closureInput = new CaseInsensitiveMap<>(input)
         closureInput.dvs = copyInput
 
@@ -239,12 +257,13 @@ class DecisionTable
                 continue
             }
 
+            coord.put(fieldAxisName, fieldValue)
+            
             for (Column row : rows)
             {
                 String rowValue = row.value
-                coord.put(fieldAxisName, fieldValue)
                 coord.put(rowAxisName, rowValue)
-                Set<Long> idCoord = new LongHashSet([field.id, row.id] as Set)
+                Set<Long> idCoord = new LongHashSet(field.id, row.id)
                 String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
                 if (hasContent(cellValue))
                 {
@@ -413,10 +432,6 @@ class DecisionTable
             {
                 inputColumns.add(columnValue)
                 inputKeys.add(columnValue)
-                if (colMetaProps.containsKey(REQUIRED))
-                {
-                    requiredColumns.add(columnValue)
-                }
             }
 
             if (colMetaProps.containsKey(INPUT_LOW) || colMetaProps.containsKey(INPUT_HIGH))
@@ -485,7 +500,7 @@ class DecisionTable
             else
             {
                 if (colMetaProps.containsKey(REQUIRED))
-                {
+                {   // REQUIRED on non-input columns will be verified later in the code below.
                     requiredColumns.add(columnValue)
                 }
             }
@@ -530,8 +545,10 @@ class DecisionTable
         Axis rowAxis = decisionTable.getAxis(rowAxisName)
         Map<String, ?> coord = new CaseInsensitiveMap<>()
         List<Column> rowColumns = rowAxis.columnsWithoutDefault
+        Set<String> rangePlusOutputCols = new CaseInsensitiveSet<>(rangeColumns)
+        rangePlusOutputCols.addAll(outputColumns)
 
-        for (String colName : rangeColumns + outputColumns)
+        for (String colName : rangePlusOutputCols)
         {
             Column column = fieldAxis.findColumn(colName)
             String dataType = column.getMetaProperty(DATA_TYPE)
@@ -545,7 +562,7 @@ class DecisionTable
             for (Column row : rowColumns)
             {
                 coord.put(rowAxisName, row.value)
-                Set<Long> idCoord = new LongHashSet([column.id, row.id] as HashSet)
+                Set<Long> idCoord = new LongHashSet(column.id, row.id)
                 Object value = decisionTable.getCellById(idCoord, coord, [:])
 
                 if (rangeColumns.contains(columnValue))
@@ -567,6 +584,11 @@ class DecisionTable
         }
         computeInputVarToRangeColumns()
         convertSpecialColumnsToPrimitive()
+
+        // Place an boolean indicator on the NCube meta-property 'decision_table'.
+        // This will allow code that gets the NCube only, access to know if it is inside an DecisionTable.
+        // Not sure if this will be useful, as it will not be written out this way.
+        decisionTable.setMetaProperty(DECISION_TABLE, Boolean.TRUE)
     }
 
     /**
@@ -605,14 +627,14 @@ class DecisionTable
 
             if (ignoreColId != -1)
             {
-                Set<Long> idCoord = new LongHashSet([ignoreColId, row.id] as HashSet)
+                Set<Long> idCoord = new LongHashSet(ignoreColId, row.id)
                 Object value = decisionTable.getCellById(idCoord, coord, [:])
                 decisionTable.setCellById(convertToBoolean(value), idCoord)
             }
 
             if (priorityColId != -1)
             {
-                Set<Long> idCoord = new LongHashSet([priorityColId, row.id] as HashSet)
+                Set<Long> idCoord = new LongHashSet(priorityColId, row.id)
                 Integer intValue = convertToInteger(decisionTable.getCellById(idCoord, coord, [:]))
                 if (intValue < 1)
                 {   // If priority is not specified, then it is the lowest priority of all
@@ -711,7 +733,7 @@ class DecisionTable
             {
                 String rowValue = row.value
                 coord.put(rowAxisName, rowValue)
-                Set<Long> idCoord = new LongHashSet([field.id, row.id] as Set)
+                Set<Long> idCoord = new LongHashSet(field.id, row.id)
                 String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
                 if (hasContent(cellValue))
                 {
@@ -736,7 +758,7 @@ class DecisionTable
     {
         private static TIntHashSet blank = new TIntHashSet()
         List<List<Range>> ranges = []
-        TIntHashSet discretePriorities = blank  // This field is tested (empty), then always overwritten
+        TIntHashSet priorities = blank  // This field is tested (empty), then always overwritten
     }
 
     /**
@@ -785,7 +807,7 @@ class DecisionTable
             if (ignoreColumn)
             {
                 coord.put(fieldAxisName, IGNORE)
-                Set<Long> idCoord = new LongHashSet([rowId, ignoreColumn.id] as Set)
+                Set<Long> idCoord = new LongHashSet(rowId, ignoreColumn.id)
                 if (decisionTable.getCellById(idCoord, coord, [:]))
                 {
                     continue
@@ -865,10 +887,10 @@ class DecisionTable
      * DecisionTable), the associated discrete variables can be unique (unique cellPtr), thereby the row is
      * still good.
      */
-    private static boolean checkRowRangesForOverlap(BlowoutCell blowoutCell, String[] indexToRangeName, Map<String, Range> rowRanges, Map<List<Range>, List<Range>> internedLists)
+    private static boolean checkRowRangesForOverlap(BlowoutCell cell, String[] indexToRangeName, Map<String, Range> rowRanges, Map<List<Range>, List<Range>> internedLists)
     {
-        int len = blowoutCell.ranges.size()
-        List existingRanges = blowoutCell.ranges
+        int len = cell.ranges.size()
+        List existingRanges = cell.ranges
 
         for (int i=0; i < len; i++)
         {   // Loop through however many the table has grown too (a function of how many unique ranges appear).
@@ -914,13 +936,13 @@ class DecisionTable
             Range bounds = inputVarNameToRangeColumns.get(rangeName)
             Column lowColumn = (Column) bounds.low
             coord.put(fieldAxisName, lowColumn.value)
-            Set<Long> idCoord = new LongHashSet([lowColumn.id, rowId] as Set)
+            Set<Long> idCoord = new LongHashSet(lowColumn.id, rowId)
             Range range = new Range()
             range.low = (Comparable) decisionTable.getCellById(idCoord, coord, [:])
 
             Column highColumn = (Column) bounds.high
             coord.put(fieldAxisName, highColumn.value)
-            idCoord = new LongHashSet([highColumn.id, rowId] as Set)
+            idCoord = new LongHashSet(highColumn.id, rowId)
             range.high = (Comparable) decisionTable.getCellById(idCoord, coord, [:])
             range.priority = priority
 
@@ -949,7 +971,7 @@ class DecisionTable
             bindings.put(colValue, [])
             coord.put(rowAxisName, row.value)
             Column field = fieldAxis.findColumn(colValue)
-            Set<Long> idCoord = new LongHashSet([row.id, field.id] as Set)
+            Set<Long> idCoord = new LongHashSet(field.id, row.id)
             coord.put(fieldAxisName, field.value)
             String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
 
@@ -1001,7 +1023,7 @@ class DecisionTable
         if (priorityColumn)
         {
             coord.put(fieldAxisName, priorityColumn.value)
-            Set<Long> idCoord = new LongHashSet([rowId, priorityColumn.id] as Set)
+            Set<Long> idCoord = new LongHashSet(priorityColumn.id, rowId)
             return decisionTable.getCellById(idCoord, coord, [:])
         }
         else
@@ -1018,7 +1040,7 @@ class DecisionTable
      */
     private static boolean checkDiscretesForOverlap(BlowoutCell cell, int priority, Map<TIntHashSet, TIntHashSet> internedIntSets)
     {
-        if (cell.discretePriorities.contains(priority))
+        if (cell.priorities.contains(priority))
         {
             return false
         }
@@ -1026,13 +1048,13 @@ class DecisionTable
         {
             // "TIntHashSet" pulled from blowout cell duplicated so that the interned version is not modified directly.
             TIntHashSet copy = new TIntHashSet()
-            TIntIterator i = cell.discretePriorities.iterator()
+            TIntIterator i = cell.priorities.iterator()
             while (i.hasNext())
             {
                 copy.add(i.next())
             }
             copy.add(priority)
-            cell.discretePriorities = internSet(copy, internedIntSets)
+            cell.priorities = internSet(copy, internedIntSets)
             return true
         }
     }
@@ -1100,7 +1122,11 @@ class DecisionTable
         {
             return convertToString(value)
         }
-        throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL, STRING. Data type: ${dataType}, value: ${value}, decision table: ${decisionTable.name}")
+        else if (dataType.equalsIgnoreCase('BOOLEAN'))
+        {
+            return convertToBoolean(value)
+        }
+        throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL, STRING, or BOOLEAN. Data type: ${dataType}, value: ${value}, decision table: ${decisionTable.name}")
     }
 
     /**

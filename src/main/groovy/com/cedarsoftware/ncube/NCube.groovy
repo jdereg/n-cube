@@ -671,7 +671,7 @@ class NCube<T>
                             // use() calls, but contains a pointer to the original value (and delegates calls to it).
                             input.put(axisName, new GStringWrapper(boundColumn.columnName, input.get(axisName)))
                             Object conditionValue
-
+                            
                             if (!cachedConditionValues.containsKey(boundColumn.id))
                             {   // Has the condition on the Rule axis been run this execution?  If not, run it and cache it.
                                 CommandCell cmd = (CommandCell) boundColumn.value
@@ -916,7 +916,7 @@ class NCube<T>
      * coordinate has at least an entry for each axis (entry not needed for axes with
      * default column or rule axes).
      */
-    T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, Map columnDefaultCache = null)
+    T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, boolean shouldExecute = true, Map columnDefaultCache = null)
     {
         // First, get a ThreadLocal copy of an NCube execution stack
         Deque<StackEntry> stackFrame = (Deque<StackEntry>) executionStack.get()
@@ -971,8 +971,15 @@ class NCube<T>
 
             if (cellValue instanceof CommandCell)
             {
-                Map ctx = prepareExecutionContext(coordinate, output)
-                return (T) executeExpression(ctx, (CommandCell)cellValue)
+                if (shouldExecute)
+                {
+                    Map ctx = prepareExecutionContext(coordinate, output)
+                    return (T) executeExpression(ctx, (CommandCell)cellValue)
+                }
+                else
+                {
+                    return cellValue
+                }
             }
             else if (columnDefaultCache == null)
             {
@@ -1065,7 +1072,7 @@ class NCube<T>
             def defColValue
             if (columnDefaultCache?.containsKey(colId))
             {
-                defColValue = columnDefaultCache[colId]
+                defColValue = columnDefaultCache.get(colId)
             }
             else
             {
@@ -1208,6 +1215,8 @@ class NCube<T>
         Axis colAxis = getAxis(colAxisName)
         boolean isRowDiscrete = rowAxis.type == AxisType.DISCRETE
         boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
+        boolean isRowCISTRING = rowAxis.valueType == AxisValueType.CISTRING
+        boolean isColCISTRING = colAxis.valueType == AxisValueType.CISTRING
 
         if (rowAxis.type != AxisType.RULE)
         {
@@ -1220,8 +1229,8 @@ class NCube<T>
         trackInputKeysUsed(commandInput,output)
 
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
-        final Map matchingRows = rowAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap<>() : [:]
-        final Map whereVars = new LinkedHashMap(input)
+        final Map matchingRows = isRowCISTRING ? new CaseInsensitiveMap<>() : [:]
+        final Map whereVars = isColCISTRING ? new CaseInsensitiveMap<>(input) : new LinkedHashMap<>(input)
 
         Collection<Column> rowColumns
         Object rowAxisValue = input.get(rowAxisName)
@@ -1241,7 +1250,6 @@ class NCube<T>
         boolean isOneParamWhere = where.maximumNumberOfParameters == 1
         boolean invalidWhereColumn = false
         boolean invalidSelectColumn = false
-
         for (Column row : rowColumns)
         {
             commandInput.put(rowAxisName, rowAxis.getValueToLocateColumn(row))
@@ -1262,7 +1270,7 @@ class NCube<T>
                 def val
                 try
                 {
-                    val = shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : cells.get(ids)
+                    val = getCellById(ids, commandInput, output, defaultValue, shouldExecute, columnDefaultCache)
                 }
                 catch (Exception e)
                 {
@@ -1291,8 +1299,7 @@ class NCube<T>
                 }
 
                 String axisName = colAxis.name
-                boolean isDiscrete = colAxis.type == AxisType.DISCRETE
-                Map result = colAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap<>() : [:]
+                Map result = isColCISTRING ? new CaseInsensitiveMap<>() : [:]
                 for (Column column : selectList)
                 {
                     if (column == null)
@@ -1300,7 +1307,7 @@ class NCube<T>
                         invalidSelectColumn = true
                         continue
                     }
-                    def colValue = isDiscrete ? column.value : column.columnName
+                    def colValue = isColDiscrete ? column.value : column.columnName
                     if (whereVars.containsKey(colValue))
                     {
                         result.put(colValue, whereVars.get(colValue))
@@ -1309,7 +1316,7 @@ class NCube<T>
                     commandInput.put(axisName, column.valueThatMatches)
                     long colId = column.id
                     ids.add(colId)
-                    result.put(colValue, shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : cells.get(ids))
+                    result.put(colValue, getCellById(ids, commandInput, output, defaultValue, shouldExecute, columnDefaultCache))
                     ids.remove(colId)
                 }
                 matchingRows.put(key, result)
@@ -2983,7 +2990,7 @@ class NCube<T>
     static
     {
         Closure fieldClosure = { NCube ncube, Map state, JsonParser parser, JsonToken token, Map input, Map fieldMap, String fieldName ->
-            Closure method = fieldMap[fieldName]
+            Closure method = fieldMap.get(fieldName)
             if (method == null)
             {
                 method = fieldMap[(PARSE_META_PROPERTY)]
@@ -2996,7 +3003,7 @@ class NCube<T>
             return state
         }
         Closure getParserValue = { JsonParser parser, Object token ->
-            Closure method = parserValue[token]
+            Closure method = parserValue.get(token)
             if (method == null)
             {
                 throw new IllegalStateException("Unexpected parser state, no method for token: ${token}")
@@ -3050,7 +3057,7 @@ class NCube<T>
                 }
                 String fieldName = parser.text
                 token = parser.nextToken()
-                jsonObject[fieldName] = getParserValue(parser, token)
+                jsonObject.put(fieldName, getParserValue(parser, token))
             }
             return jsonObject
         }
@@ -3297,13 +3304,13 @@ class NCube<T>
             Map axisObj = (Map)input.get(PARSE_AXIS_OBJ)
             Map axisProps = (Map)input.get(PARSE_AXIS_PROPS)
             transformMetaProperties(axisProps)
-            AxisType type = (AxisType)axisObj['type']
+            AxisType type = (AxisType)axisObj.get('type')
             List<Map> tempColumns = (List<Map>)input.get(PARSE_TEMP_COLS)
             Map<Object, Long> userIdToUniqueId = (Map)input.get(PARSE_USERID_TO_UNIQUE)
             boolean isRef = getBoolean(axisProps, 'isRef')
-            String axisName = (String)axisObj['name']
+            String axisName = (String)axisObj.get('name')
             boolean hasDefault = getBoolean(axisObj, 'hasDefault')
-            Long axisIdLong = axisObj['id']
+            Long axisIdLong = axisObj.get('id')
             long axisId
 
             if (axisIdLong)
@@ -3336,10 +3343,10 @@ class NCube<T>
                 if (tempColumns)
                 {
                     tempColumns.each { Map column ->
-                        Column col = axis.getColumnById((Long)column['id'])
+                        Column col = axis.getColumnById((Long)column.get('id'))
                         if (col)
                         {    // skip deleted columns
-                            Map columnProps = (Map)column[(PARSE_COL_PROPS)]
+                            Map columnProps = (Map)column.get(PARSE_COL_PROPS)
                             transformMetaProperties(columnProps)
                             Iterator<Map.Entry> i = columnProps.entrySet().iterator()
                             while (i.hasNext())
@@ -3383,33 +3390,33 @@ class NCube<T>
 
                 for (Map col : tempColumns)
                 {
-                    String colType = (String)col['type']
-                    String colName = (String)col['name']
-                    String url = (String)col['url']
-                    Map columnProps = (Map)col[(PARSE_COL_PROPS)]
+                    String colType = (String)col.get('type')
+                    String colName = (String)col.get('name')
+                    String url = (String)col.get('url')
+                    Map columnProps = (Map)col.get((PARSE_COL_PROPS))
                     boolean cache = getBoolean(col, 'cache')
                     Column colAdded
-                    Object colId = col['id']
+                    Object colId = col.get('id')
                     Long suggestedId = (colId instanceof Long) ? (Long)colId: null
 
-                    if (type == AxisType.DISCRETE || type == AxisType.NEAREST)
+                    if (AxisType.DISCRETE.is(type) || AxisType.NEAREST.is(type))
                     {
-                        Comparable value = (Comparable)CellInfo.parseJsonValue(col['value'], null, colType, false)
+                        Comparable value = (Comparable)CellInfo.parseJsonValue(col.get('value'), null, colType, false)
                         colAdded = axis.addColumn(value, colName, suggestedId)
                     }
-                    else if (type == AxisType.RANGE)
+                    else if (AxisType.RANGE.is(type))
                     {
-                        Range range = (Range)col['value']
+                        Range range = (Range)col.get('value')
                         colAdded = ncube.addColumn(axis.name, range, colName, suggestedId)
                     }
-                    else if (type == AxisType.SET)
+                    else if (AxisType.SET.is(type))
                     {
-                        RangeSet rangeSet = (RangeSet)col['value']
+                        RangeSet rangeSet = (RangeSet)col.get('value')
                         colAdded = ncube.addColumn(axis.name, rangeSet, colName, suggestedId)
                     }
-                    else if (type == AxisType.RULE)
+                    else if (AxisType.RULE.is(type))
                     {
-                        Object value = (Object)col['value']
+                        Object value = (Object)col.get('value')
                         Object cmd = CellInfo.parseJsonValue(value, url, colType, cache)
                         if (!(cmd instanceof CommandCell))
                         {
@@ -3426,7 +3433,7 @@ class NCube<T>
 
                     if (colId != null)
                     {
-                        userIdToUniqueId[colId] = colAdded.id
+                        userIdToUniqueId.put(colId, colAdded.id)
                     }
                 }
             }
@@ -3495,16 +3502,16 @@ class NCube<T>
             List<Map> tempColumns = (List)input.get(PARSE_TEMP_COLS)
             tempColumns.add(column)
 
-            if (column['value'] == null)
+            if (column.get('value') == null)
             {
-                if (column['id'] == null)
+                if (column.get('id') == null)
                 {
                     Map axisMap = (Map)input.get(PARSE_AXIS_OBJ)
                     throw new IllegalArgumentException("Missing 'value' field on column or it is null, axis: ${axisMap.name}, cube: ${ncube.name}")
                 }
                 else
                 {   // Allows you to skip setting both id and value to the same value.
-                    column['value'] = column['id']
+                    column.put('value', column.get('id'))
                 }
             }
             return state
