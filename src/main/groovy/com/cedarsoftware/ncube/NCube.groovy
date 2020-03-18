@@ -916,7 +916,7 @@ class NCube<T>
      * coordinate has at least an entry for each axis (entry not needed for axes with
      * default column or rule axes).
      */
-    T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, Map columnDefaultCache = null)
+    T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, Map columnDefaultCache = null, boolean shouldExecute = true)
     {
         // First, get a ThreadLocal copy of an NCube execution stack
         Deque<StackEntry> stackFrame = (Deque<StackEntry>) executionStack.get()
@@ -971,8 +971,15 @@ class NCube<T>
 
             if (cellValue instanceof CommandCell)
             {
-                Map ctx = prepareExecutionContext(coordinate, output)
-                return (T) executeExpression(ctx, (CommandCell)cellValue)
+                if (shouldExecute)
+                {
+                    Map ctx = prepareExecutionContext(coordinate, output)
+                    return (T) executeExpression(ctx, (CommandCell)cellValue)
+                }
+                else
+                {
+                    return cellValue
+                }
             }
             else if (columnDefaultCache == null)
             {
@@ -1261,7 +1268,7 @@ class NCube<T>
                 def val
                 try
                 {
-                    val = shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : cells.get(ids)
+                    val = getCellById(ids, commandInput, output, defaultValue, columnDefaultCache, shouldExecute)
                 }
                 catch (Exception e)
                 {
@@ -1306,7 +1313,7 @@ class NCube<T>
                     commandInput.put(axisName, column.valueThatMatches)
                     long colId = column.id
                     ids.add(colId)
-                    result.put(colValue, shouldExecute ? getCellById(ids, commandInput, output, defaultValue, columnDefaultCache) : cells.get(ids))
+                    result.put(colValue, getCellById(ids, commandInput, output, defaultValue, columnDefaultCache, shouldExecute))
                     ids.remove(colId)
                 }
                 matchingRows.put(key, result)
