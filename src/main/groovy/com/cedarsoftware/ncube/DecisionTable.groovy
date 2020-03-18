@@ -139,16 +139,33 @@ class DecisionTable
             }
         }
 
+        // Add on the IGNORE column if the field axis had it.
         Set<String> colsToSearch = new CaseInsensitiveSet<>(inputColumns)
         if (fieldAxis.contains(IGNORE))
-        {   // Add on the IGNORE field if the field axis had it.
+        {
             colsToSearch.add(IGNORE)
         }
+
+        // Add on the PRIORITY column if the field axis had it.
         Set<String> colsToReturn = new CaseInsensitiveSet<>(outputColumns)
         if (fieldAxis.findColumn(PRIORITY))
-        {   // Add on the PRIORITY axis if the field axis had it.
+        {
             colsToReturn.add(PRIORITY)
         }
+
+        // Ensure user-supplied input has values for all keys.  For optional keys, supply a sentinal value associated
+        // to the optional key if they did not include the optional key.
+        for (String key : inputKeys)
+        {
+            if (!requiredColumns.contains(key))
+            {   // Only look at non-required input keys.
+                if (!copyInput.containsKey(key))
+                {   
+                    copyInput.put(key, Axis.DONT_CARE)
+                }
+            }
+        }
+
         Map<String, ?> closureInput = new CaseInsensitiveMap<>(input)
         closureInput.dvs = copyInput
 
@@ -741,7 +758,7 @@ class DecisionTable
     {
         private static TIntHashSet blank = new TIntHashSet()
         List<List<Range>> ranges = []
-        TIntHashSet discretePriorities = blank  // This field is tested (empty), then always overwritten
+        TIntHashSet priorities = blank  // This field is tested (empty), then always overwritten
     }
 
     /**
@@ -1023,7 +1040,7 @@ class DecisionTable
      */
     private static boolean checkDiscretesForOverlap(BlowoutCell cell, int priority, Map<TIntHashSet, TIntHashSet> internedIntSets)
     {
-        if (cell.discretePriorities.contains(priority))
+        if (cell.priorities.contains(priority))
         {
             return false
         }
@@ -1031,13 +1048,13 @@ class DecisionTable
         {
             // "TIntHashSet" pulled from blowout cell duplicated so that the interned version is not modified directly.
             TIntHashSet copy = new TIntHashSet()
-            TIntIterator i = cell.discretePriorities.iterator()
+            TIntIterator i = cell.priorities.iterator()
             while (i.hasNext())
             {
                 copy.add(i.next())
             }
             copy.add(priority)
-            cell.discretePriorities = internSet(copy, internedIntSets)
+            cell.priorities = internSet(copy, internedIntSets)
             return true
         }
     }

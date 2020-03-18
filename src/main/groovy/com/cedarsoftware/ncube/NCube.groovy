@@ -1208,6 +1208,8 @@ class NCube<T>
         Axis colAxis = getAxis(colAxisName)
         boolean isRowDiscrete = rowAxis.type == AxisType.DISCRETE
         boolean isColDiscrete = colAxis.type == AxisType.DISCRETE
+        boolean isRowCISTRING = rowAxis.valueType == AxisValueType.CISTRING
+        boolean isColCISTRING = colAxis.valueType == AxisValueType.CISTRING
 
         if (rowAxis.type != AxisType.RULE)
         {
@@ -1220,8 +1222,8 @@ class NCube<T>
         trackInputKeysUsed(commandInput,output)
 
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
-        final Map matchingRows = rowAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap<>() : [:]
-        final Map whereVars = new LinkedHashMap(input)
+        final Map matchingRows = isRowCISTRING ? new CaseInsensitiveMap<>() : [:]
+        final Map whereVars = isColCISTRING ? new CaseInsensitiveMap<>(input) : new LinkedHashMap<>(input)
 
         Collection<Column> rowColumns
         Object rowAxisValue = input.get(rowAxisName)
@@ -1239,6 +1241,7 @@ class NCube<T>
         }
 
         boolean isOneParamWhere = where.maximumNumberOfParameters == 1
+
         for (Column row : rowColumns)
         {
             commandInput.put(rowAxisName, rowAxis.getValueToLocateColumn(row))
@@ -1287,15 +1290,14 @@ class NCube<T>
                 }
 
                 String axisName = colAxis.name
-                boolean isDiscrete = colAxis.type == AxisType.DISCRETE
-                Map result = colAxis.valueType == AxisValueType.CISTRING ? new CaseInsensitiveMap<>() : [:]
+                Map result = isColCISTRING ? new CaseInsensitiveMap<>() : [:]
                 for (Column column : selectList)
                 {
                     if (column == null)
                     {
                         continue
                     }
-                    def colValue = isDiscrete ? column.value : column.columnName
+                    def colValue = isColDiscrete ? column.value : column.columnName
                     if (whereVars.containsKey(colValue))
                     {
                         result.put(colValue, whereVars.get(colValue))
