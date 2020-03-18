@@ -265,4 +265,27 @@ class TestLongHashSet
         assert set1.hashCode() == set2.hashCode()
         assert set1 == set2
     }
+
+    @Test
+    void testFastConstructors()
+    {
+        Set set1 = new LongHashSet(16L)
+        assert set1.size() == 1
+        assert set1.contains(16)
+
+        Set set2 = new LongHashSet(16L, 7L)
+        assert set2.size() == 2
+        assert set2.contains(16)
+        assert set2.contains(7L)
+        assert set2.first() == 7L
+        assert set2.last() == 16L
+
+        Set set3 = new LongHashSet(16L, 7L, -1L)
+        assert set3.size() == 3
+        assert set3.contains(16)
+        assert set3.contains(7)
+        assert set3.contains(-1)
+        assert set3.first() == -1L
+        assert set3.last() == 16L
+    }
 }
