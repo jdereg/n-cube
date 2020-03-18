@@ -5726,6 +5726,60 @@ class TestNCube extends NCubeBaseTest
     }
 
     @Test
+    void testMapReduceWithInvalidColumnsToSearch()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'mapReduceInvalidUsage.json')
+        try {
+            Map queryResult = ncube.mapReduce('code', {true}, [(NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): ['date', 'priority'] as Set, (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): ['bar'] as Set])
+            assert queryResult.size() == 2
+
+            Map row = queryResult['name'] as Map
+            assert row['bar'] == 'bar-name'
+
+            row = queryResult['value'] as Map
+            assert row['bar'] == 'bar-value'
+        }
+        catch (Exception e) {
+            fail('Should allow and ignore invalid search columns specified in mapReduce options' + e)
+        }
+    }
+
+    @Test
+    void testMapReduceWithInvalidColumnsToReturn()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'mapReduceInvalidUsage.json')
+        try {
+            Map queryResult = ncube.mapReduce('code', {true}, [(NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): ['bar'] as Set, (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): ['baz'] as Set])
+            assert queryResult.size() == 2
+
+            Map row = queryResult['name'] as Map
+            assert row.size() == 0
+
+            row = queryResult['value'] as Map
+            assert row.size() == 0
+
+        } catch (Exception e) {
+            fail('Should allow and ignore invalid return columns specified in mapReduce options' + e)
+        }
+    }
+
+    @Test
+    void testMapReduceWithInvalidAxis()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'mapReduceInvalidUsage.json')
+        try {
+            ncube.mapReduce('fake', {true}, [(NCube.MAP_REDUCE_COLUMNS_TO_SEARCH): ['bar'] as Set, (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): ['bar'] as Set])
+            fail('Should not attempt to search when Axis does not exist')
+        }
+        catch (IllegalArgumentException e) {
+            assertContainsIgnoreCase(e.message, 'axis', 'does not exist', 'fake')
+        }
+        catch (Exception e) {
+            fail('Unexpected exception thrown: ' + e.toString())
+        }
+    }
+
+    @Test
     void testUse()
     {
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'useRef.json')

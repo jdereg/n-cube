@@ -671,7 +671,7 @@ class NCube<T>
                             // use() calls, but contains a pointer to the original value (and delegates calls to it).
                             input.put(axisName, new GStringWrapper(boundColumn.columnName, input.get(axisName)))
                             Object conditionValue
-                            
+
                             if (!cachedConditionValues.containsKey(boundColumn.id))
                             {   // Has the condition on the Rule axis been run this execution?  If not, run it and cache it.
                                 CommandCell cmd = (CommandCell) boundColumn.value
@@ -839,7 +839,7 @@ class NCube<T>
             restoreWrappedValues(input)
         }
     }
-    
+
     /**
      * Restore temporarily bound rule condition name (that was bound to the input[axisName]).  The rule name
      * is bound right before executing the associated statement, so that a call back into the rule cube will
@@ -1239,6 +1239,9 @@ class NCube<T>
         }
 
         boolean isOneParamWhere = where.maximumNumberOfParameters == 1
+        boolean invalidWhereColumn = false
+        boolean invalidSelectColumn = false
+
         for (Column row : rowColumns)
         {
             commandInput.put(rowAxisName, rowAxis.getValueToLocateColumn(row))
@@ -1249,6 +1252,7 @@ class NCube<T>
             {
                 if (column == null)
                 {   // Skip unknown 'where' columns
+                    invalidWhereColumn = true
                     continue
                 }
                 long whereId = column.id
@@ -1292,7 +1296,8 @@ class NCube<T>
                 for (Column column : selectList)
                 {
                     if (column == null)
-                    {
+                    {   // Skip unknown 'search' columns
+                        invalidSelectColumn = true
                         continue
                     }
                     def colValue = isDiscrete ? column.value : column.columnName
@@ -1310,6 +1315,14 @@ class NCube<T>
                 matchingRows.put(key, result)
             }
             ids.remove(rowId)
+        }
+        if (invalidWhereColumn)
+        {
+            log.warn("mapReduce() called with one ore more columns to search that does not exist.  Cube: ${name}, Axis: ${rowAxis.name}")
+        }
+        if (invalidSelectColumn)
+        {
+            log.warn("mapReduce() called with one or more columns to return that does not exist.  Cube: ${name}, Axis: ${rowAxis.name}")
         }
         return matchingRows
     }
@@ -1358,6 +1371,8 @@ class NCube<T>
         throwIf(!where, 'The where clause cannot be null')
 
         Axis colAxis = axisList[colAxisName]
+        throwIf(!colAxis,"The column axis name does not exist. Cube: ${name}, Axis: ${colAxisName}")
+
         Map input = options.containsKey('input') ? (Map)options.input : [:]
         Set columnsToSearch = (Set)options[MAP_REDUCE_COLUMNS_TO_SEARCH]
         Set columnsToReturn = (Set)options[MAP_REDUCE_COLUMNS_TO_RETURN]
@@ -1474,7 +1489,7 @@ class NCube<T>
         }
         return columns
     }
-    
+
     private static void throwIf(boolean throwCondition, String msg)
     {
         if (throwCondition)
@@ -1702,7 +1717,7 @@ class NCube<T>
         }
         return axisToCoord
     }
-    
+
     /**
      * Make sure the returned Set<Long> contains a column ID for each axis, even if the input set does
      * not have a coordinate for an axis, but the axis has a default column (the default column's ID will
