@@ -11,6 +11,7 @@ import gnu.trove.TIntIterator
 import groovy.transform.CompileStatic
 
 import static com.cedarsoftware.ncube.NCubeConstants.DATA_TYPE
+import static com.cedarsoftware.ncube.NCubeConstants.DECISION_TABLE
 import static com.cedarsoftware.ncube.NCubeConstants.IGNORE
 import static com.cedarsoftware.ncube.NCubeConstants.INPUT_HIGH
 import static com.cedarsoftware.ncube.NCubeConstants.INPUT_LOW
@@ -245,7 +246,7 @@ class DecisionTable
             {
                 String rowValue = row.value
                 coord.put(rowAxisName, rowValue)
-                Set<Long> idCoord = new LongHashSet([field.id, row.id] as Set)
+                Set<Long> idCoord = new LongHashSet(field.id, row.id)
                 String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
                 if (hasContent(cellValue))
                 {
@@ -544,9 +545,7 @@ class DecisionTable
             for (Column row : rowColumns)
             {
                 coord.put(rowAxisName, row.value)
-                Set<Long> idCoord = new LongHashSet()
-                idCoord.add(column.id)
-                idCoord.add(row.id)
+                Set<Long> idCoord = new LongHashSet(column.id, row.id)
                 Object value = decisionTable.getCellById(idCoord, coord, [:])
 
                 if (rangeColumns.contains(columnValue))
@@ -568,6 +567,11 @@ class DecisionTable
         }
         computeInputVarToRangeColumns()
         convertSpecialColumnsToPrimitive()
+
+        // Place an boolean indicator on the NCube meta-property 'decision_table'.
+        // This will allow code that gets the NCube only, access to know if it is inside an DecisionTable.
+        // Not sure if this will be useful, as it will not be written out this way.
+        decisionTable.setMetaProperty(DECISION_TABLE, Boolean.TRUE)
     }
 
     /**
@@ -606,14 +610,14 @@ class DecisionTable
 
             if (ignoreColId != -1)
             {
-                Set<Long> idCoord = new LongHashSet([ignoreColId, row.id] as HashSet)
+                Set<Long> idCoord = new LongHashSet(ignoreColId, row.id)
                 Object value = decisionTable.getCellById(idCoord, coord, [:])
                 decisionTable.setCellById(convertToBoolean(value), idCoord)
             }
 
             if (priorityColId != -1)
             {
-                Set<Long> idCoord = new LongHashSet([priorityColId, row.id] as HashSet)
+                Set<Long> idCoord = new LongHashSet(priorityColId, row.id)
                 Integer intValue = convertToInteger(decisionTable.getCellById(idCoord, coord, [:]))
                 if (intValue < 1)
                 {   // If priority is not specified, then it is the lowest priority of all
@@ -712,7 +716,7 @@ class DecisionTable
             {
                 String rowValue = row.value
                 coord.put(rowAxisName, rowValue)
-                Set<Long> idCoord = new LongHashSet([field.id, row.id] as Set)
+                Set<Long> idCoord = new LongHashSet(field.id, row.id)
                 String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
                 if (hasContent(cellValue))
                 {
@@ -786,7 +790,7 @@ class DecisionTable
             if (ignoreColumn)
             {
                 coord.put(fieldAxisName, IGNORE)
-                Set<Long> idCoord = new LongHashSet([rowId, ignoreColumn.id] as Set)
+                Set<Long> idCoord = new LongHashSet(rowId, ignoreColumn.id)
                 if (decisionTable.getCellById(idCoord, coord, [:]))
                 {
                     continue
@@ -915,13 +919,13 @@ class DecisionTable
             Range bounds = inputVarNameToRangeColumns.get(rangeName)
             Column lowColumn = (Column) bounds.low
             coord.put(fieldAxisName, lowColumn.value)
-            Set<Long> idCoord = new LongHashSet([lowColumn.id, rowId] as Set)
+            Set<Long> idCoord = new LongHashSet(lowColumn.id, rowId)
             Range range = new Range()
             range.low = (Comparable) decisionTable.getCellById(idCoord, coord, [:])
 
             Column highColumn = (Column) bounds.high
             coord.put(fieldAxisName, highColumn.value)
-            idCoord = new LongHashSet([highColumn.id, rowId] as Set)
+            idCoord = new LongHashSet(highColumn.id, rowId)
             range.high = (Comparable) decisionTable.getCellById(idCoord, coord, [:])
             range.priority = priority
 
@@ -950,7 +954,7 @@ class DecisionTable
             bindings.put(colValue, [])
             coord.put(rowAxisName, row.value)
             Column field = fieldAxis.findColumn(colValue)
-            Set<Long> idCoord = new LongHashSet([row.id, field.id] as Set)
+            Set<Long> idCoord = new LongHashSet(field.id, row.id)
             coord.put(fieldAxisName, field.value)
             String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
 
@@ -1002,7 +1006,7 @@ class DecisionTable
         if (priorityColumn)
         {
             coord.put(fieldAxisName, priorityColumn.value)
-            Set<Long> idCoord = new LongHashSet([rowId, priorityColumn.id] as Set)
+            Set<Long> idCoord = new LongHashSet(priorityColumn.id, rowId)
             return decisionTable.getCellById(idCoord, coord, [:])
         }
         else
