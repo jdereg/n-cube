@@ -491,7 +491,17 @@ class NCubeGroovyExpression
      * @return true if the 'test' is greater than or equal to the low value, and
      * less than the high value.
      */
-    static boolean isBetween(Comparable low, Comparable high, Comparable test)
+    boolean fit(Comparable test, Comparable low, Comparable high)
+    {
+        return test >= low && test < high
+    }
+
+    /**
+     * Check whether the 'test' input is between the supplied low and high range.
+     * @return true if the 'test' is greater than or equal to the low value, and
+     * less than the high value.
+     */
+    boolean between(Comparable test, Comparable low, Comparable high)
     {
         return test >= low && test < high
     }

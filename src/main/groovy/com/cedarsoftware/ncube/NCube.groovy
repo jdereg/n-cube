@@ -916,7 +916,7 @@ class NCube<T>
      * coordinate has at least an entry for each axis (entry not needed for axes with
      * default column or rule axes).
      */
-    T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, Map columnDefaultCache = null, boolean shouldExecute = true)
+    T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, boolean shouldExecute = true, Map columnDefaultCache = null)
     {
         // First, get a ThreadLocal copy of an NCube execution stack
         Deque<StackEntry> stackFrame = (Deque<StackEntry>) executionStack.get()
@@ -1268,7 +1268,7 @@ class NCube<T>
                 def val
                 try
                 {
-                    val = getCellById(ids, commandInput, output, defaultValue, columnDefaultCache, shouldExecute)
+                    val = getCellById(ids, commandInput, output, defaultValue, shouldExecute, columnDefaultCache)
                 }
                 catch (Exception e)
                 {
@@ -1313,7 +1313,7 @@ class NCube<T>
                     commandInput.put(axisName, column.valueThatMatches)
                     long colId = column.id
                     ids.add(colId)
-                    result.put(colValue, getCellById(ids, commandInput, output, defaultValue, columnDefaultCache, shouldExecute))
+                    result.put(colValue, getCellById(ids, commandInput, output, defaultValue, shouldExecute, columnDefaultCache))
                     ids.remove(colId)
                 }
                 matchingRows.put(key, result)
