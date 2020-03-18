@@ -239,10 +239,11 @@ class DecisionTable
                 continue
             }
 
+            coord.put(fieldAxisName, fieldValue)
+            
             for (Column row : rows)
             {
                 String rowValue = row.value
-                coord.put(fieldAxisName, fieldValue)
                 coord.put(rowAxisName, rowValue)
                 Set<Long> idCoord = new LongHashSet([field.id, row.id] as Set)
                 String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
@@ -413,10 +414,6 @@ class DecisionTable
             {
                 inputColumns.add(columnValue)
                 inputKeys.add(columnValue)
-                if (colMetaProps.containsKey(REQUIRED))
-                {
-                    requiredColumns.add(columnValue)
-                }
             }
 
             if (colMetaProps.containsKey(INPUT_LOW) || colMetaProps.containsKey(INPUT_HIGH))
@@ -485,7 +482,7 @@ class DecisionTable
             else
             {
                 if (colMetaProps.containsKey(REQUIRED))
-                {
+                {   // REQUIRED on non-input columns will be verified later in the code below.
                     requiredColumns.add(columnValue)
                 }
             }
@@ -530,8 +527,10 @@ class DecisionTable
         Axis rowAxis = decisionTable.getAxis(rowAxisName)
         Map<String, ?> coord = new CaseInsensitiveMap<>()
         List<Column> rowColumns = rowAxis.columnsWithoutDefault
+        Set<String> rangePlusOutputCols = new CaseInsensitiveSet<>(rangeColumns)
+        rangePlusOutputCols.addAll(outputColumns)
 
-        for (String colName : rangeColumns + outputColumns)
+        for (String colName : rangePlusOutputCols)
         {
             Column column = fieldAxis.findColumn(colName)
             String dataType = column.getMetaProperty(DATA_TYPE)
@@ -545,7 +544,9 @@ class DecisionTable
             for (Column row : rowColumns)
             {
                 coord.put(rowAxisName, row.value)
-                Set<Long> idCoord = new LongHashSet([column.id, row.id] as HashSet)
+                Set<Long> idCoord = new LongHashSet()
+                idCoord.add(column.id)
+                idCoord.add(row.id)
                 Object value = decisionTable.getCellById(idCoord, coord, [:])
 
                 if (rangeColumns.contains(columnValue))
@@ -1100,7 +1101,11 @@ class DecisionTable
         {
             return convertToString(value)
         }
-        throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL, STRING. Data type: ${dataType}, value: ${value}, decision table: ${decisionTable.name}")
+        else if (dataType.equalsIgnoreCase('BOOLEAN'))
+        {
+            return convertToBoolean(value)
+        }
+        throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL, STRING, or BOOLEAN. Data type: ${dataType}, value: ${value}, decision table: ${decisionTable.name}")
     }
 
     /**
