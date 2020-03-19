@@ -1392,10 +1392,14 @@ class NCube<T>
         commandOpts.put(MAP_REDUCE_SHOULD_EXECUTE, options.get(MAP_REDUCE_SHOULD_EXECUTE) == null ? true : options.get(MAP_REDUCE_SHOULD_EXECUTE))
 
         String rowAxisName
-        Set<String> searchAxes = axisNames - colAxisName - input.keySet()
+        Set<String> searchAxes = new CaseInsensitiveSet<>(axisNames)
+        searchAxes.remove(colAxisName)
+        searchAxes.removeAll(input.keySet())
+        
         if (searchAxes.empty)
         {
-            searchAxes = axisNames - colAxisName
+            searchAxes.addAll(axisNames)
+            searchAxes.remove(colAxisName)
             rowAxisName = searchAxes.first()
         }
         else
@@ -1403,7 +1407,8 @@ class NCube<T>
             searchAxes.sort { getAxis(it).columns.size() }
             rowAxisName = searchAxes.last() // take axis with most columns first
         }
-        Set<String> otherAxes = searchAxes - rowAxisName
+        Set<String> otherAxes = new CaseInsensitiveSet<>(searchAxes)
+        otherAxes.remove(rowAxisName)
         Map result
         if (otherAxes.empty)
         {
