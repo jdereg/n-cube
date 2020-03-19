@@ -1248,8 +1248,6 @@ class NCube<T>
         }
 
         boolean isOneParamWhere = where.maximumNumberOfParameters == 1
-        boolean invalidWhereColumn = false
-        boolean invalidSelectColumn = false
         for (Column row : rowColumns)
         {
             commandInput.put(rowAxisName, rowAxis.getValueToLocateColumn(row))
@@ -1260,7 +1258,6 @@ class NCube<T>
             {
                 if (column == null)
                 {   // Skip unknown 'where' columns
-                    invalidWhereColumn = true
                     continue
                 }
                 long whereId = column.id
@@ -1304,7 +1301,6 @@ class NCube<T>
                 {
                     if (column == null)
                     {   // Skip unknown 'search' columns
-                        invalidSelectColumn = true
                         continue
                     }
                     def colValue = isColDiscrete ? column.value : column.columnName
@@ -1322,14 +1318,6 @@ class NCube<T>
                 matchingRows.put(key, result)
             }
             ids.remove(rowId)
-        }
-        if (invalidWhereColumn)
-        {
-            log.warn("mapReduce() called with one ore more columns to search that does not exist.  Cube: ${name}, Axis: ${rowAxis.name}")
-        }
-        if (invalidSelectColumn)
-        {
-            log.warn("mapReduce() called with one or more columns to return that does not exist.  Cube: ${name}, Axis: ${rowAxis.name}")
         }
         return matchingRows
     }
@@ -1453,9 +1441,11 @@ class NCube<T>
         return ret
     }
 
-    private Collection<Column> selectColumns(Axis axis, Set valuesMatchingColumns)
+    private Collection<Column> selectColumns(Axis axis, Set<String> valuesMatchingColumns)
     {
         Collection<Column> columns = []
+        Set<String> missingColumnNames = []
+
         boolean isDiscrete = axis.type == AxisType.DISCRETE
 
         if (valuesMatchingColumns == null || valuesMatchingColumns.empty)
@@ -1480,24 +1470,44 @@ class NCube<T>
             }
             return columns
         }
-        
+
         if (isDiscrete)
         {
-            for (Object value : valuesMatchingColumns)
+            for (String value : valuesMatchingColumns)
             {
-                columns.add(axis.findColumn((Comparable)value))
+                Column col = axis.findColumn(value)
+                if (col)
+                {
+                    columns.add(col)
+                }
+                else
+                {
+                    missingColumnNames.add(value)
+                }
             }
         }
         else
         {
-            for (Object value : valuesMatchingColumns)
+            for (String value : valuesMatchingColumns)
             {
-                if (isEmpty((String)value))
+                if (isEmpty(value))
                 {
                     throw new IllegalStateException("Non-discrete axis columns must have a meta-property 'name' set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
                 }
-                columns.add(axis.findColumnByName((String)value))
+                Column col = axis.findColumnByName(value)
+                if (col)
+                {
+                    columns.add(col)
+                }
+                else
+                {
+                    missingColumnNames.add(value)
+                }
             }
+        }
+        if (missingColumnNames)
+        {
+            log.warn("Column(s) do not exist on Cube: {}, Axis: {}, Columns: {}", name, axis.name, missingColumnNames)
         }
         return columns
     }
