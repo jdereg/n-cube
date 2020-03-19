@@ -1452,10 +1452,7 @@ class NCube<T>
         {   // If empty or null, then treat as '*' (all columns)
             if (isDiscrete)
             {
-                for (Column column : axis.columns)
-                {
-                    columns.add(axis.findColumn(column.value))
-                }
+                return axis.columns
             }
             else
             {
@@ -1467,8 +1464,8 @@ class NCube<T>
                     }
                     columns.add(axis.findColumnByName(column.columnName))
                 }
+                return columns
             }
-            return columns
         }
 
         if (isDiscrete)
