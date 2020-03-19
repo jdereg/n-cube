@@ -3,6 +3,7 @@
   * `DecisionTable.getDecision()` - when no input is supplied for optional input, input is automatically assigned a value that will only match blank (wildcard) cells.
   * `NCube.mapReduce()` - when `MAP_REDUCE_SHOULD_EXECUTE` is `false`, defaults are applied (column default, then table, then default argument) as they are normally done in `getCell()`. 
   * Performance: validation `DecisionTable` performance improvements. 
+  * `NCube.mapReduce()` - Now works when non-existent names are passed in the `MAP_REDUCE_COLUMNS_TO_SEARCH` or `MAP_REDUCE_COLUMNS_TO_RETURN` options.  Log will show which columns do not exist at `WARN` level.  If the `colAxisName` parameter is not a valid axis, an `IllegalStateException` will be thrown.
 * 4.7.1
   * Rules engine modified to enforce that the rule-axis is named "rules" (case insensitive).
   * `GStringWrapper` updated to support 'set property' delegation (it already supported get property delegation).
