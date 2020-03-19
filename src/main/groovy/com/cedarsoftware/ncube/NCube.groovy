@@ -1256,10 +1256,6 @@ class NCube<T>
 
             for (Column column : whereColumns)
             {
-                if (column == null)
-                {   // Skip unknown 'where' columns
-                    continue
-                }
                 long whereId = column.id
                 ids.add(whereId)
                 commandInput.put(colAxisName, colAxis.getValueToLocateColumn(column))
@@ -1299,10 +1295,6 @@ class NCube<T>
                 Map result = isColCISTRING ? new CaseInsensitiveMap<>() : [:]
                 for (Column column : selectList)
                 {
-                    if (column == null)
-                    {   // Skip unknown 'search' columns
-                        continue
-                    }
                     def colValue = isColDiscrete ? column.value : column.columnName
                     if (whereVars.containsKey(colValue))
                     {
