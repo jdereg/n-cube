@@ -9,8 +9,10 @@ import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.io.JsonReader
 import com.google.common.collect.RangeMap
 import com.google.common.collect.TreeRangeMap
-import gnu.trove.TLongObjectHashMap
 import groovy.transform.CompileStatic
+import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
+import it.unimi.dsi.fastutil.objects.Object2ObjectRBTreeMap
 
 import java.security.SecureRandom
 import java.util.regex.Matcher
@@ -76,10 +78,10 @@ class Axis
     private boolean isRef
 
     // Internal indexes
-    private final transient TLongObjectHashMap<Column> idToCol = new TLongObjectHashMap<>()
+    private final transient Map<Long, Column> idToCol = new Long2ObjectOpenHashMap<>()
     private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
-    private final transient SortedMap<Integer, Column> displayOrder = new TreeMap<>()
-    private transient Map<Comparable, Column> valueToCol
+    private final transient SortedMap<Integer, Column> displayOrder = new Int2ObjectRBTreeMap<>()
+    private transient SortedMap<Comparable, Column> valueToCol
     protected transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()
 
     private static final ThreadLocal<Random> LOCAL_RANDOM = new ThreadLocal<Random>() {
@@ -661,20 +663,18 @@ class Axis
         return valueToCol
     }
 
-    private Map createValueToColMap()
+    private SortedMap<Comparable, Column> createValueToColMap()
     {
-        valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
+        if (AxisType.NEAREST.is(type))
+        {
+            valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
+        }
+        else
+        {
+            // Note: the code below makes findColumn() faster, but then getColumnsWithoutDefault() is slower()
+            valueToCol = AxisValueType.CISTRING.is(valueType) ? new Object2ObjectRBTreeMap(String.CASE_INSENSITIVE_ORDER) : new Object2ObjectRBTreeMap()
+        }
         return valueToCol
-//        if (AxisType.NEAREST.is(type))
-//        {
-//            valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
-//        }
-//        else
-//        {
-//            // Note: the code below makes findColumn() faster, but then getColumnsWithoutDefault() is slower()
-//            valueToCol = AxisValueType.CISTRING.is(valueType) ? new CaseInsensitiveMap<Comparable, Column>() : new HashMap<Comparable, Column>()
-//        }
-//        return valueToCol
     }
 
     protected void clearIndexes()

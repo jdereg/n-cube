@@ -5,10 +5,11 @@ import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.StringUtilities
 import com.google.common.base.Splitter
-import gnu.trove.THashMap
-import gnu.trove.TIntHashSet
-import gnu.trove.TIntIterator
 import groovy.transform.CompileStatic
+import it.unimi.dsi.fastutil.ints.IntIterator
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet
+import it.unimi.dsi.fastutil.ints.IntSet
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 
 import static com.cedarsoftware.ncube.NCubeConstants.DATA_TYPE
 import static com.cedarsoftware.ncube.NCubeConstants.DECISION_TABLE
@@ -756,9 +757,9 @@ class DecisionTable
 
     private static class BlowoutCell
     {
-        private static TIntHashSet blank = new TIntHashSet()
+        private static IntSet blank = new IntOpenHashSet()
         List<List<Range>> ranges = []
-        TIntHashSet priorities = blank  // This field is tested (empty), then always overwritten
+        IntSet priorities = blank  // This field is tested (empty), then always overwritten
     }
 
     /**
@@ -782,10 +783,10 @@ class DecisionTable
         boolean anyDiscretes = inputColumns.size() > rangeColumns.size()
         
         // Caches to dramatically reduce memory footprint while this method is executing
-        Map<List<Range>, List<Range>> internedLists = new THashMap()
-        Map<Range, Range> internedRanges = new THashMap()
-        Map<TIntHashSet, TIntHashSet> internedIntSets = new THashMap()
-        Map<Comparable, Comparable> primitives = new THashMap()
+        Map<List<Range>, List<Range>> internedLists = new Object2ObjectOpenHashMap<>()
+        Map<Range, Range> internedRanges = new Object2ObjectOpenHashMap<>()
+        Map<IntSet, IntSet> internedIntSets = new Object2ObjectOpenHashMap<>()
+        Map<Comparable, Comparable> primitives = new Object2ObjectOpenHashMap<>()
 
         Set<String> inputKeysCopy = new CaseInsensitiveSet<>(inputKeys)
         inputKeysCopy.removeAll(rangeKeys)
@@ -1038,7 +1039,7 @@ class DecisionTable
      * return false (we've identified a duplicate rule in the DecisionTable).   If the RangeSet is there, but
      * it does not contain the same priority passed in, add it.
      */
-    private static boolean checkDiscretesForOverlap(BlowoutCell cell, int priority, Map<TIntHashSet, TIntHashSet> internedIntSets)
+    private static boolean checkDiscretesForOverlap(BlowoutCell cell, int priority, Map<IntSet, IntSet> internedIntSets)
     {
         if (cell.priorities.contains(priority))
         {
@@ -1047,11 +1048,11 @@ class DecisionTable
         else
         {
             // "TIntHashSet" pulled from blowout cell duplicated so that the interned version is not modified directly.
-            TIntHashSet copy = new TIntHashSet()
-            TIntIterator i = cell.priorities.iterator()
+            IntSet copy = new IntOpenHashSet()
+            IntIterator i = cell.priorities.iterator()
             while (i.hasNext())
             {
-                copy.add(i.next())
+                copy.add(i.nextInt())
             }
             copy.add(priority)
             cell.priorities = internSet(copy, internedIntSets)
@@ -1167,9 +1168,9 @@ class DecisionTable
     /**
      * Re-use Set<Integer> instances.
      */
-    static TIntHashSet internSet(TIntHashSet candidate, Map<TIntHashSet, TIntHashSet> internedSets)
+    static IntSet internSet(IntSet candidate, Map<IntSet, IntSet> internedSets)
     {
-        TIntHashSet internedSet = internedSets.get(candidate)
+        IntSet internedSet = internedSets.get(candidate)
         if (internedSet != null)
         {
             return internedSet

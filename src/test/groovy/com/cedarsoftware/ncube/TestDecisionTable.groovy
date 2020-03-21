@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+
 import groovy.transform.CompileStatic
 import org.junit.Ignore
 import org.junit.Test
@@ -57,15 +58,13 @@ class TestDecisionTable extends NCubeBaseTest
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/commission.json')
 
-        for (int i = 0; i < 1; i ++)
+        for (int i = 0; i < 10; i ++)
         {
             long start = System.nanoTime()
             Set<Comparable> badRows = dt.validateDecisionTable()
             long end = System.nanoTime()
             println "took ${(end - start) / 1000000} ms"
         }
-
-//        assert badRows.empty
     }
 
     @Test
@@ -760,6 +759,7 @@ class TestDecisionTable extends NCubeBaseTest
     {
         int numInputs = 10
         int numRows = 1000
+        int span = 1000
 
         NCube ncube = new NCube('BigDecisionTable')
         Axis fields = new Axis('field', AxisType.DISCRETE, AxisValueType.CISTRING, false, Axis.DISPLAY)
@@ -788,7 +788,7 @@ class TestDecisionTable extends NCubeBaseTest
             for (int j = 0; j < numRows; j++)
             {
                 coord.put('row', j)
-                ncube.setCell(random.nextInt(1000), coord)
+                ncube.setCell(random.nextInt(span), coord)
             }
         }
 

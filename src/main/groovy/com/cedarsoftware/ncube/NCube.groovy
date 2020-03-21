@@ -486,7 +486,7 @@ class NCube<T>
             throw new IllegalArgumentException("Cannot set a cell to be an array type directly (except byte[]). Instead use GroovyExpression.")
         }
         clearSha1()
-        return cells[getCoordinateKey(coordinate)] = (T) internValue(value)
+        return cells.put(getCoordinateKey(coordinate), (T) internValue(value))
 
     }
 
@@ -2496,7 +2496,7 @@ class NCube<T>
             cells.clear()
             for (cell in newCells)
             {
-                cells[cell.key] = (T)internValue(cell.value)
+                cells.put(cell.key, (T)internValue(cell.value))
             }
         }
         else
@@ -2504,7 +2504,7 @@ class NCube<T>
             cells.clear()
         }
 
-        axisList[axisName] = axis
+        axisList.put(axisName, axis)
         idToAxis.put(axis.id, axis)
         clearSha1()
     }
@@ -2531,7 +2531,7 @@ class NCube<T>
         }
         axisList.remove(oldName)
         axis.name = newName
-        axisList[newName] = axis
+        axisList.put(newName, axis)
         clearSha1()
     }
 
@@ -2615,7 +2615,7 @@ class NCube<T>
                 }
             }
             
-            cells[coord] = (T) internValue(entry.value)
+            cells.put(coord, (T) internValue(entry.value))
         }
 
         // Eliminate orphans, where source axis (A, B, C, D, E) pointed to existing ref axis (A, C, E).

@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube.util
 
-import gnu.trove.THashMap
 import groovy.transform.CompileStatic
 
 /**
@@ -24,8 +23,9 @@ import groovy.transform.CompileStatic
  *         See the License for the specific language governing permissions and
  *         limitations under the License.
  */
+
 @CompileStatic
-class CellMap<V> extends THashMap<Set<Long>, V>
+class CellMap<V> extends HashMap<Set<Long>, V>
 {
     CellMap() { }
 
