@@ -1066,7 +1066,7 @@ class NCube<T>
      * returned at intersections. The default value cache should only be used
      * with mapReduce because of its repeated calculation of each column on all axes.
      */
-    protected def getColumnDefault(Set<Long> colIds, Map columnDefaultCache = null)
+    def getColumnDefault(Set<Long> colIds, Map columnDefaultCache = null)
     {
         def colDef = null
         Iterator<Long> i = colIds.iterator()
