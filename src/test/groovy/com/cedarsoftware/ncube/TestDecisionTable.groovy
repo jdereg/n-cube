@@ -755,6 +755,22 @@ class TestDecisionTable extends NCubeBaseTest
     }
 
     @Test
+    void testDiscreteRangeRepeatedPriority()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/discrete_range_repeated_priority.json')
+        Set set = dt.validateDecisionTable()
+        assert set.empty
+
+        Map decision = dt.getDecision([profit: 1, loc: 'a', date: 2000])
+        assert decision.size() == 1
+        assert decision.containsKey(3L)
+
+        decision = dt.getDecision([profit: 1, loc: 'a', date: 900])
+        assert decision.size() == 1
+        assert decision.containsKey(7L)
+    }
+
+    @Test
     void testBigDecisionTablePerformance()
     {
         int numInputs = 10

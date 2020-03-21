@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonToken
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import org.springframework.util.FastByteArrayOutputStream
 
 import java.lang.reflect.Array
@@ -494,13 +495,17 @@ class NCube<T>
      * Set a cell directly into the cell sparse-matrix specified by the passed in
      * Column IDs.
      */
-    T setCellById(final T value, final Set<Long> coordinate)
+    T setCellById(final T value, final Set<Long> coordinate, boolean skipEnsureCheck = false)
     {
         if (!(value instanceof byte[]) && value != null && value.class.array)
         {
             throw new IllegalArgumentException("Cannot set a cell to be an array type directly (except byte[]). Instead use GroovyExpression.")
         }
         clearSha1()
+        if (skipEnsureCheck)
+        {
+            return cells.put(coordinate, (T)internValue(value))
+        }
         Set<Long> ids = ensureFullCoordinate(coordinate)
         if (ids == null)
         {
@@ -1062,7 +1067,7 @@ class NCube<T>
      * returned at intersections. The default value cache should only be used
      * with mapReduce because of its repeated calculation of each column on all axes.
      */
-    def getColumnDefault(Set<Long> colIds, Map columnDefaultCache = null)
+    protected def getColumnDefault(Set<Long> colIds, Map columnDefaultCache = null)
     {
         def colDef = null
         Iterator<Long> i = colIds.iterator()
@@ -1363,7 +1368,7 @@ class NCube<T>
         Map input = options.containsKey('input') ? (Map)options.input : [:]
         Set columnsToSearch = (Set)options[MAP_REDUCE_COLUMNS_TO_SEARCH]
         Set columnsToReturn = (Set)options[MAP_REDUCE_COLUMNS_TO_RETURN]
-        final Map columnDefaultCache = new CaseInsensitiveMap()
+        Map<Long, Object> columnDefaultCache = new Object2ObjectOpenHashMap<>()
 
         Map commandOpts = new TrackingMap<>(new CaseInsensitiveMap(options))
         commandOpts.input = new TrackingMap<>(new CaseInsensitiveMap(input))

@@ -243,6 +243,7 @@ class DecisionTable
         Map<String, Set<String>> definedValues = [:]
         Map<String, Comparable> coord = [:]
         Set<String> discreteInputCols = inputColumns
+        Map<Long, Object> columnDefaultCache = new Object2ObjectOpenHashMap<>()
 
         for (String colValue : discreteInputCols)
         {
@@ -265,7 +266,7 @@ class DecisionTable
                 String rowValue = row.value
                 coord.put(rowAxisName, rowValue)
                 Set<Long> idCoord = new LongHashSet(field.id, row.id)
-                String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
+                String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:], null, true, columnDefaultCache))
                 if (hasContent(cellValue))
                 {
                     cellValue -= BANG
@@ -548,6 +549,7 @@ class DecisionTable
         List<Column> rowColumns = rowAxis.columnsWithoutDefault
         Set<String> rangePlusOutputCols = new CaseInsensitiveSet<>(rangeColumns)
         rangePlusOutputCols.addAll(outputColumns)
+        Map<Long, Object> columnDefaultCache = new Object2ObjectOpenHashMap<>()
 
         for (String colName : rangePlusOutputCols)
         {
@@ -564,7 +566,7 @@ class DecisionTable
             {
                 coord.put(rowAxisName, row.value)
                 Set<Long> idCoord = new LongHashSet(column.id, row.id)
-                Object value = decisionTable.getCellById(idCoord, coord, [:])
+                Object value = decisionTable.getCellById(idCoord, coord, [:], null, true, columnDefaultCache)
 
                 if (rangeColumns.contains(columnValue))
                 {   // Convert range column values, ensure their cell values are not null
@@ -580,7 +582,7 @@ class DecisionTable
                         throw new IllegalStateException("Values in columns with DATA_TYPE meta-property must be instanceof Comparable, row ${row.value}, field: ${columnValue}, ncube: ${decisionTable.name}")
                     }
                 }
-                decisionTable.setCellById(convertDataType((Comparable) value, dataType), idCoord)
+                decisionTable.setCellById(convertDataType((Comparable) value, dataType), idCoord, true)
             }
         }
         computeInputVarToRangeColumns()
@@ -630,7 +632,7 @@ class DecisionTable
             {
                 Set<Long> idCoord = new LongHashSet(ignoreColId, row.id)
                 Object value = decisionTable.getCellById(idCoord, coord, [:])
-                decisionTable.setCellById(convertToBoolean(value), idCoord)
+                decisionTable.setCellById(convertToBoolean(value), idCoord, true)
             }
 
             if (priorityColId != -1)
@@ -641,7 +643,7 @@ class DecisionTable
                 {   // If priority is not specified, then it is the lowest priority of all
                     intValue = Integer.MAX_VALUE
                 }
-                decisionTable.setCellById(intValue, idCoord)
+                decisionTable.setCellById(intValue, idCoord, true)
             }
         }
     }
@@ -721,6 +723,7 @@ class DecisionTable
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         Set<String> colsToProcess = new CaseInsensitiveSet<>(inputColumns)
         colsToProcess.removeAll(rangeColumns)
+        Map<Long, Object> columnDefaultCache = new Object2ObjectOpenHashMap<>()
 
         for (String colValue : colsToProcess)
         {
@@ -735,7 +738,7 @@ class DecisionTable
                 String rowValue = row.value
                 coord.put(rowAxisName, rowValue)
                 Set<Long> idCoord = new LongHashSet(field.id, row.id)
-                String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
+                String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:], null, true, columnDefaultCache))
                 if (hasContent(cellValue))
                 {
                     cellValue -= BANG
@@ -788,6 +791,9 @@ class DecisionTable
         Map<IntSet, IntSet> internedIntSets = new Object2ObjectOpenHashMap<>()
         Map<Comparable, Comparable> primitives = new Object2ObjectOpenHashMap<>()
 
+        Set<String> colsToProcess = new CaseInsensitiveSet<>(inputColumns)
+        colsToProcess.removeAll(rangeColumns)
+
         Set<String> inputKeysCopy = new CaseInsensitiveSet<>(inputKeys)
         inputKeysCopy.removeAll(rangeKeys)
         String[] axisNames = inputKeysCopy as String[]
@@ -798,7 +804,8 @@ class DecisionTable
         {
             indexToRangeName[index++] = rangeName
         }
-
+        Map<Long, Object> columnDefaultCache = new Object2ObjectOpenHashMap<>()
+        
         for (Column row : rows)
         {
             Comparable rowValue = row.value
@@ -809,16 +816,16 @@ class DecisionTable
             {
                 coord.put(fieldAxisName, IGNORE)
                 Set<Long> idCoord = new LongHashSet(rowId, ignoreColumn.id)
-                if (decisionTable.getCellById(idCoord, coord, [:]))
+                if (decisionTable.getCellById(idCoord, coord, [:], null, true, columnDefaultCache))
                 {
                     continue
                 }
             }
 
-            Map<String, List<Comparable>> bindings = getImpliedCells(fieldAxis, row, blowout)
-            int priority = getPriority(coord, rowId, priorityColumn)
+            Map<String, List<Comparable>> bindings = getImpliedCells(blowout, row, fieldAxis, colsToProcess, columnDefaultCache)
+            int priority = getPriority(coord, rowId, priorityColumn, columnDefaultCache)
             System.arraycopy(startCounters, 0, counters, 0, startCounters.length)
-            Map<String, Range> rowRanges = getRowRanges(coord, rowId, priority, internedRanges, primitives)
+            Map<String, Range> rowRanges = getRowRanges(coord, rowId, priority, internedRanges, primitives, columnDefaultCache)
             boolean done = false
             Set<Long> ids = new HashSet<>()
             Map<String, ?> coordinate = new HashMap<>()
@@ -842,11 +849,11 @@ class DecisionTable
                 boolean areRangesGood = false
 
                 // Grab the blowoutCell (List<List<Range>>)
-                BlowoutCell cell = blowout.getCellById(cellPtr, coordinate, [:])
+                BlowoutCell cell = blowout.getCellById(cellPtr, coordinate, [:], null, true, columnDefaultCache)
                 if (cell == null)
                 {
                     cell = new BlowoutCell()
-                    blowout.setCellById(cell, cellPtr)
+                    blowout.setCellById(cell, cellPtr, true)
                 }
 
                 if (anyRanges)
@@ -928,7 +935,7 @@ class DecisionTable
      * be set before calling this method.
      * @return Map that maps a range name to its ranges on a given row.
      */
-    private Map<String, Range> getRowRanges(Map<String, ?> coord, long rowId, int priority, Map<Range, Range> internedRanges, Map<Comparable, Comparable> primitives)
+    private Map<String, Range> getRowRanges(Map<String, ?> coord, long rowId, int priority, Map<Range, Range> internedRanges, Map<Comparable, Comparable> primitives, Map columnDefaultCache)
     {
         Map<String, Range> ranges = new CaseInsensitiveMap<>()
 
@@ -939,12 +946,12 @@ class DecisionTable
             coord.put(fieldAxisName, lowColumn.value)
             Set<Long> idCoord = new LongHashSet(lowColumn.id, rowId)
             Range range = new Range()
-            range.low = (Comparable) decisionTable.getCellById(idCoord, coord, [:])
+            range.low = (Comparable) decisionTable.getCellById(idCoord, coord, [:], null, true, columnDefaultCache)
 
             Column highColumn = (Column) bounds.high
             coord.put(fieldAxisName, highColumn.value)
             idCoord = new LongHashSet(highColumn.id, rowId)
-            range.high = (Comparable) decisionTable.getCellById(idCoord, coord, [:])
+            range.high = (Comparable) decisionTable.getCellById(idCoord, coord, [:], null, true, columnDefaultCache)
             range.priority = priority
 
             ranges.put(rangeName, internRange(range, internedRanges, primitives))
@@ -960,21 +967,20 @@ class DecisionTable
      * @return Map<String, List<String>> representing all the discrete input values used for the row, or implied
      * by the row in the case blank (*) or ! (exclusion) is used.
      */
-    private Map<String, List<Comparable>> getImpliedCells(Axis fieldAxis, Column row, NCube blowout)
+    private Map<String, List<Comparable>> getImpliedCells(NCube blowout, Column row, Axis fieldAxis, Set<String> colsToProcess, Map columnDefaultCache)
     {
         Map<String, List<Comparable>> bindings = [:]
         Map<String, ?> coord = new CaseInsensitiveMap<>()
-        Set<String> colsToProcess = new CaseInsensitiveSet<>(inputColumns)
-        colsToProcess.removeAll(rangeColumns)
+        coord.put(rowAxisName, row.value)
 
         for (String colValue : colsToProcess)
         {
-            bindings.put(colValue, [])
-            coord.put(rowAxisName, row.value)
+            List<Comparable> faces = []
+            bindings.put(colValue, faces)
             Column field = fieldAxis.findColumn(colValue)
             Set<Long> idCoord = new LongHashSet(field.id, row.id)
             coord.put(fieldAxisName, field.value)
-            String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:]))
+            String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:], null, true, columnDefaultCache))
 
             if (hasContent(cellValue))
             {
@@ -990,7 +996,7 @@ class DecisionTable
                         String columnValue = column.value
                         if (!values.contains(columnValue))
                         {
-                            bindings.get(colValue).add(columnValue)
+                            faces.add(columnValue)
                         }
                     }
                 }
@@ -998,7 +1004,7 @@ class DecisionTable
                 {   // Value or values to check
                     for (String value : values)
                     {
-                        bindings.get(colValue).add(value)
+                        faces.add(value)
                     }
                 }
             }
@@ -1008,7 +1014,7 @@ class DecisionTable
                 for (Column column : columns)
                 {
                     String columnValue = column.value
-                    bindings.get(colValue).add(columnValue)
+                    faces.add(columnValue)
                 }
             }
         }
@@ -1019,13 +1025,13 @@ class DecisionTable
      * Fetch the 'int' priority value from the 'Priority' column, if it exists.  If not, then
      * return INTEGER.MAX_VALUE as the priority (lowest).
      */
-    private int getPriority(Map<String, ?> coord, long rowId, Column priorityColumn)
+    private int getPriority(Map<String, ?> coord, long rowId, Column priorityColumn, Map columnDefaultCache)
     {
         if (priorityColumn)
         {
             coord.put(fieldAxisName, priorityColumn.value)
             Set<Long> idCoord = new LongHashSet(priorityColumn.id, rowId)
-            return decisionTable.getCellById(idCoord, coord, [:])
+            return decisionTable.getCellById(idCoord, coord, [:], null, true, columnDefaultCache)
         }
         else
         {
