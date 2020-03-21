@@ -969,7 +969,7 @@ class DecisionTable
      */
     private Map<String, List<Comparable>> getImpliedCells(NCube blowout, Column row, Axis fieldAxis, Set<String> colsToProcess, Map columnDefaultCache)
     {
-        Map<String, List<Comparable>> bindings = [:]
+        Map<String, List<Comparable>> bindings = new Object2ObjectOpenHashMap()
         Map<String, ?> coord = new CaseInsensitiveMap<>()
         coord.put(rowAxisName, row.value)
 

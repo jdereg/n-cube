@@ -24,14 +24,13 @@ import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonToken
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import org.springframework.util.FastByteArrayOutputStream
 
 import java.lang.reflect.Array
 import java.lang.reflect.Field
 import java.security.MessageDigest
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
 import java.util.zip.Deflater
 import java.util.zip.GZIPInputStream
@@ -102,12 +101,12 @@ class NCube<T>
     private String name
     private String sha1
     private final Map<String, Axis> axisList = new CaseInsensitiveMap<>()
-    private final Map<Long, Axis> idToAxis = new HashMap<>()
+    private final Map<Long, Axis> idToAxis = new Long2ObjectOpenHashMap<>()
     protected final Map<Set<Long>, T> cells = new CellMap<T>()
     private T defaultCellValue
     private final Map<String, Advice> advices = [:]
     private Map<String, Object> metaProps = new CaseInsensitiveMap<>()
-    private static ConcurrentMap primitives = new ConcurrentHashMap()
+    private static Map primitives = new Object2ObjectOpenHashMap()
     //  Sets up the defaultApplicationId for cubes loaded in from disk.
     private transient ApplicationID appId = ApplicationID.testAppId
     private static final ThreadLocal<Deque<StackEntry>> executionStack = new ThreadLocal<Deque<StackEntry>>() {
@@ -4611,7 +4610,7 @@ class NCube<T>
 
         if (primitives.containsKey(value))
         {   // intern it (re-use instance)
-            return primitives[value]
+            return primitives.get(value)
         }
 
         Object singletonInstance = primitives.putIfAbsent(value, value)
