@@ -109,6 +109,12 @@
       "defaultValue": "10"
     },
     {
+      "name": "ncube.target.accessTokenUri",
+      "type": "java.lang.String",
+      "description": "URI to obtain OAuth2 access token. Also indicates to JsonHttpProxy that OAuth2 security is being utilized.",
+      "defaultValue": ""
+    },
+    {
       "name": "ncube.cache.max.size",
       "type": "java.lang.Integer",
       "description": "Specifies the maximum number of entries the cache may contain. See Guava's CacheBuilder documentation.",
