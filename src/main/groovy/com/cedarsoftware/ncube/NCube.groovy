@@ -36,6 +36,7 @@ import java.util.zip.Deflater
 import java.util.zip.GZIPInputStream
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
+import static com.cedarsoftware.ncube.NCubeConstants.DECISION_TABLE
 import static com.cedarsoftware.util.Converter.convertToInteger
 import static com.cedarsoftware.util.Converter.convertToLong
 import static com.cedarsoftware.util.EncryptionUtilities.SHA1Digest
@@ -4668,5 +4669,11 @@ class NCube<T>
                 }
             }
         }
+    }
+
+    DecisionTable getDecisionTable()
+    {
+        metaProperties[DECISION_TABLE] = true
+        return new DecisionTable(this)
     }
 }

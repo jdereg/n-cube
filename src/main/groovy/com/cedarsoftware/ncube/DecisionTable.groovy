@@ -66,7 +66,7 @@ class DecisionTable
     private static final String BANG = '!'
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings()
 
-    DecisionTable(NCube decisionCube)
+    protected DecisionTable(NCube decisionCube)
     {
         decisionTable = decisionCube
         verifyAndCache()

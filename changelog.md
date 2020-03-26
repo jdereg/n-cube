@@ -1,6 +1,7 @@
 ### Revision History
 * 4.7.3-SNAPSHOT
-  * 
+  * Updated `JsonHttpProxy` to properly return http connections to the connection pool.
+  * Added `NCube.getDecisionTable()` to construct a `DecisionTable`.
 * 4.7.2
   * `DecisionTable.getDecision()` - when no input is supplied for optional input, input is automatically assigned a value that will only match blank (wildcard) cells.
   * `NCube.mapReduce()` - when `MAP_REDUCE_SHOULD_EXECUTE` is `false`, defaults are applied (column default, then table, then default argument) as they are normally done in `getCell()`. 

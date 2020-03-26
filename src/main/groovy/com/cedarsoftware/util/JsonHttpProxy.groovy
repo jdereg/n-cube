@@ -185,11 +185,11 @@ class JsonHttpProxy implements CallableBean
         HttpResponse response = httpClient.execute(request, clientContext)
         request.entity = null
         boolean parsedJsonOk = false
+        JsonReader reader = null
         try
         {
-            JsonReader reader = new JsonReader(new BufferedInputStream(response.entity.content))
+            reader = new JsonReader(new BufferedInputStream(response.entity.content))
             Map envelope = reader.readObject() as Map
-            reader.close()
             parsedJsonOk = true
             
             if (envelope.exception != null)
@@ -226,6 +226,13 @@ class JsonHttpProxy implements CallableBean
                 log.warn("Failed to process response (code: ${response.statusLine.statusCode}) from server with call: ${bean}.${getLogMessage(methodName, args.toArray(), LOG_ARG_LENGTH)}, headers: ${request.allHeaders}")
             }
             throw e
+        }
+        finally
+        {
+            if (reader != null)
+            {
+                IOUtilities.close(reader)
+            }
         }
     }
 
@@ -275,6 +282,7 @@ class JsonHttpProxy implements CallableBean
         long currentTime = System.currentTimeMillis()
         if (currentTime >= expireTime)
         {
+            JsonReader reader = null
             try
             {
                 HttpPost request = new HttpPost("${accessTokenUri}?grant_type=client_credentials")
@@ -282,9 +290,8 @@ class JsonHttpProxy implements CallableBean
                 request.setHeader(AUTHORIZATION, "Basic ${authString}")
 
                 HttpResponse response = httpClient.execute(request)
-                JsonReader reader = new JsonReader(new BufferedInputStream(response.entity.content))
+                reader = new JsonReader(new BufferedInputStream(response.entity.content))
                 Map envelope = reader.readObject() as Map
-                reader.close()
 
                 token = envelope.access_token
                 long expiresInSeconds = (long) envelope.expires_in
@@ -300,6 +307,13 @@ class JsonHttpProxy implements CallableBean
             {
                 log.error("Failed acquire access token from ${accessTokenUri}.")
                 throw e
+            }
+            finally
+            {
+                if (reader != null)
+                {
+                    IOUtilities.close(reader)
+                }
             }
         }
         return token
