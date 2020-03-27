@@ -1174,7 +1174,7 @@ class DecisionTable
     /**
      * Re-use Set<Integer> instances.
      */
-    static IntSet internSet(IntSet candidate, Map<IntSet, IntSet> internedSets)
+    private static IntSet internSet(IntSet candidate, Map<IntSet, IntSet> internedSets)
     {
         IntSet internedSet = internedSets.get(candidate)
         if (internedSet != null)
@@ -1188,7 +1188,7 @@ class DecisionTable
     /**
      * Re-use List<Range> instances
      */
-    static List<Range> internList(List<Range> candidate, Map<List<Range>, List<Range>> internedLists)
+    private static List<Range> internList(List<Range> candidate, Map<List<Range>, List<Range>> internedLists)
     {
         List<Range> internedList = internedLists.get(candidate)
         if (internedList != null)

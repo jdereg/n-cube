@@ -4675,7 +4675,7 @@ class NCube<T>
 
     DecisionTable getDecisionTable()
     {
-        metaProperties[DECISION_TABLE] = true
+        setMetaProperty(DECISION_TABLE, true)
         return new DecisionTable(this)
     }
 }

@@ -1,6 +1,6 @@
 ### Revision History
 * 4.7.4-SNAPSHOT
-  * 
+  * Added `fastutil` as gradle `api` instead of `implementation`.
 * 4.7.3
   * Updated `JsonHttpProxy` to properly return http connections to the connection pool.
   * Added `NCube.getDecisionTable()` to construct a `DecisionTable`.

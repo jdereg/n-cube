@@ -5937,6 +5937,14 @@ class TestNCube extends NCubeBaseTest
             fail('CommandCellException should have been thrown')
         }
     }
+
+    @Test
+    void testGetDecisionTable()
+    {
+        NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'decision-tables/2dv.json')
+        ncube.decisionTable
+        assert ncube.getMetaProperty(DECISION_TABLE)
+    }
     
     // ---------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------
