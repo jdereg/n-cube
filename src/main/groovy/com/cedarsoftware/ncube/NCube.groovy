@@ -31,6 +31,8 @@ import org.springframework.util.FastByteArrayOutputStream
 import java.lang.reflect.Array
 import java.lang.reflect.Field
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
 import java.util.zip.Deflater
 import java.util.zip.GZIPInputStream
@@ -107,7 +109,7 @@ class NCube<T>
     private T defaultCellValue
     private final Map<String, Advice> advices = [:]
     private Map<String, Object> metaProps = new CaseInsensitiveMap<>()
-    private static Map primitives = new Object2ObjectOpenHashMap()
+    private static ConcurrentMap primitives = new ConcurrentHashMap()
     //  Sets up the defaultApplicationId for cubes loaded in from disk.
     private transient ApplicationID appId = ApplicationID.testAppId
     private static final ThreadLocal<Deque<StackEntry>> executionStack = new ThreadLocal<Deque<StackEntry>>() {

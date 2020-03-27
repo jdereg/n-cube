@@ -1,5 +1,5 @@
 ### Revision History
-* 4.7.3-SNAPSHOT
+* 4.7.3
   * Updated `JsonHttpProxy` to properly return http connections to the connection pool.
   * Added `NCube.getDecisionTable()` to construct a `DecisionTable`.
 * 4.7.2
