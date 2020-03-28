@@ -1139,7 +1139,7 @@ class DecisionTable
     /**
      * Re-use Range instances.
      */
-    static Range internRange(Range candidate, Map<Range, Range> internedRanges, Map<Comparable, Comparable> primitives)
+    private static Range internRange(Range candidate, Map<Range, Range> internedRanges, Map<Comparable, Comparable> primitives)
     {
         Range internedRange = internedRanges.get(candidate)
         if (internedRange != null)
