@@ -577,7 +577,7 @@ class DecisionTable
                 }
                 else
                 {
-                    if (!(value instanceof Comparable))
+                    if (!(value == null || value instanceof Comparable))
                     {
                         throw new IllegalStateException("Values in columns with DATA_TYPE meta-property must be instanceof Comparable, row ${row.value}, field: ${columnValue}, ncube: ${decisionTable.name}")
                     }
