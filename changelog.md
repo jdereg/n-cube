@@ -1,8 +1,10 @@
 ### Revision History
-* 4.7.5-SNAPSHOT
-  * 
+* 4.7.5
+  * `DecisionTable` updated to allow `null` for values in the `output_value` columns (in addition to `Comparable` values).
+  * Updated to consume `java-util 1.43.0`  
 * 4.7.4
   * Added `fastutil` as gradle `api` instead of `implementation`.
+  * Updated to consume `java-util 1.42.0`
 * 4.7.3
   * Updated `JsonHttpProxy` to properly return http connections to the connection pool.
   * Added `NCube.getDecisionTable()` to construct a `DecisionTable`.
