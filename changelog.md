@@ -1,4 +1,6 @@
 ### Revision History
+* 4.7.6-SNAPSHOFT
+  *
 * 4.7.5
   * `DecisionTable` updated to allow `null` for values in the `output_value` columns (in addition to `Comparable` values).
   * Updated to consume `java-util 1.43.0`  
