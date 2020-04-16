@@ -224,6 +224,6 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
 
     protected void addUnboundAxis(String cubeName, String axisName, Object value)
     {
-        unboundAxesList << new MapEntry(cubeName, new MapEntry(axisName, value))
+        unboundAxesList.add(new MapEntry(cubeName, new MapEntry(axisName, value)))
     }
 }

@@ -15,7 +15,12 @@ import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
 import static com.cedarsoftware.util.Converter.convertToDate
 import static com.cedarsoftware.util.TestUtil.assertContainsIgnoreCase
-import static org.junit.Assert.*
+import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertFalse
+import static org.junit.Assert.assertNotEquals
+import static org.junit.Assert.assertNull
+import static org.junit.Assert.assertTrue
+import static org.junit.Assert.fail
 
 /**
  * NCube Axis Tests
@@ -797,7 +802,7 @@ class TestAxis extends NCubeBaseTest
 
         try
         {
-            set = new RangeSet(new Character('c' as char)) // not a valid type for a LONG axis
+            set = new RangeSet(new Comparable() { int compareTo(Object o) { return 0 }}) // not a valid type for a LONG axis
             age.addColumn set
             fail()
         }
@@ -2714,16 +2719,18 @@ class TestAxis extends NCubeBaseTest
         try
         {
             reload.getCell([stateSource:'AZ'] as Map)
+            fail()
         }
         catch (CoordinateNotFoundException e)
         {
             String message = e.message
-            assert message.contains('Value \'[stateSource:AZ]\' not found on axis: stateSource, cube: Mongo')
+            assertContainsIgnoreCase(message, 'value', 'AZ', 'not found', 'stateSource', 'Mongo')
         }
 
         try
         {
             reload.deleteColumn('stateSource', 'OH')
+            fail()
         }
         catch (IllegalStateException e)
         {

@@ -9,7 +9,7 @@ plugins {
 
 group = 'com.cedarsoftware'
 description = 'n-cube'
-version = '4.7.6-SNAPSHOT'
+version = '4.7.6'
 
 // Example builds
 //gradle clean build 
@@ -41,7 +41,7 @@ repositories {
 
 dependencies {
     api 'org.codehaus.groovy:groovy-all:2.4.19'
-    api 'com.cedarsoftware:java-util:1.43.0'
+    api 'com.cedarsoftware:java-util:1.49.0'
     api 'com.cedarsoftware:json-io:4.12.0'
     api 'it.unimi.dsi:fastutil:8.3.1'
     implementation 'org.springframework.boot:spring-boot-starter-actuator:2.2.2.RELEASE'

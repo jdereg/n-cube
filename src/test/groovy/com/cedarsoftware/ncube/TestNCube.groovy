@@ -3591,7 +3591,8 @@ class TestNCube extends NCubeBaseTest
         {
             assert e.message.toLowerCase().contains('not found on axis')
             assert ncube.name == e.cubeName
-            assert coord == e.coordinate
+            assert e.coordinate.containsKey("gender")
+            assert e.coordinate.get("gender") == "GI Joe"
             assert "Gender" == e.axisName
             assert "GI Joe" == e.value
         }

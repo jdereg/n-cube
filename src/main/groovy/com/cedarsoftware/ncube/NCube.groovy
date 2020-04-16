@@ -1158,8 +1158,8 @@ class NCube<T>
 
         for (column in columns)
         {
-            coord[axisName] = wildcardAxis.getValueToLocateColumn(column)
-            result[column.value] = getCell(coord, output, defaultValue)
+            coord.put(axisName, wildcardAxis.getValueToLocateColumn(column))
+            result.put(column.value, getCell(coord, output, defaultValue))
         }
 
         return result
@@ -1233,7 +1233,7 @@ class NCube<T>
         {
             commandInput.informAdditionalUsage([colAxisName] as Collection<Object>)
         }
-        trackInputKeysUsed(commandInput,output)
+        trackInputKeysUsed(commandInput, output)
 
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
         final Map matchingRows = isRowCISTRING ? new CaseInsensitiveMap<>() : [:]
@@ -1636,8 +1636,10 @@ class NCube<T>
      * to a column (with a binary search or hashMap lookup), however, on a RULE axis, the act
      * of binding to an axis results in a List<Column>.
      * @param input The passed in input coordinate to bind (or multi-bind) to each axis.
+     * @param output Map used by rules to write subtotals, etc. to.
+     * @param multiRule boolean true will return all appropriate rules, false will only return the first matching rule.
      */
-    private Map<String, List<Column>> selectColumns(Map<String, Object> input, Map output)
+    private Map<String, List<Column>> selectColumns(Map<String, Object> input, Map output, boolean multiRule = true)
     {
         Map<String, List<Column>> bindings = new CaseInsensitiveMap<>()
         for (entry in axisList.entrySet())
@@ -1648,30 +1650,37 @@ class NCube<T>
 
             if (AxisType.RULE == axis.type)
             {   // For RULE axis, all possible columns must be added (they are tested later during execution)
-                if (value instanceof String)
+                if (multiRule)
                 {
-                    bindings.put(axisName, axis.getRuleColumnsStartingAt((String) value))
-                }
-                else if (value instanceof Collection)
-                {   // Collection of rule names to select (orchestration)
-                    Collection<String> orchestration = (Collection)value
-                    bindings.put(axisName, axis.findColumns(orchestration))
-                    assertAtLeast1Rule(bindings.get(axisName), "No rule selected on rule-axis: ${axis.name}, rule names ${orchestration}, cube: ${name}")
-                }
-                else if (value instanceof Map)
-                {   // key-value pairs that meta-properties of rule columns must match to select rules.
-                    Map<String, Object> required = (Map)value
-                    bindings.put(axisName, axis.findColumns(required))
-                    assertAtLeast1Rule(bindings[axisName], "No rule selected on rule-axis: ${axis.name}, meta-properties must match ${required}, cube: ${name}")
-                }
-                else if (value instanceof Closure)
-                {
-                    bindings.put(axisName, axis.findColumns((Closure)value))
-                    assertAtLeast1Rule(bindings.get(axisName), "No rule selected on rule-axis: ${axis.name}, meta-properties must match closure, cube: ${name}")
+                    if (value instanceof String)
+                    {
+                        bindings.put(axisName, axis.getRuleColumnsStartingAt((String) value))
+                    }
+                    else if (value instanceof Collection)
+                    {   // Collection of rule names to select (orchestration)
+                        Collection<String> orchestration = (Collection)value
+                        bindings.put(axisName, axis.findColumns(orchestration))
+                        assertAtLeast1Rule(bindings.get(axisName), "No rule selected on rule-axis: ${axis.name}, rule names ${orchestration}, cube: ${name}")
+                    }
+                    else if (value instanceof Map)
+                    {   // key-value pairs that meta-properties of rule columns must match to select rules.
+                        Map<String, Object> required = (Map)value
+                        bindings.put(axisName, axis.findColumns(required))
+                        assertAtLeast1Rule(bindings[axisName], "No rule selected on rule-axis: ${axis.name}, meta-properties must match ${required}, cube: ${name}")
+                    }
+                    else if (value instanceof Closure)
+                    {
+                        bindings.put(axisName, axis.findColumns((Closure)value))
+                        assertAtLeast1Rule(bindings.get(axisName), "No rule selected on rule-axis: ${axis.name}, meta-properties must match closure, cube: ${name}")
+                    }
+                    else
+                    {
+                        bindings.put(axisName, axis.columns)
+                    }
                 }
                 else
                 {
-                    bindings.put(axisName, axis.columns)
+                    bindings.put(axisName, [axis.findColumn((Comparable)value)])
                 }
             }
             else
@@ -1695,8 +1704,11 @@ class NCube<T>
 
     private static void trackUnboundAxis(Map output, String cubeName, String axisName, Object value)
     {
-        RuleInfo ruleInfo = getRuleInfo(output)
-        ruleInfo.addUnboundAxis(cubeName, axisName, value)
+        if (ncubeRuntime.trackBindingsOn)
+        {
+            RuleInfo ruleInfo = getRuleInfo(output)
+            ruleInfo.addUnboundAxis(cubeName, axisName, value)
+        }
     }
 
     private static void assertAtLeast1Rule(Collection<Column> columns, String errorMessage)
@@ -1999,7 +2011,7 @@ class NCube<T>
             if (entry.value instanceof Set)
             {
                 count++
-                answers.axis = axisList[entry.key]      // intentional case insensitive match
+                answers.axis = axisList.get(entry.key)      // intentional case insensitive match
                 answers.set = entry.value
             }
         }
@@ -2034,19 +2046,7 @@ class NCube<T>
     {
         Map safeCoord
 
-        if (coordinate instanceof TrackingMap)
-        {
-            TrackingMap trackMap = (TrackingMap)coordinate
-            if (trackMap.getWrappedMap() instanceof CaseInsensitiveMap)
-            {
-                safeCoord = coordinate
-            }
-            else
-            {
-                safeCoord = new CaseInsensitiveMap<>(coordinate)
-            }
-        }
-        else if (coordinate instanceof CaseInsensitiveMap)
+        if (coordinate instanceof TrackingMap || coordinate instanceof CaseInsensitiveMap)
         {
             safeCoord = coordinate
         }
@@ -2055,26 +2055,17 @@ class NCube<T>
             safeCoord = (coordinate == null) ? new CaseInsensitiveMap<>() : new CaseInsensitiveMap<>(coordinate)
         }
 
-        Set<Long> ids = new LinkedHashSet<>()
-        Iterator<Axis> i = axisList.values().iterator()
-
-        while (i.hasNext())
+        Map<String, List<Column>> bindings = selectColumns(safeCoord, output, false)
+        Set<Long> ids = new HashSet()
+        for (Map.Entry<String, List<Column>> entry : bindings.entrySet())
         {
-            Axis axis = (Axis) i.next()
-            String axisName = axis.name
-            Comparable value = (Comparable) safeCoord.get(axisName)
-            Column column = (Column) axis.findColumn(value)
-
-            if (column == null || column.default)
+            Column col = entry.value.get(0);
+            if (col == null)
             {
-                trackUnboundAxis(output, name, axisName, value)
-                if (column == null)
-                {
-                    throw new CoordinateNotFoundException("Value '${coordinate}' not found on axis: ${axisName}, cube: ${name}",
-                            name, coordinate, axisName, value)
-                }
+                String axisName = entry.key
+                throw new CoordinateNotFoundException("Value '${safeCoord.get(axisName)}' not found on axis: ${axisName}, cube: ${name}", name, safeCoord, axisName, safeCoord.get(axisName))
             }
-            ids.add(column.id)
+            ids.add(col.id)
         }
         return new LongHashSet(ids)
     }
@@ -2581,7 +2572,7 @@ class NCube<T>
         // make copy of the cell map to reference after the axis changes
         Map<Set<Long>, T> cellMapCopy = new CellMap(cellMap)
 
-        Map args = [:]
+        Map<String, Object> args = [:]
         args[ReferenceAxisLoader.REF_TENANT] = refAppId.tenant
         args[ReferenceAxisLoader.REF_APP] = refAppId.app
         args[ReferenceAxisLoader.REF_VERSION] = refAppId.version

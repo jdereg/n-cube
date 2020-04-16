@@ -1,0 +1,4 @@
+GET http://api.staging.maprisk.com/geocode?addressLine=210%20Ballard%20Drive,%20Springboro,%20OH%2045066
+x-auth-key:eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiI1ZTMzMTNiNTg2MWY1NDAyYTI2ZDE1MTciLCJleHAiOjE2MTIwMjgwODYwMTN9.OIXOFyCPsxhh7gMGpTHbtfY5JxFH4OqW8Wyu2931Ws4
+
+###

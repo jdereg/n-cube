@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.TestUtil
 import groovy.transform.CompileStatic
 import org.junit.Test
 
@@ -420,12 +421,13 @@ class TestRuleEngine extends NCubeBaseTest
         try
         {
             coord.condition = 'GI Joe'
-            ncube.containsCell coord
-            fail 'should not make it here'
+            ncube.containsCell(coord)
+            fail('should not make it here')
         }
         catch (CoordinateNotFoundException e)
         {
-            assert e.message.toLowerCase().contains('not found')
+            e.printStackTrace()
+            TestUtil.assertContainsIgnoreCase(e.message, 'GI Joe', 'not', 'found', 'condition', 'containsCellRule')
         }
 
         ncube.defaultCellValue = null

@@ -704,18 +704,13 @@ class Axis
         if (suggestedId != null && suggestedId > 0 && value != null)
         {
             long attemptId = (id * BASE_AXIS_ID) + (suggestedId % BASE_AXIS_ID)
-            long finalId
 
             if (idToCol.containsKey(attemptId))
             {
                 long colId = getValueBasedColumnId(value)
-                finalId = idToCol.containsKey(colId) ? nextColId : colId
+                attemptId = idToCol.containsKey(colId) ? nextColId : colId
             }
-            else
-            {
-                finalId = attemptId
-            }
-            return new Column(value, finalId, metaProperties)
+            return new Column(value, attemptId, metaProperties)
         }
         else
         {
@@ -1949,7 +1944,7 @@ class Axis
     protected Column locateDeltaColumn(Column source)
     {
         Column column = getColumnById(source.id)
-        if (column)
+        if (column != null)
         {
             return column
         }
