@@ -1,30 +1,13 @@
 # Enterprise Rules Engine
 The enterprise rules engine is a library for orchestrating, executing, and documenting business rules.
 Start using the rules engine  by following these simple steps:  
-1. [Import the library](#import-library)  
-2. [Define rules](#define-rules)
-3. [Define rule groups and categories](#define-rule-groups)  
-4. [Define rule orchestration](#define-orchestration)  
-5. [Execute the rules](#execute-rules)
-6. [View rule documentation](#rule-documentation)  
+1. [Define rules](#define-rules)
+2. [Define rule groups and categories](#define-rule-groups)  
+3. [Define rule orchestration](#define-orchestration)  
+4. [Execute the rules](#execute-rules)
+5. [View rule documentation](#rule-documentation)  
 
 Finally, review some [important concepts](#important-concepts) for writing rules.
-
-
-## <a name="import-library"></a> Import the library  
-##### Gradle
-```groovy
-implementation("com.gaig.services:rules-engine:$version")
-```
-
-##### Maven
-```xml
-<dependency>
-  <groupId>com.gaig.services</groupId>
-  <artifactId>rules-engine</artifactId>
-  <version>${version}</version>
-</dependency>
-```
 
 ##### Required Spring Properties (application.yml)
 ```yaml
