@@ -119,13 +119,13 @@ class HtmlFormatter implements NCubeFormatter
         {
             axes.add(0, top)
         }
-        long width = axes[0].size()
+        long width = axes.get(0).size()
         long height = 1
         final int len = axes.size()
 
         for (int i = 1; i < len; i++)
         {
-            height = axes[i].size() * height
+            height = axes.get(i).size() * height
         }
 
         [axes, height, width] as Object[]

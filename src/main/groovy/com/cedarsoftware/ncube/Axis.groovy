@@ -79,7 +79,7 @@ class Axis
 
     // Internal indexes
     private final transient Map<Long, Column> idToCol = new Long2ObjectOpenHashMap<>()
-    private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>()
+    private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>())
     private final transient SortedMap<Integer, Column> displayOrder = new Int2ObjectRBTreeMap<>()
     private transient SortedMap<Comparable, Column> valueToCol
     protected transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()

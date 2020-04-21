@@ -64,7 +64,7 @@ class ReflectiveProxy implements CallableBean
     private static Method getMethod(Object bean, String beanName, String methodName, int argCount)
     {
         String methodKey = "${beanName}.${methodName}.${argCount}"
-        Method method = METHOD_MAP[methodKey]
+        Method method = METHOD_MAP.get(methodKey)
         if (method == null)
         {
             method = getMethod(bean.class, methodName, argCount)

@@ -60,7 +60,7 @@ class NCubeBaseTest implements NCubeConstants
 
         try
         {
-            mutableClient = NCubeAppContext.getBean(RUNTIME_BEAN) as NCubeMutableClient
+            mutableClient = NCubeAppContext.ncubeMutableClient
         }
         catch (Exception ignored)
         {

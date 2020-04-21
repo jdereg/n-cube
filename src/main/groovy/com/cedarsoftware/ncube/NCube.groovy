@@ -644,7 +644,7 @@ class NCube<T>
     private T runRules(final Map coordinate, Map input, final Map output = [:], Object defaultValue = null)
     {
         final RuleInfo ruleInfo = getRuleInfo(output)
-        final boolean trackBindings = ncubeRuntime.trackBindingsOn
+        final boolean trackBindings = ncubeRuntime?.trackBindingsOn
         boolean run = true
         final List<Binding> bindings = ruleInfo.getAxisBindings()
         final int depth = executionStack.get().size()
@@ -1641,7 +1641,8 @@ class NCube<T>
      */
     private Map<String, List<Column>> selectColumns(Map<String, Object> input, Map output, boolean multiRule = true)
     {
-        Map<String, List<Column>> bindings = new CaseInsensitiveMap<>()
+        Map<String, List<Column>> empty = (Map)Collections.emptyMap()
+        Map<String, List<Column>> bindings = new CaseInsensitiveMap<>(empty, new HashMap<>(axisList.size()))
         for (entry in axisList.entrySet())
         {
             final String axisName = entry.key
@@ -1704,7 +1705,8 @@ class NCube<T>
 
     private static void trackUnboundAxis(Map output, String cubeName, String axisName, Object value)
     {
-        if (ncubeRuntime.trackBindingsOn)
+        boolean track = ncubeRuntime?.trackBindingsOn
+        if (track)
         {
             RuleInfo ruleInfo = getRuleInfo(output)
             ruleInfo.addUnboundAxis(cubeName, axisName, value)
@@ -1721,12 +1723,12 @@ class NCube<T>
 
     private static Map<String, Integer> getCountersPerAxis(final String[] axisNames)
     {
-        final Map<String, Integer> counters = new CaseInsensitiveMap<>()
+        final Map<String, Integer> counters = new CaseInsensitiveMap<>(axisNames.length)
 
         // Set counters to 1
         for (axisName in axisNames)
         {
-            counters[axisName] = 1
+            counters.put(axisName, 1)
         }
         return counters
     }

@@ -15,7 +15,6 @@ import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.TrackingMap
 import groovy.transform.CompileStatic
 
-import static com.cedarsoftware.ncube.NCubeConstants.RUNTIME_BEAN
 import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_ACTIVE_RECORDS_ONLY
 import static com.cedarsoftware.util.StringUtilities.createUTF8String
 import static com.cedarsoftware.util.StringUtilities.equalsIgnoreCase
@@ -86,7 +85,7 @@ class NCubeGroovyExpression
     Set<String> getCubeNames(boolean activeOnly = true)
     {
         List<NCubeInfoDto> searchResults = ncubeRuntime.search(ncube.applicationID, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):activeOnly])
-        Set<String> names = new CaseInsensitiveSet()
+        Set<String> names = new CaseInsensitiveSet(searchResults.size())
         searchResults.each { NCubeInfoDto dto -> names.add(dto.name) }
         return names
     }
@@ -478,12 +477,7 @@ class NCubeGroovyExpression
 
     NCubeMutableClient getMutableClient()
     {
-        if (mutableClient)
-        {
-            return mutableClient
-        }
-        mutableClient = NCubeAppContext.getBean(RUNTIME_BEAN) as NCubeMutableClient
-        return mutableClient
+        return NCubeAppContext.ncubeMutableClient
     }
 
     /**

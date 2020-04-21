@@ -219,9 +219,9 @@ class TestAllCellsInBigCube
         ncube.addAxis(axis)
         int max = 5000000        // 10M - largest tested thus far (using trove4j)
         println 'adding columns...'
-        for (int j = 0; j < max; j++)
+        for (Integer j = 0; j < max; j++)
         {
-            ncube.addColumn("axis", j as Comparable)
+            ncube.addColumn("axis", j)
             if (j % 1000000 == 0)
             {
                 println j

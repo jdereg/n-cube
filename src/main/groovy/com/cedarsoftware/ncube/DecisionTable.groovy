@@ -154,7 +154,7 @@ class DecisionTable
             colsToReturn.add(PRIORITY)
         }
 
-        // Ensure user-supplied input has values for all keys.  For optional keys, supply a sentinal value associated
+        // Ensure user-supplied input has values for all keys.  For optional keys, supply a sentinel value associated
         // to the optional key if they did not include the optional key.
         for (String key : inputKeys)
         {
@@ -776,7 +776,7 @@ class DecisionTable
     private Set<Comparable> validateDecisionTableRows(NCube blowout, List<Column> rows)
     {
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
-        Map<String, Comparable> coord = new CaseInsensitiveMap<>()
+        Map<String, Comparable> coord = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>())
         Set<Comparable> badRows = new CaseInsensitiveSet<>()
         Column ignoreColumn = fieldAxis.findColumn(IGNORE)
         Column priorityColumn = fieldAxis.findColumn(PRIORITY)
