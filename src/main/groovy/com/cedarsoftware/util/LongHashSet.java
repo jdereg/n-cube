@@ -1,4 +1,4 @@
-package com.cedarsoftware.ncube.util;
+package com.cedarsoftware.util;
 
 import java.util.*;
 

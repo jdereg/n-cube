@@ -32,7 +32,7 @@ import static org.junit.Assert.fail
 @CompileStatic
 class TestDecisionTable extends NCubeBaseTest
 {
-    @Ignore
+//    @Ignore
     @Test
     void testGetDecision()
     {
@@ -43,7 +43,7 @@ class TestDecisionTable extends NCubeBaseTest
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'decision-tables/commission.json')
         DecisionTable decisionTable = new DecisionTable(ncube)
 
-        for (int i=0; i < 10; i++)
+        for (int i=0; i < 1000; i++)
         {
             long start = System.nanoTime()
             println decisionTable.getDecision(input)
@@ -750,7 +750,8 @@ class TestDecisionTable extends NCubeBaseTest
         assert set.empty
 
         Map decision = dt.getDecision([profitCenter: 23, date: new Date()])
-        assert decision.size() == 1
+        assert decision.size() == 2
+        assert decision.containsKey('1581788642877000315')
         assert decision.containsKey('1581788642877000415')
     }
 

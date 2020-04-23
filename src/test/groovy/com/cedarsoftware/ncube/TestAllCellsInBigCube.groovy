@@ -111,7 +111,7 @@ class TestAllCellsInBigCube
 
     // Uncomment for mapReduce() performance testing
     @Test
-    @Ignore
+//    @Ignore
     void testMapReduceLarge()
     {
         final int timesToRun = 30
@@ -182,7 +182,7 @@ class TestAllCellsInBigCube
         Map options = [:]
         options[NCube.MAP_REDUCE_COLUMNS_TO_SEARCH] = ['hotel'] as Set
         options[NCube.MAP_REDUCE_SHOULD_EXECUTE] = false
-        for (int i=0; i < timesToRun; i++)
+        for (int i=0; i < 1; i++)
         {
             start = System.nanoTime()
             ncube.mapReduce('attribute', { Map input -> ((String)input.hotel)?.contains('ee') }, options)

@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube.util
 
+import com.cedarsoftware.util.LongHashSet
 import groovy.transform.CompileStatic
 
 /**

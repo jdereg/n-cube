@@ -10,11 +10,11 @@ import com.cedarsoftware.ncube.formatters.JsonFormatter
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.CellMap
-import com.cedarsoftware.ncube.util.LongHashSet
 import com.cedarsoftware.util.AdjustableGZIPOutputStream
 import com.cedarsoftware.util.ByteUtilities
 import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.LongHashSet
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.TrackingMap
 import com.cedarsoftware.util.io.JsonObject
@@ -25,7 +25,6 @@ import com.fasterxml.jackson.core.JsonToken
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import org.springframework.util.FastByteArrayOutputStream
 
 import java.lang.reflect.Array
@@ -923,7 +922,7 @@ class NCube<T>
      * coordinate has at least an entry for each axis (entry not needed for axes with
      * default column or rule axes).
      */
-    T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, boolean shouldExecute = true, Map columnDefaultCache = null)
+    T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, boolean shouldExecute = true)
     {
         // First, get a ThreadLocal copy of an NCube execution stack
         Deque<StackEntry> stackFrame = (Deque<StackEntry>) executionStack.get()
@@ -969,7 +968,7 @@ class NCube<T>
             cellValue = cells.get(colIds)
             if (cellValue == null && !cells.containsKey(colIds))
             {   // No cell, look for default
-                cellValue = (T) getColumnDefault(colIds, columnDefaultCache)
+                cellValue = (T) getColumnDefault(colIds)
                 if (cellValue == null)
                 {   // No Column Default, try NCube default, and finally passed in default
                     cellValue = defaultCellValue == null ? (T) defaultValue : defaultCellValue
@@ -988,7 +987,7 @@ class NCube<T>
                     return cellValue
                 }
             }
-            else if (columnDefaultCache == null)
+            else
             {
                 trackInputKeysUsed(coordinate, output)
             }
@@ -1069,31 +1068,23 @@ class NCube<T>
      * returned at intersections. The default value cache should only be used
      * with mapReduce because of its repeated calculation of each column on all axes.
      */
-    def getColumnDefault(Set<Long> colIds, Map columnDefaultCache = null)
+    def getColumnDefault(Set<Long> colIds)
     {
         def colDef = null
         Iterator<Long> i = colIds.iterator()
         while (i.hasNext())
         {
             long colId = i.next()
-            def defColValue
-            if (columnDefaultCache?.containsKey(colId))
-            {
-                defColValue = columnDefaultCache.get(colId)
+            Axis axis = getAxisFromColumnId(colId, false)
+            if (axis == null)
+            {   // bad column id, continue check rest of column ids
+                continue
             }
-            else
+            Column boundCol = axis.getColumnById(colId)
+            Object defColValue
+            if (boundCol != null)
             {
-                Axis axis = getAxisFromColumnId(colId, false)
-                if (axis == null)
-                {   // bad column id, continue check rest of column ids
-                    continue
-                }
-                Column boundCol = axis.getColumnById(colId)
-                if (boundCol != null)
-                {
-                    defColValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
-                    columnDefaultCache?.put(colId, defColValue)
-                }
+                defColValue = boundCol.getMetaProperty(Column.DEFAULT_VALUE)
             }
             if (defColValue != null)
             {
@@ -1207,7 +1198,7 @@ class NCube<T>
      * where the keys are the column values (or names) for axis named colAxisName.  The associated values are the values
      * for each cell in the same column, for when the 'where' condition holds true (groovy true).
      */
-    private Map internalMapReduce(String rowAxisName, String colAxisName, Closure where = { true }, Map options = [:], Map columnDefaultCache)
+    private Map internalMapReduce(String rowAxisName, String colAxisName, Closure where = { true }, Map options = [:])
     {
         Map input =  options.containsKey('input') ? (Map) options.input : [:]
         Map output = options.containsKey('output') ? (Map) options.output : [:]
@@ -1270,7 +1261,7 @@ class NCube<T>
                 def val
                 try
                 {
-                    val = getCellById(ids, commandInput, output, defaultValue, shouldExecute, columnDefaultCache)
+                    val = getCellById(ids, commandInput, output, defaultValue, shouldExecute)
                 }
                 catch (Exception e)
                 {
@@ -1311,7 +1302,7 @@ class NCube<T>
                     commandInput.put(axisName, column.valueThatMatches)
                     long colId = column.id
                     ids.add(colId)
-                    result.put(colValue, getCellById(ids, commandInput, output, defaultValue, shouldExecute, columnDefaultCache))
+                    result.put(colValue, getCellById(ids, commandInput, output, defaultValue, shouldExecute))
                     ids.remove(colId)
                 }
                 matchingRows.put(key, result)
@@ -1370,7 +1361,6 @@ class NCube<T>
         Map input = options.containsKey('input') ? (Map)options.input : [:]
         Set columnsToSearch = (Set)options[MAP_REDUCE_COLUMNS_TO_SEARCH]
         Set columnsToReturn = (Set)options[MAP_REDUCE_COLUMNS_TO_RETURN]
-        Map<Long, Object> columnDefaultCache = new Object2ObjectOpenHashMap<>()
 
         Map commandOpts = new TrackingMap<>(new CaseInsensitiveMap(options))
         commandOpts.input = new TrackingMap<>(new CaseInsensitiveMap(input))
@@ -1399,16 +1389,16 @@ class NCube<T>
         Map result
         if (otherAxes.empty)
         {
-            result = internalMapReduce(rowAxisName, colAxisName, where, commandOpts, columnDefaultCache)
+            result = internalMapReduce(rowAxisName, colAxisName, where, commandOpts)
         }
         else
         {
-            result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, commandOpts, columnDefaultCache)
+            result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, commandOpts)
         }
         return result
     }
 
-    private Map executeMultidimensionalMapReduce(Set<String> axes, String rowAxisName, String colAxisName, Closure where, Map options, Map columnDefaultCache)
+    private Map executeMultidimensionalMapReduce(Set<String> axes, String rowAxisName, String colAxisName, Closure where, Map options)
     {
         Map result
         Map ret = new LinkedHashMap()
@@ -1423,7 +1413,7 @@ class NCube<T>
             input.put(axisName, column.value)
             if (noMoreAxes)
             {
-                result = internalMapReduce(rowAxisName, colAxisName, where, options, columnDefaultCache)
+                result = internalMapReduce(rowAxisName, colAxisName, where, options)
                 for (Map.Entry resultEntry : result)
                 {
                     Map inputVal = new LinkedHashMap(input)
@@ -1433,7 +1423,7 @@ class NCube<T>
             }
             else
             {
-                result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, options, columnDefaultCache)
+                result = executeMultidimensionalMapReduce(otherAxes, rowAxisName, colAxisName, where, options)
                 ret.putAll(result)
             }
         }
