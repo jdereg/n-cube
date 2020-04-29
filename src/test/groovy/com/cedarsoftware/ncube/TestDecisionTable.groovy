@@ -125,7 +125,7 @@ class TestDecisionTable extends NCubeBaseTest
         Set<Comparable> badRows = dt.validateDecisionTable()
         assert badRows.empty
         Map out = dt.getDecision([state:'KY'])
-        assert out.size() == 0
+        assert out.size() == 1
         out = dt.getDecision([state:'KY', sku: 1])
         Map row = out[1L] as Map
         assert row.output == '15'
@@ -136,7 +136,28 @@ class TestDecisionTable extends NCubeBaseTest
         assert row.output == '20'
 
         out = dt.getDecision([:])
-        assert out.size() == 0
+        assert out.size() == 2
+    }
+
+    @Test
+    void test_iterable()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/3dv_1out_iterable.json')
+        Set<Comparable> badRows = dt.validateDecisionTable()
+        assert badRows.empty
+
+        Map out = dt.getDecision([[:]] as Iterable<Map<String, ?>>)
+        assert out.size() == 4
+
+        out = dt.getDecision([[id: 'num1', type: 'foo', categories: 'fizzle']] as Iterable<Map<String, ?>>)
+        assert out.size() == 1
+
+        out = dt.getDecision([[categories: 'fazzle']] as Iterable<Map<String, ?>>)
+        assert out.size() == 2
+
+        // Test iterable to merge results
+        out = dt.getDecision([[categories: 'fizzle'], [categories: 'fazzle']] as Iterable<Map<String, ?>>)
+        assert out.size() == 3
     }
 
     @Test

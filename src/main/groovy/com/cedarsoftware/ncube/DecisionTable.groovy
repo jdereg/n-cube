@@ -104,7 +104,25 @@ class DecisionTable
     }
 
     /**
-     * Main API for querying a Decision Table.
+     * Main API for querying a Decision Table with multiple query inputs.
+     * @param iterable Iterable<Map> containing one or more input Maps containing the key/value pairs for all the
+     * input_value columns. Each Map will perform a separate query and the results of each query will be merged into a
+     * single result.
+     * @return List<Comparable, List<outputs>>
+     */
+    Map<Comparable, ?> getDecision(Iterable<Map<String, ?>> iterable)
+    {
+        Map<Comparable, ?> results = new CompactCILinkedMap<>()
+        for (Map<String, ?> item : iterable)
+        {
+            Map<Comparable, ?> result = getDecision(item)
+            results.putAll(result)
+        }
+        return results
+    }
+
+    /**
+     * Main API for querying a Decision Table with a single query input.
      * @param input Map containing key/value pairs for all the input_value columns
      * @return List<Comparable, List<outputs>>
      */
@@ -203,7 +221,7 @@ class DecisionTable
     }
 
     /**
-     * @return NCube that sits within the DecisionTable.  
+     * @return NCube that sits within the DecisionTable.
      */
     NCube getUnderlyingNCube()
     {
@@ -357,6 +375,9 @@ class DecisionTable
         Axis first = axes.first()
         Axis second = axes.last()
 
+        // Figure out which axis has fields and which contains rows of data
+
+        // On the first Axis, look at the metaProperties of each non-default Column and collect the Columns which have decisionMetaPropertyKeys
         Column any = first.columnsWithoutDefault.find { Column column ->
             Set<String> keys = new CaseInsensitiveSet<>(column.metaProperties.keySet())
             keys.retainAll(decisionMetaPropertyKeys)
@@ -366,13 +387,14 @@ class DecisionTable
             }
         }
 
+        // If there were any, we know the first Axis is where the fields are
         if (any)
         {
             fieldAxisName = first.name
             rowAxisName = second.name
         }
         else
-        {
+        {   // Else, go do the same thing on the second Axis
             any = second.columnsWithoutDefault.find { Column column ->
                 Set<String> keys = new CaseInsensitiveSet<>(column.metaProperties.keySet())
                 keys.retainAll(decisionMetaPropertyKeys)
@@ -411,12 +433,14 @@ class DecisionTable
             Map colMetaProps = column.metaProperties
             String columnValue = column.value
 
-            if (colMetaProps.containsKey(INPUT_VALUE))
+            // Input Discrete
+            if (colMetaProps.containsKey(INPUT_VALUE) && convertToBoolean(colMetaProps[INPUT_VALUE]))
             {
                 inputColumns.add(columnValue)
                 inputKeys.add(columnValue)
             }
 
+            // Input Range
             if (colMetaProps.containsKey(INPUT_LOW) || colMetaProps.containsKey(INPUT_HIGH))
             {
                 String dataType = colMetaProps.get(DATA_TYPE)
@@ -481,12 +505,13 @@ class DecisionTable
                 rangeSpecs.put(inputVarName, rangeSpec)
             }
             else
-            {
+            {   // Non-Range Required Input
                 if (colMetaProps.containsKey(REQUIRED))
                 {   // REQUIRED on non-input columns will be verified later in the code below.
                     requiredColumns.add(columnValue)
                 }
             }
+            // Output
             if (colMetaProps.containsKey(OUTPUT_VALUE))
             {
                 outputColumns.add(columnValue)

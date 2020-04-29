@@ -1,6 +1,8 @@
 ### Revision History
-* 4.7.6-SNAPSHOFT
-  *
+* 4.7.6
+  * `DecisionTable` updated with a new interface allowing you to pass in an Iterable<Map> to `getDecision()`.  Results of each inputMap are merged and returned.
+  * `DecisionTable` updated so that if an input_value is not provided for an optional key, it will no longer prevent rows where that column has a value from being included in the results.
+  * If you define your `input_value` metaProperty with a `false` value, the `DecisionTable` will ignore it.  Allows you to temporarily disable an input_value for testing. 
 * 4.7.5
   * `DecisionTable` updated to allow `null` for values in the `output_value` columns (in addition to `Comparable` values).
   * Updated to consume `java-util 1.43.0`  
