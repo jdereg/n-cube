@@ -910,7 +910,7 @@ class TestAxis extends NCubeBaseTest
         assert -12345678901234L == longs.standardizeColumnValue('-12345678901234')
         try
         {
-            longs.standardizeColumnValue '-12345.678901234'
+            longs.standardizeColumnValue '-12345.678901234-foo'
             fail 'should not make it here'
         }
         catch (IllegalArgumentException e)

@@ -32,7 +32,7 @@ import static org.junit.Assert.fail
 @CompileStatic
 class TestDecisionTable extends NCubeBaseTest
 {
-//    @Ignore
+    @Ignore
     @Test
     void testGetDecision()
     {
@@ -696,7 +696,8 @@ class TestDecisionTable extends NCubeBaseTest
         Set set = dt.validateDecisionTable()
         assert set.empty
         Map<Long, ?> map = dt.getDecision([age:70,salary:30000]) as Map
-        assertContainsIgnoreCase(map.toString(), '5','factor', '5.0')
+        String mapStr = map.toString()
+        assertContainsIgnoreCase(mapStr, '5','factor', '5.0')
     }
 
     @Test
