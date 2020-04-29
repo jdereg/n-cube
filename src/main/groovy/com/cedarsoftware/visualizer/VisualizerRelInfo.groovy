@@ -5,8 +5,8 @@ import com.cedarsoftware.ncube.Axis
 import com.cedarsoftware.ncube.Column
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeRuntimeClient
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCILinkedMap
 import groovy.transform.CompileStatic
 
 import static com.cedarsoftware.visualizer.VisualizerConstants.*
@@ -22,15 +22,15 @@ class VisualizerRelInfo
 	protected static NCubeRuntimeClient runtimeClient
 	protected ApplicationID appId
 	protected List<String> nodeDetailsMessages = []
-	protected Map<String, Object> availableTargetScope = new CaseInsensitiveMap()
-	protected Map<String, Set<Object>> availableScopeValues = new CaseInsensitiveMap()
-	protected Map<String, Set<String>> scopeCubeNames = new CaseInsensitiveMap()
+	protected Map<String, Object> availableTargetScope = new CompactCILinkedMap()
+	protected Map<String, Set<Object>> availableScopeValues = new CompactCILinkedMap()
+	protected Map<String, Set<String>> scopeCubeNames = new CompactCILinkedMap()
 
 	protected boolean showingHidingCellValues
 
 	protected long targetId
 	protected NCube targetCube
-	protected Map<String, Object> targetScope = new CaseInsensitiveMap()
+	protected Map<String, Object> targetScope = new CompactCILinkedMap()
 	protected long targetLevel
 	protected String nodeLabelPrefix = ''
 
@@ -73,7 +73,7 @@ class VisualizerRelInfo
 		String sourceCubeName = selectedNode.sourceCubeName as String
 		sourceCube = sourceCubeName ? runtimeClient.getCube(appId, sourceCubeName) : null
 		sourceFieldName = selectedNode.fromFieldName as String
-		sourceScope = selectedNode.sourceScope as CaseInsensitiveMap
+		sourceScope = selectedNode.sourceScope as CompactCILinkedMap
 		sourceTrail = selectedNode.sourceTrail as List
 		sourceId = selectedNode.sourceId as Long
 		targetId = Long.valueOf(selectedNode.id as String)
@@ -82,17 +82,17 @@ class VisualizerRelInfo
 		showCellValuesLink = selectedNode.showCellValuesLink as boolean
 		cubeLoaded = selectedNode.cubeLoaded as boolean
 		typesToAdd = selectedNode.typesToAdd as List
-		visInfo.inputScope = new CaseInsensitiveMap(selectedNode.availableScope as Map)
-		targetScope = selectedNode.scope as CaseInsensitiveMap ?:  new CaseInsensitiveMap()
-		availableTargetScope = selectedNode.availableScope as CaseInsensitiveMap ?:  new CaseInsensitiveMap()
-		availableScopeValues = selectedNode.availableScopeValues as CaseInsensitiveMap ?:  new CaseInsensitiveMap()
+		visInfo.inputScope = new CompactCILinkedMap(selectedNode.availableScope as Map)
+		targetScope = selectedNode.scope as CompactCILinkedMap ?:  new CompactCILinkedMap()
+		availableTargetScope = selectedNode.availableScope as CompactCILinkedMap ?:  new CompactCILinkedMap()
+		availableScopeValues = selectedNode.availableScopeValues as CompactCILinkedMap ?:  new CompactCILinkedMap()
 		showingHidingCellValues = selectedNode.showingHidingCellValues as boolean
 
 		//If in the process of showing/hiding cell values, then the supplied scope, available scope values and scope
 		//cube names are used to load cell values.
 		if (showingHidingCellValues)
 		{
-			scopeCubeNames = selectedNode.scopeCubeNames as CaseInsensitiveMap ?:  new CaseInsensitiveMap()
+			scopeCubeNames = selectedNode.scopeCubeNames as CompactCILinkedMap ?:  new CompactCILinkedMap()
 		}
 		//Else, node details are being loaded for the node or a scope change is being applied to the node. In this case,
 		//clear out any available target scope that is derived scope. This will result in the node being
@@ -106,8 +106,8 @@ class VisualizerRelInfo
 					availableTargetScope.remove(scopeKey)
 				}
 			}
-			availableScopeValues = new CaseInsensitiveMap()
-			scopeCubeNames = new CaseInsensitiveMap()
+			availableScopeValues = new CompactCILinkedMap()
+			scopeCubeNames = new CompactCILinkedMap()
 		}
 		populateScopeDefaults(visInfo)
 	}
@@ -120,7 +120,7 @@ class VisualizerRelInfo
 		{
 			Map<Set<Long>, Object> cellMap = (Map<Set<Long>, Object>) targetCube.cellMap
 			cellMap.each { Set<Long> ids, Object noExecuteCell ->
-				Map<String, Object> coordinate = availableTargetScope as CaseInsensitiveMap ?: new CaseInsensitiveMap()
+				Map<String, Object> coordinate = availableTargetScope as CompactCILinkedMap ?: new CompactCILinkedMap()
 				coordinate.putAll(targetCube.getCoordinateFromIds(ids))
 				VisualizerCellInfo visCellInfo = new VisualizerCellInfo(runtimeClient, appId, String.valueOf(targetId), coordinate)
 				try
@@ -143,7 +143,7 @@ class VisualizerRelInfo
 
 	protected Set<String> getRequiredScope()
 	{
-		return targetCube.getRequiredScope(availableTargetScope, new CaseInsensitiveMap())
+		return targetCube.getRequiredScope(availableTargetScope, new CompactCILinkedMap())
 	}
 
 	protected String getDetails(VisualizerInfo visInfo)
@@ -322,8 +322,8 @@ class VisualizerRelInfo
 
 	protected void addNodeScope(String cubeName, String scopeKey, boolean optional = false, boolean skipAvailableScopeValues = false, Map coordinate = null)
 	{
-		availableScopeValues = availableScopeValues ?: new CaseInsensitiveMap<String, Set<Object>>()
-		scopeCubeNames = scopeCubeNames ?: new CaseInsensitiveMap<String, Set<String>>()
+		availableScopeValues = availableScopeValues ?: new CompactCILinkedMap<String, Set<Object>>()
+		scopeCubeNames = scopeCubeNames ?: new CompactCILinkedMap<String, Set<String>>()
 		addAvailableValues(cubeName, scopeKey, optional, skipAvailableScopeValues, coordinate)
 		addCubeNames(scopeKey, cubeName)
 	}
@@ -385,8 +385,8 @@ class VisualizerRelInfo
 
 	protected String createNodeDetailsScopeMessage(VisualizerInfo visInfo)
 	{
-		availableScopeValues =  availableScopeValues ?: new CaseInsensitiveMap<String, Set<Object>> ()
-		scopeCubeNames = scopeCubeNames ?: new CaseInsensitiveMap<String, Set<String>> ()
+		availableScopeValues =  availableScopeValues ?: new CompactCILinkedMap<String, Set<Object>> ()
+		scopeCubeNames = scopeCubeNames ?: new CompactCILinkedMap<String, Set<String>> ()
 
 		StringBuilder sb = new StringBuilder()
 		sb.append(nodeDetailsMessageSet)

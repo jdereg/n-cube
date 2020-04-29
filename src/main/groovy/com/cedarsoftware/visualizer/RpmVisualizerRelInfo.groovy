@@ -6,8 +6,8 @@ import com.cedarsoftware.ncube.NCubeRuntimeClient
 import com.cedarsoftware.ncube.RuleInfo
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.google.common.base.Splitter
 import groovy.transform.CompileStatic
@@ -50,7 +50,7 @@ class RpmVisualizerRelInfo extends VisualizerRelInfo implements RpmVisualizerCon
 	protected initSelectedNode(VisualizerInfo visInfo, Map selectedNode)
 	{
 		super.initSelectedNode(visInfo, selectedNode)
-		targetScope = new CaseInsensitiveMap()
+		targetScope = new CompactCILinkedMap()
 		sourceTraits = selectedNode.sourceTraits as Map
 		sourceFieldRpmType = selectedNode.sourceFieldRpmType as String
 	}
@@ -183,7 +183,7 @@ class RpmVisualizerRelInfo extends VisualizerRelInfo implements RpmVisualizerCon
 		Set keysUsed = NCube.getRuleInfo(output).getInputKeysUsed()
 		scopeCollector.addAll(keysUsed)
 
-		Map<String, Object> scope = new CaseInsensitiveMap(availableTargetScope)
+		Map<String, Object> scope = new CompactCILinkedMap(availableTargetScope)
 		cullScope(scope.keySet(), scopeCollector)
 		targetScope.putAll(scope)
 	}
@@ -354,7 +354,7 @@ class RpmVisualizerRelInfo extends VisualizerRelInfo implements RpmVisualizerCon
 	 * @return boolean cubeLoaded
 	 */
 
-	protected boolean loadCube(VisualizerInfo visInfo, Map output = new CaseInsensitiveMap())
+	protected boolean loadCube(VisualizerInfo visInfo, Map output = new CompactCILinkedMap())
 	{
 		if (!canLoadTarget())
 		{
@@ -364,7 +364,7 @@ class RpmVisualizerRelInfo extends VisualizerRelInfo implements RpmVisualizerCon
 		loadAgain = false
 		try
 		{
-			targetTraits = new CaseInsensitiveMap()
+			targetTraits = new CompactCILinkedMap()
 			if (targetCube.name.startsWith(RPM_ENUM))
 			{
 				helper.loadRpmClassFields(appId, RPM_ENUM, targetCube.name - RPM_ENUM_DOT, availableTargetScope, targetTraits, showCellValues, output)
@@ -419,7 +419,7 @@ class RpmVisualizerRelInfo extends VisualizerRelInfo implements RpmVisualizerCon
 			if (!classTraitsCube.getAxis(sourceFieldRpmType).findColumn(sourceFieldName))
 			{
 				nodeLabelPrefix = 'Unable to load '
-				targetTraits = new CaseInsensitiveMap()
+				targetTraits = new CompactCILinkedMap()
 				nodeDetailsMessages << getCannotLoadTargetMessage(sourceFieldRpmType)
 				cubeLoaded = false
 				showCellValuesLink = false
@@ -453,7 +453,7 @@ class RpmVisualizerRelInfo extends VisualizerRelInfo implements RpmVisualizerCon
 		message.append(sb)
 		nodeDetailsMessages << message.toString()
 		nodeLabelPrefix = 'Required scope value not found for '
-		targetTraits = new CaseInsensitiveMap()
+		targetTraits = new CompactCILinkedMap()
 	}
 
 	private void handleInvalidCoordinateException(InvalidCoordinateException e, VisualizerInfo visInfo)
@@ -468,7 +468,7 @@ class RpmVisualizerRelInfo extends VisualizerRelInfo implements RpmVisualizerCon
 		message.append(sb)
 		nodeDetailsMessages << message.toString()
 		nodeLabelPrefix = 'Additional scope required for '
-		targetTraits = new CaseInsensitiveMap()
+		targetTraits = new CompactCILinkedMap()
 	}
 
 	private void handleException(Throwable e, VisualizerInfo visInfo)
@@ -477,7 +477,7 @@ class RpmVisualizerRelInfo extends VisualizerRelInfo implements RpmVisualizerCon
 		sb.append(helper.handleException(e))
 		nodeDetailsMessages << sb.toString()
 		nodeLabelPrefix = "Unable to load "
-		targetTraits = new CaseInsensitiveMap()
+		targetTraits = new CompactCILinkedMap()
 	}
 
 	/**
@@ -495,7 +495,7 @@ class RpmVisualizerRelInfo extends VisualizerRelInfo implements RpmVisualizerCon
 	 */
 	protected void populateScopeRelativeToSource(String sourceFieldRpmType, String targetFieldName, Map scope)
 	{
-		availableTargetScope = new CaseInsensitiveMap(scope)
+		availableTargetScope = new CompactCILinkedMap(scope)
 
 		if (targetCube.name.startsWith(RPM_ENUM))
 		{
@@ -516,7 +516,7 @@ class RpmVisualizerRelInfo extends VisualizerRelInfo implements RpmVisualizerCon
 	@Override
 	protected void populateScopeDefaults(VisualizerInfo visInfo)
 	{
-		Map<String, Object> scopeDefaults = new CaseInsensitiveMap()
+		Map<String, Object> scopeDefaults = new CompactCILinkedMap()
 		String scopeValue = visInfo.inputScope[EFFECTIVE_VERSION] ?: appId.version
 		addScopeDefault(scopeDefaults, EFFECTIVE_VERSION, scopeValue)
 

@@ -20,7 +20,7 @@ import com.cedarsoftware.ncube.ReleaseStatus
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.servlet.JsonCommandServlet
 import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.InetAddressUtilities
 import com.cedarsoftware.util.ThreadAwarePrintStream
 import com.cedarsoftware.util.ThreadAwarePrintStreamErr
@@ -43,7 +43,9 @@ import java.util.regex.Pattern
 
 import static com.cedarsoftware.ncube.NCubeAppContext.testServer
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
-import static com.cedarsoftware.util.Converter.*
+import static com.cedarsoftware.util.Converter.convertToDate
+import static com.cedarsoftware.util.Converter.convertToLong
+import static com.cedarsoftware.util.Converter.convertToString
 import static com.cedarsoftware.util.StringUtilities.isEmpty
 
 /**
@@ -958,7 +960,7 @@ class NCubeController implements NCubeConstants
 
         Set<String> items = ncube.getRequiredScope([:], [:])
 
-        Map<String, CellInfo> coords = new CaseInsensitiveMap<>()
+        Map<String, CellInfo> coords = new CompactCILinkedMap<>()
         if (items?.size())
         {
             for (String s : items)

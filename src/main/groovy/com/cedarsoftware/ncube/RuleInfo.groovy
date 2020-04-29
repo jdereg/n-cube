@@ -1,7 +1,7 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCILinkedMap
 import groovy.transform.CompileStatic
 
 /**
@@ -24,7 +24,7 @@ import groovy.transform.CompileStatic
  *         limitations under the License.
  */
 @CompileStatic
-class RuleInfo extends CaseInsensitiveMap<String, Object>
+class RuleInfo extends CompactCILinkedMap<String, Object>
 {
     // Convert Enums to String constants for performance gain
     public static final String RULES_EXECUTED = 'RULES_EXECUTED'
@@ -198,7 +198,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
      */
     Map<String, Map<String, Set<Object>>> getUnboundAxesMap()
     {
-        Map<String, Map<String, Set<Object>>> unBoundAxesMap = new CaseInsensitiveMap<>()
+        Map<String, Map<String, Set<Object>>> unBoundAxesMap = new CompactCILinkedMap<>()
         unboundAxesList.each { MapEntry entry ->
             String cubeName = entry.key
             MapEntry axisBinding = entry.value as MapEntry
@@ -207,7 +207,7 @@ class RuleInfo extends CaseInsensitiveMap<String, Object>
             Map<String, Set<Object>> axisMap = unBoundAxesMap[cubeName]
             if (axisMap == null)
             {
-                axisMap = new CaseInsensitiveMap<>()
+                axisMap = new CompactCILinkedMap<>()
                 unBoundAxesMap[cubeName] = axisMap
             }
 

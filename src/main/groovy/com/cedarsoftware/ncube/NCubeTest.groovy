@@ -1,7 +1,7 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCILinkedMap
 import groovy.transform.CompileStatic
 
 /**
@@ -34,7 +34,7 @@ class NCubeTest
     NCubeTest(String name, Map<String, CellInfo> input, CellInfo[] expected)
     {
         this.name = name
-        coord = new CaseInsensitiveMap<>(input)
+        coord = new CompactCILinkedMap<>(input)
         this.expected = expected
     }
 
@@ -47,7 +47,7 @@ class NCubeTest
     {
         List<String> inputs = new ArrayList(new CaseInsensitiveSet<>(coord.keySet()))
         Collections.sort(inputs)
-        Map<String, CellInfo> retCoord = new CaseInsensitiveMap<>()
+        Map<String, CellInfo> retCoord = new CompactCILinkedMap<>()
         for (String key : inputs)
         {
             retCoord[key] = coord[key]
@@ -57,7 +57,7 @@ class NCubeTest
 
     Map<String, Object> getCoordWithValues()
     {
-        Map<String, Object> actuals = new CaseInsensitiveMap<>()
+        Map<String, Object> actuals = new CompactCILinkedMap<>()
         for (item in coord)
         {
             Map.Entry entry = item

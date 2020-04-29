@@ -3,7 +3,7 @@ package com.cedarsoftware.visualizer
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeRuntimeClient
-import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.google.common.base.Joiner
 import groovy.transform.CompileStatic
 
@@ -90,7 +90,7 @@ class Visualizer
 		appId = applicationID
 		VisualizerInfo visInfo = options.visInfo as VisualizerInfo
 		Map selectedNode = visInfo.nodes[visInfo.selectedNodeId]
-		visInfo.inputScope = selectedNode.availableScope as CaseInsensitiveMap
+		visInfo.inputScope = selectedNode.availableScope as CompactCILinkedMap
 		VisualizerRelInfo relInfo = visualizerRelInfo
 		relInfo.initSelectedNode(visInfo, selectedNode)
 		return loadNodeDetails(visInfo, relInfo, selectedNode)
@@ -182,13 +182,13 @@ class Visualizer
 				nextRelInfo.targetId = visInfo.nodeIdCounter
 				nextRelInfo.targetCube = nextTargetCube
 				nextRelInfo.sourceCube = relInfo.targetCube
-				nextRelInfo.sourceScope = new CaseInsensitiveMap(relInfo.targetScope)
+				nextRelInfo.sourceScope = new CompactCILinkedMap(relInfo.targetScope)
 				nextRelInfo.sourceId = relInfo.targetId
 				nextRelInfo.sourceTrail = new ArrayList(relInfo.sourceTrail)
 		 		nextRelInfo.sourceTrail << relInfo.targetId
 				nextRelInfo.sourceFieldName = mapJoiner.join(coordinates)
-				nextRelInfo.targetScope = new CaseInsensitiveMap(coordinates)
-				nextRelInfo.availableTargetScope = new CaseInsensitiveMap(relInfo.availableTargetScope)
+				nextRelInfo.targetScope = new CompactCILinkedMap(coordinates)
+				nextRelInfo.availableTargetScope = new CompactCILinkedMap(relInfo.availableTargetScope)
 				nextRelInfo.availableTargetScope.putAll(coordinates)
 				nextRelInfo.addRequiredScopeKeys(visInfo)
 				nextRelInfo.showCellValuesLink = true

@@ -1,7 +1,7 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCILinkedMap
 import groovy.transform.CompileStatic
 
 import static com.cedarsoftware.util.DeepEquals.deepEquals
@@ -92,7 +92,7 @@ class DeltaProcessor
             return null
         }
 
-        Map<String, Map<String, Object>> metaDeltaMap = new CaseInsensitiveMap<>()
+        Map<String, Map<String, Object>> metaDeltaMap = new CompactCILinkedMap<>()
         delta[DELTA_NCUBE] = metaDeltaMap
         List<Delta> metaChanges = compareMetaProperties(baseCube.metaProperties, changeCube.metaProperties, Delta.Location.NCUBE_META, "ncube: ${changeCube.name}", changeCube.name)
         for (Delta delta1 : metaChanges)
@@ -113,11 +113,11 @@ class DeltaProcessor
         }
 
         // Build axis differences
-        Map<String, Map<String, Object>> axisDeltaMap = new CaseInsensitiveMap<>()
+        Map<String, Map<String, Object>> axisDeltaMap = new CompactCILinkedMap<>()
         delta[DELTA_AXES] = axisDeltaMap
 
         // Build column differences per axis
-        Map<String, Map<Comparable, ColumnDelta>> colDeltaMap = new CaseInsensitiveMap<>()
+        Map<String, Map<Comparable, ColumnDelta>> colDeltaMap = new CompactCILinkedMap<>()
         delta[DELTA_AXES_COLUMNS] = colDeltaMap
 
         for (Axis baseAxis : baseCube.axes)
@@ -582,7 +582,7 @@ class DeltaProcessor
      */
     private static Map<Comparable, ColumnDelta> getColumnDelta(Axis baseAxis, Axis changeAxis)
     {
-        Map<Comparable, ColumnDelta> deltaColumns = new CaseInsensitiveMap<>()
+        Map<Comparable, ColumnDelta> deltaColumns = new CompactCILinkedMap<>()
         Map<Comparable, Column> copyColumns = [:]
 
         for (Column baseColumn : baseAxis.columnsWithoutDefault)
@@ -721,7 +721,7 @@ class DeltaProcessor
     {
         List<NCubeTest> newCubeTests = newCube.testData
         List<NCubeTest> oldCubeTests = oldCube.testData
-        Map<String, Map<String, Delta>> deltaMap = new CaseInsensitiveMap()
+        Map<String, Map<String, Delta>> deltaMap = new CompactCILinkedMap()
         if (!newCubeTests && !oldCubeTests)
         {
             return deltaMap
@@ -737,7 +737,7 @@ class DeltaProcessor
 
             if (oldCubeTest)
             {   // has the same test
-                Map<String, Delta> testDeltaMap = new CaseInsensitiveMap()
+                Map<String, Delta> testDeltaMap = new CompactCILinkedMap()
 
                 // coords
                 Map<String, CellInfo> oldTestCoords = oldCubeTest.coord

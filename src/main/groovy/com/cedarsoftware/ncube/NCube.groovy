@@ -12,8 +12,9 @@ import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.CellMap
 import com.cedarsoftware.util.AdjustableGZIPOutputStream
 import com.cedarsoftware.util.ByteUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCIHashMap
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.LongHashSet
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.TrackingMap
@@ -102,12 +103,12 @@ class NCube<T>
 
     private String name
     private String sha1
-    private final Map<String, Axis> axisList = new CaseInsensitiveMap<>()
+    private final Map<String, Axis> axisList = new CompactCILinkedMap<>()
     private final Map<Long, Axis> idToAxis = new Long2ObjectOpenHashMap<>()
     protected final Map<Set<Long>, T> cells = new CellMap<T>()
     private T defaultCellValue
     private final Map<String, Advice> advices = [:]
-    private Map<String, Object> metaProps = new CaseInsensitiveMap<>()
+    private Map<String, Object> metaProps = new CompactCILinkedMap<>()
     private static ConcurrentMap primitives = new ConcurrentHashMap()
     //  Sets up the defaultApplicationId for cubes loaded in from disk.
     private transient ApplicationID appId = ApplicationID.testAppId
@@ -1227,8 +1228,8 @@ class NCube<T>
         trackInputKeysUsed(commandInput, output)
 
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
-        final Map matchingRows = isRowCISTRING ? new CaseInsensitiveMap<>() : [:]
-        final Map whereVars = isColCISTRING ? new CaseInsensitiveMap<>(input) : new LinkedHashMap<>(input)
+        final Map matchingRows = isRowCISTRING ? new CompactCILinkedMap<>() : [:]
+        final Map whereVars = isColCISTRING ? new CompactCILinkedMap<>(input) : new LinkedHashMap<>(input)
 
         Collection<Column> rowColumns
         Object rowAxisValue = input.get(rowAxisName)
@@ -1290,7 +1291,7 @@ class NCube<T>
                 }
 
                 String axisName = colAxis.name
-                Map result = isColCISTRING ? new CaseInsensitiveMap<>() : [:]
+                Map result = isColCISTRING ? new CompactCILinkedMap<>() : [:]
                 for (Column column : selectList)
                 {
                     def colValue = isColDiscrete ? column.value : column.columnName
@@ -1362,8 +1363,8 @@ class NCube<T>
         Set columnsToSearch = (Set)options[MAP_REDUCE_COLUMNS_TO_SEARCH]
         Set columnsToReturn = (Set)options[MAP_REDUCE_COLUMNS_TO_RETURN]
 
-        Map commandOpts = new TrackingMap<>(new CaseInsensitiveMap(options))
-        commandOpts.input = new TrackingMap<>(new CaseInsensitiveMap(input))
+        Map commandOpts = new TrackingMap<>(new CompactCILinkedMap(options))
+        commandOpts.input = new TrackingMap<>(new CompactCILinkedMap(input))
         commandOpts.selectList = selectColumns(colAxis, columnsToReturn)
         commandOpts.whereColumns = selectColumns(colAxis, columnsToSearch)
         commandOpts.put(MAP_REDUCE_SHOULD_EXECUTE, options.get(MAP_REDUCE_SHOULD_EXECUTE) == null ? true : options.get(MAP_REDUCE_SHOULD_EXECUTE))
@@ -1632,7 +1633,7 @@ class NCube<T>
     private Map<String, List<Column>> selectColumns(Map<String, Object> input, Map output, boolean multiRule = true)
     {
         Map<String, List<Column>> empty = (Map)Collections.emptyMap()
-        Map<String, List<Column>> bindings = new CaseInsensitiveMap<>(empty, new HashMap<>(axisList.size()))
+        Map<String, List<Column>> bindings = new CompactCIHashMap<>()
         for (entry in axisList.entrySet())
         {
             final String axisName = entry.key
@@ -1713,7 +1714,7 @@ class NCube<T>
 
     private static Map<String, Integer> getCountersPerAxis(final String[] axisNames)
     {
-        final Map<String, Integer> counters = new CaseInsensitiveMap<>(axisNames.length)
+        final Map<String, Integer> counters = new CompactCIHashMap<>()
 
         // Set counters to 1
         for (axisName in axisNames)
@@ -1824,7 +1825,7 @@ class NCube<T>
      */
     Object[] getCells(Object[] idArrays, Map input, Map output = [:], Object defaultValue = null)
     {
-        final Map commandInput = new TrackingMap<>(new CaseInsensitiveMap(input ?: [:]))
+        final Map commandInput = new TrackingMap<>(new CompactCILinkedMap(input ?: [:]))
 
         Object[] ret = new Object[idArrays.length]
         int idx = 0
@@ -1911,7 +1912,7 @@ class NCube<T>
         {
             final Collection<Field> fields = getDeepDeclaredFields(o.class)
             final Iterator<Field> i = fields.iterator()
-            final Map newCoord = new CaseInsensitiveMap<>()
+            final Map newCoord = new CompactCILinkedMap<>()
 
             while (i.hasNext())
             {
@@ -2034,17 +2035,17 @@ class NCube<T>
      * stored within in NCube.  The returned Set is the 'key' of NCube's cells Map, which
      * maps a coordinate (Set of column IDs) to the cell value.
      */
-    Set<Long> getCoordinateKey(final Map coordinate, Map output = new CaseInsensitiveMap())
+    Set<Long> getCoordinateKey(final Map coordinate, Map output = new CompactCILinkedMap())
     {
         Map safeCoord
 
-        if (coordinate instanceof TrackingMap || coordinate instanceof CaseInsensitiveMap)
+        if (coordinate instanceof TrackingMap || coordinate instanceof CompactCILinkedMap)
         {
             safeCoord = coordinate
         }
         else
         {
-            safeCoord = (coordinate == null) ? new CaseInsensitiveMap<>() : new CaseInsensitiveMap<>(coordinate)
+            safeCoord = (coordinate == null) ? new CompactCILinkedMap<>() : new CompactCILinkedMap<>(coordinate)
         }
 
         Map<String, List<Column>> bindings = selectColumns(safeCoord, output, false)
@@ -2105,8 +2106,8 @@ class NCube<T>
     }
 
     /**
-     * Ensure the input coordinate Map is in the structure of TrackingMap --> CaseInsensitiveMap --> MapEntries.
-     * If not, the passed in Map will be converted to a CaseInsensitiveMap, wrapped by a TrackingMap.
+     * Ensure the input coordinate Map is in the structure of TrackingMap --> CompactCILinkedMap --> MapEntries.
+     * If not, the passed in Map will be converted to a CompactCILinkedMap, wrapped by a TrackingMap.
      * @param coordinate Map input coordinate
      * @return Map new input coordinate (if needed) or the original Map passed in.
      */
@@ -2115,16 +2116,16 @@ class NCube<T>
         if (coordinate instanceof TrackingMap)
         {
             TrackingMap trackingMap = (TrackingMap) coordinate
-            if (trackingMap.getWrappedMap() instanceof CaseInsensitiveMap)
+            if (trackingMap.getWrappedMap() instanceof CompactCILinkedMap)
             {   // Already wrapped (called from 'inside' - a GroovyExpression or GroovyTemplate using at() ,go(), or use()
                 return coordinate
             }
-            return new TrackingMap(new CaseInsensitiveMap<>(trackingMap.getWrappedMap()))
+            return new TrackingMap(new CompactCILinkedMap<>(trackingMap.getWrappedMap()))
         }
 
         // 1. Ensure the input coordinate Map is protected from overwrites.
         // 2. Ensure the input coordinate Map is case-insensitive.
-        return new TrackingMap(new CaseInsensitiveMap<>(coordinate))
+        return new TrackingMap(new CompactCILinkedMap<>(coordinate))
     }
 
     /**
@@ -3222,7 +3223,7 @@ class NCube<T>
                             {
                                 throw new IllegalStateException("Expecting start object '{' for cell key but instead found: ${token}")
                             }
-                            keyMapId = new CaseInsensitiveMap<>()
+                            keyMapId = new CompactCILinkedMap<>()
                             token = parser.nextToken()
                             while (!parser.closed)
                             {
@@ -3555,7 +3556,7 @@ class NCube<T>
         NCube<T> ncube = new NCube('tmp')
         Map input = [
                 (PARSE_BASE_AXIS_ID): 1L,
-                (PARSE_USERID_TO_UNIQUE): new CaseInsensitiveMap(),
+                (PARSE_USERID_TO_UNIQUE): new CompactCILinkedMap(),
                 (PARSE_NCUBE_PROPS): [:],
                 (PARSE_AXIS_PROPS): [:],
                 (PARSE_COL_PROPS): [:],
@@ -4368,7 +4369,7 @@ class NCube<T>
      */
     Map<String, Object> getDisplayCoordinateFromIds(Set<Long> idCoord)
     {
-        Map<String, Object> properCoord = new CaseInsensitiveMap<>()
+        Map<String, Object> properCoord = new CompactCILinkedMap<>()
         for (colId in idCoord)
         {
             Axis axis = getAxisFromColumnId(colId)
@@ -4411,7 +4412,7 @@ class NCube<T>
      */
     Map<String, Object> getCoordinateFromIds(Set<Long> idCoord)
     {
-        Map<String, Object> coord = new CaseInsensitiveMap<>()
+        Map<String, Object> coord = new CompactCILinkedMap<>()
         for (colId in idCoord)
         {
             Axis axis = getAxisFromColumnId(colId)

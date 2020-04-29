@@ -6,8 +6,8 @@ import com.cedarsoftware.ncube.util.BranchComparator
 import com.cedarsoftware.ncube.util.GCacheManager
 import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
@@ -30,7 +30,11 @@ import static com.cedarsoftware.util.Converter.convertToDate
 import static com.cedarsoftware.util.Converter.convertToLong
 import static com.cedarsoftware.util.EncryptionUtilities.calculateSHA1Hash
 import static com.cedarsoftware.util.IOUtilities.uncompressBytes
-import static com.cedarsoftware.util.StringUtilities.*
+import static com.cedarsoftware.util.StringUtilities.createUTF8String
+import static com.cedarsoftware.util.StringUtilities.equalsIgnoreCase
+import static com.cedarsoftware.util.StringUtilities.hasContent
+import static com.cedarsoftware.util.StringUtilities.isEmpty
+import static com.cedarsoftware.util.StringUtilities.wildcardToRegexString
 import static com.cedarsoftware.util.UniqueIdGenerator.uniqueId
 import static java.lang.Math.abs
 
@@ -931,7 +935,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     @Transactional(readOnly = true)
     Map getAppTests(ApplicationID appId)
     {
-        Map ret = new CaseInsensitiveMap()
+        Map ret = new CompactCILinkedMap()
         ApplicationID.validateAppId(appId)
         Map appTests = persister.getAppTestData(appId, getUserId())
         for (Map.Entry cubeTest : appTests.entrySet())
@@ -1241,7 +1245,7 @@ transform app: ${transformApp}/${transformVersion}/${transformStatus}/${transfor
             String cubeName = axisRef.srcCubeName
             if (!appIdCubeNames.containsKey(appId))
             {
-                appIdCubeNames[appId] = new CaseInsensitiveMap<String, Set<AxisRef>>()
+                appIdCubeNames[appId] = new CompactCILinkedMap<String, Set<AxisRef>>()
             }
             if (!appIdCubeNames[appId].containsKey(cubeName))
             {
@@ -2054,7 +2058,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
 
         ApplicationID headAppId = appId.asHead()
         List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
-        Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>()
+        Map<String, NCubeInfoDto> branchRecordMap = new CompactCILinkedMap<>()
 
         for (NCubeInfoDto info : records)
         {
@@ -2193,7 +2197,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         assertPermissions(appId, null, Action.READ)
 
         ApplicationID headAppId = appId.asHead()
-        Map<String, NCubeInfoDto> headMap = new CaseInsensitiveMap<>()
+        Map<String, NCubeInfoDto> headMap = new CompactCILinkedMap<>()
 
         List<NCubeInfoDto> branchList = search(appId, null, null, [(SEARCH_CHANGED_RECORDS_ONLY):true])
         List<NCubeInfoDto> headList = search(headAppId, null, null, null)   // active and deleted
@@ -2300,7 +2304,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         assertPermissions(branchAppId, null, Action.READ)
 
         List<NCubeInfoDto> records = search(appId, null, null, [(SEARCH_ACTIVE_RECORDS_ONLY):false])
-        Map<String, NCubeInfoDto> branchRecordMap = new CaseInsensitiveMap<>()
+        Map<String, NCubeInfoDto> branchRecordMap = new CompactCILinkedMap<>()
 
         for (NCubeInfoDto info : records)
         {
@@ -2425,7 +2429,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         List<NCubeInfoDto> rejects = []
         List<NCubeInfoDto> finalUpdates
         long txId = uniqueId
-        Map<String, NCubeInfoDto> newDtos = new CaseInsensitiveMap<>()
+        Map<String, NCubeInfoDto> newDtos = new CompactCILinkedMap<>()
         List<NCubeInfoDto> newDtoList = getHeadChangesForBranch(appId)
         List<NCubeInfoDto> cubesToUpdate = []
         if (cubeDtos == null)
@@ -2943,7 +2947,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         else
         {
             List<NCubeInfoDto> cubesToUpdate = []
-            Map<String, NCubeInfoDto> newDtos = new CaseInsensitiveMap<>()
+            Map<String, NCubeInfoDto> newDtos = new CompactCILinkedMap<>()
             newDtoList.each { newDtos[it.name] = it }
             (inputCubes.toList() as List<NCubeInfoDto>).each { NCubeInfoDto oldDto ->
                 // make reject list by comparing with refresh records

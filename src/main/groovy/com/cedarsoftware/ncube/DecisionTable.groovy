@@ -1,7 +1,8 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCIHashMap
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.LongHashSet
 import com.cedarsoftware.util.StringUtilities
 import com.google.common.base.Splitter
@@ -62,7 +63,7 @@ class DecisionTable
     private Set<String> rangeColumns = new CaseInsensitiveSet<>()
     private Set<String> rangeKeys = new CaseInsensitiveSet<>()
     private Set<String> requiredColumns = new CaseInsensitiveSet<>()
-    private Map<String, Range> inputVarNameToRangeColumns = new CaseInsensitiveMap<>()
+    private Map<String, Range> inputVarNameToRangeColumns = new CompactCILinkedMap<>()
     private static final String BANG = '!'
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings()
 
@@ -109,8 +110,8 @@ class DecisionTable
      */
     Map<Comparable, ?> getDecision(Map<String, ?> input)
     {
-        Map<String, Map<String, ?>> ranges = new CaseInsensitiveMap<>()
-        Map<String, ?> copyInput = new CaseInsensitiveMap<>(input)
+        Map<String, Map<String, ?>> ranges = new CompactCILinkedMap<>()
+        Map<String, ?> copyInput = new CompactCILinkedMap<>(input)
         copyInput.keySet().retainAll(inputKeys)
         copyInput.put(IGNORE, null)
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
@@ -154,7 +155,7 @@ class DecisionTable
             colsToReturn.add(PRIORITY)
         }
 
-        Map<String, ?> closureInput = new CaseInsensitiveMap<>(input)
+        Map<String, ?> closureInput = new CompactCILinkedMap<>(input)
         closureInput.dvs = copyInput
 
         Map options = [
@@ -404,7 +405,7 @@ class DecisionTable
             throw new IllegalStateException("Decision table: ${decisionTable.name} field / property axis must have value type of CISTRING.  It is ${fieldAxis.valueType}")
         }
 
-        Map<String, RangeSpec> rangeSpecs = new CaseInsensitiveMap<>()
+        Map<String, RangeSpec> rangeSpecs = new CompactCILinkedMap<>()
         for (Column column : decisionTable.getAxis(fieldAxisName).columnsWithoutDefault)
         {
             Map colMetaProps = column.metaProperties
@@ -525,7 +526,7 @@ class DecisionTable
 
         // Convert all values in the table to the data_type specified on the column meta-property (if there is one)
         Axis rowAxis = decisionTable.getAxis(rowAxisName)
-        Map<String, ?> coord = new CaseInsensitiveMap<>()
+        Map<String, ?> coord = new CompactCILinkedMap<>()
         List<Column> rowColumns = rowAxis.columnsWithoutDefault
         Set<String> rangePlusOutputCols = new CaseInsensitiveSet<>(rangeColumns)
         rangePlusOutputCols.addAll(outputColumns)
@@ -580,7 +581,7 @@ class DecisionTable
     {
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         Axis rowAxis = decisionTable.getAxis(rowAxisName)
-        Map<String, ?> coord = new CaseInsensitiveMap<>()
+        Map<String, ?> coord = new CompactCILinkedMap<>()
 
         long ignoreColId = -1
         Column ignoreCol = fieldAxis.findColumn(IGNORE)
@@ -754,7 +755,7 @@ class DecisionTable
     private Set<Comparable> validateDecisionTableRows(NCube blowout, List<Column> rows)
     {
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
-        Map<String, Comparable> coord = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>())
+        Map<String, Comparable> coord = new CompactCIHashMap<>()
         Set<Comparable> badRows = new CaseInsensitiveSet<>()
         Column ignoreColumn = fieldAxis.findColumn(IGNORE)
         Column priorityColumn = fieldAxis.findColumn(PRIORITY)
@@ -914,7 +915,7 @@ class DecisionTable
      */
     private Map<String, Range> getRowRanges(Map<String, ?> coord, long rowId, int priority, Map<Range, Range> internedRanges, Map<Comparable, Comparable> primitives)
     {
-        Map<String, Range> ranges = new CaseInsensitiveMap<>()
+        Map<String, Range> ranges = new CompactCILinkedMap<>()
 
         for (String rangeName : rangeKeys)
         {
@@ -947,7 +948,7 @@ class DecisionTable
     private Map<String, List<Comparable>> getImpliedCells(NCube blowout, Column row, Axis fieldAxis, Set<String> colsToProcess)
     {
         Map<String, List<Comparable>> bindings = new Object2ObjectOpenHashMap()
-        Map<String, ?> coord = new CaseInsensitiveMap<>()
+        Map<String, ?> coord = new CompactCILinkedMap<>()
         coord.put(rowAxisName, row.value)
 
         for (String colValue : colsToProcess)
@@ -1071,7 +1072,7 @@ class DecisionTable
         }
         else
         {
-            spec = new CaseInsensitiveMap<>()
+            spec = new CompactCILinkedMap<>()
             ranges.put(inputVarName, spec)
         }
         return spec

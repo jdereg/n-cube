@@ -11,7 +11,7 @@ import com.cedarsoftware.ncube.RangeSet
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
-import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 
@@ -68,7 +68,7 @@ class HtmlFormatter implements NCubeFormatter
         {
             _headers = [] as String[]
         }
-        Map<String, Object> headerStrings = new CaseInsensitiveMap()
+        Map<String, Object> headerStrings = new CompactCILinkedMap()
         for (String header : _headers)
         {
             headerStrings[header] = null

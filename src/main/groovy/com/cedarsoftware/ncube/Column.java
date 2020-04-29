@@ -1,7 +1,7 @@
 package com.cedarsoftware.ncube;
 
 import com.cedarsoftware.ncube.proximity.Distance;
-import com.cedarsoftware.util.CaseInsensitiveMap;
+import com.cedarsoftware.util.CompactCILinkedMap;
 
 import java.util.Collections;
 import java.util.Map;
@@ -99,7 +99,7 @@ public class Column implements Comparable<Comparable>
      */
     public Map<String, Object> getMetaProperties()
     {
-        Map ret = metaProps == null ? new CaseInsensitiveMap() : metaProps;
+        Map ret = metaProps == null ? new CompactCILinkedMap() : metaProps;
         return Collections.unmodifiableMap(ret);
     }
 
@@ -128,7 +128,7 @@ public class Column implements Comparable<Comparable>
     {
         if (metaProps == null)
         {
-            metaProps = new CaseInsensitiveMap<>();
+            metaProps = new CompactCILinkedMap<>();
         }
         return metaProps.put(key, metaPropValue);
     }
@@ -160,7 +160,7 @@ public class Column implements Comparable<Comparable>
     {
         if (metaProps == null)
         {
-            metaProps = new CaseInsensitiveMap<>();
+            metaProps = new CompactCILinkedMap<>();
         }
         metaProps.putAll(allAtOnce);
     }

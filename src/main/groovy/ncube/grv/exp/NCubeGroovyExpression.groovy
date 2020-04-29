@@ -10,8 +10,8 @@ import com.cedarsoftware.ncube.NCubeMutableClient
 import com.cedarsoftware.ncube.NCubeRuntimeClient
 import com.cedarsoftware.ncube.exception.RuleJump
 import com.cedarsoftware.ncube.exception.RuleStop
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.TrackingMap
 import groovy.transform.CompileStatic
 
@@ -298,7 +298,7 @@ class NCubeGroovyExpression
 
     private Map dupe(Map map)
     {
-        return new CaseInsensitiveMap(map)
+        return new CompactCILinkedMap(map)
     }
 
     /**

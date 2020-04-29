@@ -1,6 +1,6 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CompactCILinkedMap
 import groovy.transform.CompileStatic
 
 import static com.cedarsoftware.util.StringUtilities.hasContent
@@ -31,7 +31,7 @@ class Binding
 {
     private final String cubeName
     private final int depth
-    private final Map<String, Column> coord = new CaseInsensitiveMap<>()
+    private final Map<String, Column> coord = new CompactCILinkedMap<>()
     private final Set<Long> idCoord = new LinkedHashSet<>()
     private Object value
     private static final String newLine = "\n"

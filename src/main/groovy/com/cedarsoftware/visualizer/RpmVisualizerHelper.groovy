@@ -6,8 +6,8 @@ import com.cedarsoftware.ncube.Column
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeRuntimeClient
 import com.cedarsoftware.ncube.exception.InvalidCoordinateException
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCILinkedMap
 import groovy.transform.CompileStatic
 
 import java.util.regex.Matcher
@@ -256,7 +256,7 @@ class RpmVisualizerHelper extends VisualizerHelper
 						classType, className, Arrays.toString(visited.toArray())))
             }
 
-			Map<String,Object> coord = new CaseInsensitiveMap<>(scope)
+			Map<String,Object> coord = new CompactCILinkedMap<>(scope)
             coord.put(axisName,masterField)
             List<String> traitNames = getTraitNamesForCube(masterCube, (String) scope.get(EFFECTIVE_VERSION_SCOPE_KEY))
             loadTraitsForField(masterCube, traitNames, traits, coord, output)

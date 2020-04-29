@@ -1,6 +1,6 @@
 package com.cedarsoftware.ncube
 
-import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CompactCILinkedMap
 import groovy.transform.CompileStatic
 
 /**
@@ -23,7 +23,7 @@ import groovy.transform.CompileStatic
  *         limitations under the License.
  */
 @CompileStatic
-class CompileInfo extends CaseInsensitiveMap<String, Object>
+class CompileInfo extends CompactCILinkedMap<String, Object>
 {
     public static final String EXCEPTIONS = 'EXCEPTIONS'
     public static final String CUBE_NAME = 'CUBE_NAME'

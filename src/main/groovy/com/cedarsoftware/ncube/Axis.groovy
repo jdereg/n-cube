@@ -4,7 +4,8 @@ import com.cedarsoftware.ncube.exception.AxisOverlapException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point3D
-import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CompactCIHashMap
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.io.JsonReader
 import com.google.common.collect.RangeMap
@@ -79,7 +80,7 @@ class Axis
 
     // Internal indexes
     private final transient Map<Long, Column> idToCol = new Long2ObjectOpenHashMap<>()
-    private final transient Map<String, Column> colNameToCol = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>())
+    private final transient Map<String, Column> colNameToCol = new CompactCIHashMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new Int2ObjectRBTreeMap<>()
     private transient SortedMap<Comparable, Column> valueToCol
     protected transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()
@@ -416,7 +417,7 @@ class Axis
      */
     Map<String, Object> getMetaProperties()
     {
-        Map<String, Object> ret = metaProps == null ? new CaseInsensitiveMap<String, Object>() : metaProps
+        Map<String, Object> ret = metaProps == null ? new CompactCILinkedMap<String, Object>() : metaProps
         return Collections.unmodifiableMap(ret)
     }
 
@@ -430,7 +431,7 @@ class Axis
     {
         if (metaProps == null)
         {
-            metaProps = new CaseInsensitiveMap<>()
+            metaProps = new CompactCILinkedMap<>()
         }
         return metaProps.put(key, value)
     }
@@ -468,7 +469,7 @@ class Axis
     {
         if (metaProps == null)
         {
-            metaProps = new CaseInsensitiveMap<>()
+            metaProps = new CompactCILinkedMap<>()
         }
         metaProps.putAll(props)
     }
@@ -519,7 +520,7 @@ class Axis
         // 1: Index columns by ID
         idToCol.put(column.id, column)
 
-        // 2: Index columns by name (if they have one) - held in CaseInsensitiveMap
+        // 2: Index columns by name (if they have one) - held in CompactCILinkedMap
         String colName = column.columnName
         if (hasContent(colName))
         {

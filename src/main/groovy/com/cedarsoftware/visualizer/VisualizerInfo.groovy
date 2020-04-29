@@ -3,8 +3,8 @@ package com.cedarsoftware.visualizer
 import com.cedarsoftware.ncube.ApplicationID
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeRuntimeClient
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCILinkedMap
 import groovy.transform.CompileStatic
 
 import static com.cedarsoftware.visualizer.VisualizerConstants.*
@@ -56,7 +56,7 @@ class VisualizerInfo
 
     protected void init(Map options = null)
     {
-        inputScope = options?.scope as CaseInsensitiveMap ?: new CaseInsensitiveMap()
+        inputScope = options?.scope as CompactCILinkedMap ?: new CompactCILinkedMap()
         messages = new LinkedHashSet()
         nodes = [:]
         edges = [:]

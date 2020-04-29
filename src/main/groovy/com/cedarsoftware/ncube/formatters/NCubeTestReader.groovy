@@ -3,7 +3,7 @@ package com.cedarsoftware.ncube.formatters
 import com.cedarsoftware.ncube.CellInfo
 import com.cedarsoftware.ncube.NCubeTest
 import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonReader
 import groovy.transform.CompileStatic
@@ -56,7 +56,7 @@ class NCubeTestReader
 
     static Map<String, CellInfo> createCoord(Object[] inputs)
     {
-        Map<String, CellInfo> coord = new CaseInsensitiveMap<>()
+        Map<String, CellInfo> coord = new CompactCILinkedMap<>()
         if (ArrayUtilities.isEmpty(inputs))
         {
             return coord

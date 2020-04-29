@@ -4,8 +4,8 @@ import com.cedarsoftware.ncube.formatters.JsonFormatter
 import com.cedarsoftware.ncube.formatters.NCubeTestReader
 import com.cedarsoftware.util.AdjustableGZIPOutputStream
 import com.cedarsoftware.util.ArrayUtilities
-import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.SafeSimpleDateFormat
 import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
@@ -25,9 +25,18 @@ import java.util.regex.Pattern
 import java.util.zip.Deflater
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
-import static com.cedarsoftware.util.Converter.*
+import static com.cedarsoftware.util.Converter.convertToBoolean
+import static com.cedarsoftware.util.Converter.convertToDate
+import static com.cedarsoftware.util.Converter.convertToLong
+import static com.cedarsoftware.util.Converter.convertToString
+import static com.cedarsoftware.util.Converter.convertToTimestamp
 import static com.cedarsoftware.util.IOUtilities.uncompressBytes
-import static com.cedarsoftware.util.StringUtilities.*
+import static com.cedarsoftware.util.StringUtilities.createUTF8String
+import static com.cedarsoftware.util.StringUtilities.equalsIgnoreCase
+import static com.cedarsoftware.util.StringUtilities.getUTF8Bytes
+import static com.cedarsoftware.util.StringUtilities.hasContent
+import static com.cedarsoftware.util.StringUtilities.isEmpty
+import static com.cedarsoftware.util.StringUtilities.wildcardToRegexString
 import static com.cedarsoftware.util.UniqueIdGenerator.uniqueId
 
 /**
@@ -71,7 +80,7 @@ class NCubeJdbcPersister
     {
         List<NCubeInfoDto> list = []
         Pattern searchPattern = null
-        Map<String, Object> copyOptions = new CaseInsensitiveMap<>(options)
+        Map<String, Object> copyOptions = new CompactCILinkedMap<>(options)
         boolean hasSearchContent = hasContent(searchContent)
         boolean keepCubeData = (boolean)options[SEARCH_INCLUDE_CUBE_DATA] // look at original options value (not coerced value) for SEARCH_INCLUDE_CUBE_DATA
         boolean includeCubeData = hasSearchContent || keepCubeData

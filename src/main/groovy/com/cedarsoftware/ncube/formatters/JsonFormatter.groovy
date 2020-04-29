@@ -10,7 +10,7 @@ import com.cedarsoftware.ncube.RangeSet
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point2D
 import com.cedarsoftware.ncube.proximity.Point3D
-import com.cedarsoftware.util.CaseInsensitiveMap
+import com.cedarsoftware.util.CompactCIHashMap
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 
@@ -233,7 +233,7 @@ class JsonFormatter extends BaseJsonFormatter implements NCubeFormatter
      */
     private static void removeDefaultColumnMetaPropsFromAxis(Axis axis)
     {
-        Map<String, Object> copy = new CaseInsensitiveMap<>(axis.metaProperties)
+        Map<String, Object> copy = new CompactCIHashMap<>(axis.metaProperties)
         Iterator<String> i = copy.keySet().iterator()
         while (i.hasNext())
         {
