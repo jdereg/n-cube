@@ -7,6 +7,7 @@ import com.cedarsoftware.ncube.util.LocalFileCache
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CallableBean
 import com.cedarsoftware.util.CaseInsensitiveSet
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.GuavaCache
 import com.cedarsoftware.util.JsonHttpProxy
 import com.cedarsoftware.util.ThreadAwarePrintStream
@@ -37,7 +38,9 @@ import static com.cedarsoftware.ncube.NCubeConstants.*
 import static com.cedarsoftware.util.Converter.convertToBoolean
 import static com.cedarsoftware.util.IOUtilities.close
 import static com.cedarsoftware.util.IOUtilities.uncompressBytes
-import static com.cedarsoftware.util.StringUtilities.*
+import static com.cedarsoftware.util.StringUtilities.hasContent
+import static com.cedarsoftware.util.StringUtilities.isEmpty
+import static com.cedarsoftware.util.StringUtilities.wildcardToRegexString
 import static com.cedarsoftware.util.SystemUtilities.getExternalVariable
 import static com.cedarsoftware.visualizer.RpmVisualizerConstants.RPM_CLASS
 
@@ -1620,7 +1623,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         }
 
         // duplicate input coordinate - no need to validate, that will be done inside cpCube.getCell() later.
-        Map copy = new LinkedHashMap(input)
+        Map copy = new CompactCILinkedMap(input)
 
         final String envLevel = getExternalVariable('ENV_LEVEL')
         if (hasContent(envLevel) && !doesMapContainKey(copy, 'env'))
@@ -1632,7 +1635,8 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         {   // same as ENV_LEVEL, add if not already there.
             copy.username = System.getProperty('user.name')
         }
-        Object urlCpLoader = cpCube.getCell(copy)
+
+        Object urlCpLoader = cpCube.getCellById(cpCube.getCoordinateKey(copy), copy, [:])
 
         if (urlCpLoader instanceof URLClassLoader)
         {

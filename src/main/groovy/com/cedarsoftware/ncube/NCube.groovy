@@ -12,6 +12,7 @@ import com.cedarsoftware.ncube.formatters.NCubeTestWriter
 import com.cedarsoftware.ncube.util.CellMap
 import com.cedarsoftware.util.AdjustableGZIPOutputStream
 import com.cedarsoftware.util.ByteUtilities
+import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.CompactCIHashMap
 import com.cedarsoftware.util.CompactCILinkedMap
@@ -151,7 +152,7 @@ class NCube<T>
      */
     Object getMetaProperty(String key)
     {
-        return metaProps[key]
+        return metaProps.get(key)
     }
 
     /**
@@ -192,7 +193,7 @@ class NCube<T>
     Object setMetaProperty(String key, Object value)
     {
         clearSha1()
-        return metaProps[key] = value
+        return metaProps.put(key, value)
     }
 
     /**
@@ -214,7 +215,7 @@ class NCube<T>
         for (entry in allAtOnce.entrySet())
         {
             final String key = entry.key
-            metaProps[key] = entry.value
+            metaProps.put(key, entry.value)
         }
         clearSha1()
     }
@@ -299,7 +300,7 @@ class NCube<T>
      */
     protected void addAdvice(Advice advice, String method)
     {
-        advices["${advice.name}/${method}".toString()] = advice
+        advices.put("${advice.name}/${method}".toString(), advice)
     }
 
     /**
@@ -1632,7 +1633,6 @@ class NCube<T>
      */
     private Map<String, List<Column>> selectColumns(Map<String, Object> input, Map output, boolean multiRule = true)
     {
-        Map<String, List<Column>> empty = (Map)Collections.emptyMap()
         Map<String, List<Column>> bindings = new CompactCIHashMap<>()
         for (entry in axisList.entrySet())
         {
@@ -2039,7 +2039,7 @@ class NCube<T>
     {
         Map safeCoord
 
-        if (coordinate instanceof TrackingMap || coordinate instanceof CompactCILinkedMap)
+        if (coordinate instanceof TrackingMap || coordinate instanceof CompactCILinkedMap || coordinate instanceof CompactCIHashMap || coordinate instanceof CaseInsensitiveMap)
         {
             safeCoord = coordinate
         }
@@ -2049,7 +2049,7 @@ class NCube<T>
         }
 
         Map<String, List<Column>> bindings = selectColumns(safeCoord, output, false)
-        Set<Long> ids = new HashSet()
+        Set<Long> ids = new HashSet<>()
         for (Map.Entry<String, List<Column>> entry : bindings.entrySet())
         {
             Column col = entry.value.get(0);
@@ -2098,7 +2098,6 @@ class NCube<T>
                 // of required scope keys.
                 throw new InvalidCoordinateException("Input coordinate: ${coordinate.keySet()}, missing required scope key(s): ${missingScope}, cube: ${name}, appId: ${appId}",
                         name, coordinate.keySet(), getRequiredScope(coordinate, output))
-
             }
         }
 
@@ -2116,7 +2115,8 @@ class NCube<T>
         if (coordinate instanceof TrackingMap)
         {
             TrackingMap trackingMap = (TrackingMap) coordinate
-            if (trackingMap.getWrappedMap() instanceof CompactCILinkedMap)
+            Map wrapped = trackingMap.getWrappedMap()
+            if (wrapped instanceof CompactCIHashMap || wrapped instanceof CompactCILinkedMap || wrapped instanceof CaseInsensitiveMap)
             {   // Already wrapped (called from 'inside' - a GroovyExpression or GroovyTemplate using at() ,go(), or use()
                 return coordinate
             }

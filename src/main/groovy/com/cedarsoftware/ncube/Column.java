@@ -144,12 +144,12 @@ public class Column implements Comparable<Comparable>
         {
             return null;
         }
-        Object prev = metaProps.remove(key);
+        Object value = metaProps.remove(key);
         if (metaProps.isEmpty())
         {
             metaProps = null;
         }
-        return prev;
+        return value;
     }
 
     /**

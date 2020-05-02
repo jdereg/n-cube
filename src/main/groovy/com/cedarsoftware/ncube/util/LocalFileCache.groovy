@@ -62,7 +62,7 @@ class LocalFileCache
 
     /** Returns true if local file caching is enabled; otherwise, false */
     boolean isEnabled() {
-        return cacheDir
+        return cacheDir != null
     }
 
     /** Returns a String specifying the directory used to store local files */

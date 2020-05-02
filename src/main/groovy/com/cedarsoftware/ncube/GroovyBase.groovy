@@ -10,9 +10,9 @@ import org.codehaus.groovy.control.CompilationUnit
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.Phases
 import org.codehaus.groovy.control.SourceUnit
-import org.codehaus.groovy.runtime.DefaultGroovyMethods
 import org.codehaus.groovy.tools.GroovyClass
 
+import java.lang.reflect.Constructor
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.TimeUnit
@@ -25,7 +25,10 @@ import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_DEBU
 import static com.cedarsoftware.ncube.NCubeConstants.NCUBE_PARAMS_BYTE_CODE_VERSION
 import static com.cedarsoftware.util.EncryptionUtilities.calculateSHA1Hash
 import static com.cedarsoftware.util.ReflectionUtils.getClassNameFromByteCode
-import static com.cedarsoftware.util.StringUtilities.*
+import static com.cedarsoftware.util.StringUtilities.createUTF8String
+import static com.cedarsoftware.util.StringUtilities.getUTF8Bytes
+import static com.cedarsoftware.util.StringUtilities.hasContent
+import static com.cedarsoftware.util.StringUtilities.isEmpty
 import static com.cedarsoftware.util.UrlUtilities.getContentFromUrl
 
 /**
@@ -55,7 +58,7 @@ abstract class GroovyBase extends UrlCommandCell
     public static final String CLASS_NAME_FOR_L2_CALC = 'N_null'
     protected transient String L2CacheKey  // in-memory cache of (SHA-1(source) || SHA-1(URL + classpath.urls)) to compiled class
     protected transient String fullClassName  // full name of compiled class
-    private volatile transient Class runnableCode = null
+    private volatile transient Class<NCubeGroovyExpression> runnableCode = null
     private Lock compileLock = new ReentrantLock()
     /**
      * This cache is 'per ApplicationID'.  This allows different applications to define the same
@@ -113,7 +116,7 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected static Map<String, Class> getAppL2Cache(ApplicationID appId)
     {
-        ConcurrentMap<String, Class> map = L2_CACHE[appId]
+        ConcurrentMap<String, Class> map = L2_CACHE.get(appId)
 
         if (map == null)
         {
@@ -130,12 +133,13 @@ abstract class GroovyBase extends UrlCommandCell
     Object executeInternal(final Map<String, Object> ctx)
     {
         NCube ncube = getNCube(ctx)
-        Class code = runnableCode
+        Class<NCubeGroovyExpression> code = runnableCode
         if (code == null)
         {
             throw new IllegalStateException("Code cleared while cell was executing, n-cube: ${ncube.name}, app: ${ncube.applicationID}, input: ${getInput(ctx).toString()}")
         }
-        NCubeGroovyExpression exp = (NCubeGroovyExpression)DefaultGroovyMethods.newInstance(code)
+        Constructor constructor = code.getDeclaredConstructor()
+        NCubeGroovyExpression exp = constructor.newInstance()
         exp.input = getInput(ctx)
         exp.output = getOutput(ctx)
         exp.ncube = ncube
@@ -176,7 +180,7 @@ abstract class GroovyBase extends UrlCommandCell
                 if (L2Cache.containsKey(L2CacheKey))
                 {
                     // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
-                    runnableCode = L2Cache[L2CacheKey]
+                    runnableCode = L2Cache.get(L2CacheKey)
                     return
                 }
 
@@ -184,13 +188,13 @@ abstract class GroovyBase extends UrlCommandCell
                 Map ret = getClassLoaderAndSource(ctx)
                 if (ret.gclass instanceof Class)
                 {   // Found class matching URL fileName.groovy already in JVM
-                    runnableCode = ret.gclass as Class
-                    L2Cache[L2CacheKey] = ret.gclass as Class
+                    runnableCode = (Class)ret.gclass
+                    L2Cache.put(L2CacheKey, runnableCode)
                     return
                 }
                 
                 GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
-                String groovySource = ret.source as String
+                String groovySource = (String)ret.source
 
                 // Internally, Groovy sometimes uses the Thread.currentThread().contextClassLoader, which is not the
                 // correct class loader to use when inside a container.
@@ -198,7 +202,7 @@ abstract class GroovyBase extends UrlCommandCell
                 Thread.currentThread().contextClassLoader = gcLoader
                 Class root = compile(gcLoader, groovySource, ctx)
                 runnableCode = root
-                L2Cache[L2CacheKey] = root
+                L2Cache.put(L2CacheKey, root)
             }
         }
         finally
@@ -250,7 +254,7 @@ abstract class GroovyBase extends UrlCommandCell
 
         for (int i = 0; i < numClasses; i++)
         {
-            GroovyClass gclass = classes[i] as GroovyClass
+            GroovyClass gclass = (GroovyClass) classes.get(i)
             String className = gclass.name
             boolean isRoot = className.indexOf('$') == -1
 
@@ -575,12 +579,12 @@ abstract class GroovyBase extends UrlCommandCell
 
     private static String getTargetByteCodeVersion()
     {
-        return ncubeRuntime.systemParams[NCUBE_PARAMS_BYTE_CODE_VERSION] ?: '1.8'
+        return ncubeRuntime.systemParams.get(NCUBE_PARAMS_BYTE_CODE_VERSION) ?: '1.8'
     }
 
     private static boolean isNCubeCodeGenDebug()
     {
-        return 'true'.equalsIgnoreCase(ncubeRuntime.systemParams[NCUBE_PARAMS_BYTE_CODE_DEBUG] as String)
+        return 'true'.equalsIgnoreCase((String) ncubeRuntime.systemParams.get(NCUBE_PARAMS_BYTE_CODE_DEBUG))
     }
 
     protected static String expandNCubeShortCuts(String groovy)
@@ -618,12 +622,12 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected static String getSourceFromCache(Map<String, Object> ctx, String cacheKey)
     {
-        return ctx[cacheKey] as String
+        return (String)ctx.get(cacheKey)
     }
 
     protected static void addSourceToCache(Map<String, Object> ctx, String cacheKey, String source)
     {
-        ctx[cacheKey] =  source
+        ctx.put(cacheKey, source)
     }
 
     protected static void getCubeNamesFromText(final Set<String> cubeNames, final String text)

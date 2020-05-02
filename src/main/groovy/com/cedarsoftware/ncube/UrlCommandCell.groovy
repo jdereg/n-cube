@@ -127,17 +127,17 @@ abstract class UrlCommandCell implements CommandCell
 
     static NCube getNCube(Map<String, Object> ctx)
     {
-        return (NCube) ctx.ncube
+        return (NCube) ctx.get('ncube')
     }
 
     static Map getInput(Map<String, Object> ctx)
     {
-        return (Map) ctx.input
+        return (Map) ctx.get('input')
     }
 
     static Map getOutput(Map<String, Object> ctx)
     {
-        return (Map) ctx.output
+        return (Map) ctx.get('output')
     }
 
     boolean equals(Object other)

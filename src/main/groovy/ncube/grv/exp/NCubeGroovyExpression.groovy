@@ -340,7 +340,7 @@ class NCubeGroovyExpression
     Map mapReduce(String colAxisName, Closure where = { true }, Map options = [:], String cubeName = null, ApplicationID appId = null)
     {
         NCube target
-        if (cubeName)
+        if (cubeName != null)
         {
             appId = appId ?: applicationID
             target = ncubeRuntime.getCube(appId, cubeName)

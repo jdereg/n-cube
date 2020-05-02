@@ -458,7 +458,12 @@ class Axis
         {
             return null
         }
-        return metaProps.remove(key)
+        Object value = metaProps.remove(key);
+        if (metaProps.isEmpty())
+        {
+            metaProps = null;
+        }
+        return value;
     }
 
     /**
@@ -520,7 +525,7 @@ class Axis
         // 1: Index columns by ID
         idToCol.put(column.id, column)
 
-        // 2: Index columns by name (if they have one) - held in CompactCILinkedMap
+        // 2: Index columns by name (if they have one) - held in CompactCIHashMap
         String colName = column.columnName
         if (hasContent(colName))
         {

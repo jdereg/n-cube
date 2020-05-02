@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.CompactCILinkedMap
 import com.google.common.base.Joiner
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
@@ -129,8 +130,8 @@ class ${className} extends ${expClassName}
         {
             StringBuilder text = new StringBuilder()
             Map<String, Object> input = getInput(ctx)
-            Map<String, Object> copy = new LinkedHashMap<>(input)
-            copy[SYS_PROPERTY] = EXP_IMPORTS
+            Map<String, Object> copy = new CompactCILinkedMap<>(input)
+            copy.put(SYS_PROPERTY, EXP_IMPORTS)
             Object importList = prototype.getCell(copy)
             if (importList instanceof Collection)
             {
@@ -155,8 +156,8 @@ class ${className} extends ${expClassName}
     {
         try
         {
-            Map input = new LinkedHashMap(getInput(ctx))
-            input[SYS_PROPERTY] = EXP_CLASS
+            Map input = new CompactCILinkedMap(getInput(ctx))
+            input.put(SYS_PROPERTY, EXP_CLASS)
             Object className = prototype.getCell(input)
             if (className instanceof String && hasContent((String)className))
             {
