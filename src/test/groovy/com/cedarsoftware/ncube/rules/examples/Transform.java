@@ -4,11 +4,11 @@ import com.cedarsoftware.ncube.NCube;
 import com.cedarsoftware.ncube.NCubeAppContext;
 import com.cedarsoftware.ncube.rules.BusinessRule;
 import com.cedarsoftware.ncube.rules.Documentation;
+import com.cedarsoftware.util.CompactCILinkedMap;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 @SuppressWarnings("unused")
@@ -39,7 +39,7 @@ public class Transform extends BusinessRule
     void deriveCompanySize()
     {
         NCube sizeLookup = NCubeAppContext.getNcubeRuntime().getCube(getAppId(), "lookup.company.size");
-        Map<String, Object> coord = new LinkedHashMap<>();
+        Map<String, Object> coord = new CompactCILinkedMap<>();
         coord.put("numberOfEmployees", policy.get("numberOfEmployees"));
         String size = (String) sizeLookup.getCell(coord);
         policy.put("companySize", size);

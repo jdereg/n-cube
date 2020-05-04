@@ -217,7 +217,7 @@ class TestAllCellsInBigCube
         NCube<Boolean> ncube = new NCube("bigCube")
         Axis axis = new Axis("axis", AxisType.DISCRETE, AxisValueType.LONG, false)
         ncube.addAxis(axis)
-        int max = 5000000        // 10M - largest tested thus far (using trove4j)
+        int max = 4000000        // 10M - largest tested thus far (using trove4j)
         println 'adding columns...'
         for (Integer j = 0; j < max; j++)
         {

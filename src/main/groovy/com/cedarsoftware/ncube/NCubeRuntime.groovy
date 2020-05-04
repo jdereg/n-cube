@@ -818,7 +818,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
             throw new IllegalStateException("Missing ${SYS_BOOTSTRAP} cube in the 0.0.0 version for the app: ${app}")
         }
 
-        Map copy = new LinkedHashMap(coord)
+        Map copy = new CompactCILinkedMap(coord)
         ApplicationID bootAppId = (ApplicationID) bootCube.getCell(copy, [:])
         String version = bootAppId.version
         String status = bootAppId.status
@@ -1051,7 +1051,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
             boolean success = true
             Map output = new LinkedHashMap()
             Map args = [input:coord, output:output, ncube:ncube]
-            Map<String, Object> copy = new LinkedHashMap<>(coord)
+            Map<String, Object> copy = new CompactCILinkedMap<>(coord)
 
             // If any of the input values are a CommandCell, execute them.  Use the fellow (same) input as input.
             // In other words, other key/value pairs on the input map can be referenced in a CommandCell.
@@ -1061,7 +1061,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
                 {
                     CommandCell cmd = (CommandCell) value
                     redirectOutput(true)
-                    coord[key] = cmd.execute(args)
+                    coord.put(key, cmd.execute(args))
                     redirectOutput(false)
                 }
             }
@@ -1082,7 +1082,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
                 {
                     Map assertionOutput = new LinkedHashMap<>(output)
                     RuleInfo ruleInfo = new RuleInfo()
-                    assertionOutput[(NCube.RULE_EXEC_INFO)] = ruleInfo
+                    assertionOutput.put((NCube.RULE_EXEC_INFO), ruleInfo)
                     args.output = assertionOutput
                     redirectOutput(true)
                     if (!exp.execute(args))
@@ -1105,7 +1105,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
                 }
             }
 
-            RuleInfo ruleInfoMain = (RuleInfo) output[(NCube.RULE_EXEC_INFO)]
+            RuleInfo ruleInfoMain = (RuleInfo) output.get((NCube.RULE_EXEC_INFO))
             ruleInfoMain.setSystemOut(fetchRedirectedOutput())
             ruleInfoMain.setSystemErr(fetchRedirectedErr())
             ruleInfoMain.setAssertionFailures(errors)

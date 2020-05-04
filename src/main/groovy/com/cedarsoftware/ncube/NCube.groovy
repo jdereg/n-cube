@@ -16,6 +16,7 @@ import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.CompactCIHashMap
 import com.cedarsoftware.util.CompactCILinkedMap
+import com.cedarsoftware.util.CompactLinkedMap
 import com.cedarsoftware.util.LongHashSet
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.TrackingMap
@@ -1207,7 +1208,7 @@ class NCube<T>
         Object defaultValue = options.get(MAP_REDUCE_DEFAULT_VALUE)
         Collection<Column> selectList = (Collection<Column>) options.selectList
         Collection<Column> whereColumns = (Collection<Column>) options.whereColumns
-        final TrackingMap commandInput = new TrackingMap<>(new LinkedHashMap(input))
+        final TrackingMap commandInput = new TrackingMap<>(new CompactLinkedMap<>(input))
         Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
         boolean shouldExecute = options.get(MAP_REDUCE_SHOULD_EXECUTE)
 
@@ -1229,8 +1230,8 @@ class NCube<T>
         trackInputKeysUsed(commandInput, output)
 
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
-        final Map matchingRows = isRowCISTRING ? new CompactCILinkedMap<>() : [:]
-        final Map whereVars = isColCISTRING ? new CompactCILinkedMap<>(input) : new LinkedHashMap<>(input)
+        final Map matchingRows = isRowCISTRING ? new CompactCILinkedMap<>() : new CompactLinkedMap<>()
+        final Map whereVars = isColCISTRING ? new CompactCILinkedMap<>(input) : new CompactLinkedMap<>(input)
 
         Collection<Column> rowColumns
         Object rowAxisValue = input.get(rowAxisName)
@@ -1292,7 +1293,7 @@ class NCube<T>
                 }
 
                 String axisName = colAxis.name
-                Map result = isColCISTRING ? new CompactCILinkedMap<>() : [:]
+                Map result = isColCISTRING ? new CompactCILinkedMap<>() : new CompactLinkedMap<>()
                 for (Column column : selectList)
                 {
                     def colValue = isColDiscrete ? column.value : column.columnName

@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.CompactCILinkedMap
 import groovy.transform.CompileStatic
+import it.unimi.dsi.fastutil.longs.Long2LongLinkedOpenHashMap
 
 import static com.cedarsoftware.util.DeepEquals.deepEquals
 import static com.cedarsoftware.util.StringUtilities.hasContent
@@ -880,7 +881,7 @@ class DeltaProcessor
         }
 
         // Create Map that maps column IDs from one cube to another (needed when columns are matched by value)
-        Map<Long, Long> idMap = [:] as Map
+        Map<Long, Long> idMap = new Long2LongLinkedOpenHashMap()
 
         for (Axis newAxis : newCube.axes)
         {

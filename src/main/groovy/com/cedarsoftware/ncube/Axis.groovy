@@ -15,7 +15,6 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectRBTreeMap
 
-import java.security.SecureRandom
 import java.util.regex.Matcher
 
 import static com.cedarsoftware.ncube.ReferenceAxisLoader.*
@@ -88,9 +87,7 @@ class Axis
     private static final ThreadLocal<Random> LOCAL_RANDOM = new ThreadLocal<Random>() {
         Random initialValue()
         {
-            String s = convertToString(System.nanoTime())
-            s = calculateSHA1Hash(s.bytes)
-            return new SecureRandom(s.bytes)
+            return new Random(System.nanoTime())
         }
     }
 
@@ -216,7 +213,7 @@ class Axis
     protected updateMetaProperties(Map<String, Object> newMetaProperties, String cubeName, Closure dropOrphans)
     {
         // Backup meta-properties
-        Map<Long, Map> metaMap = [:] as Map
+        Map<Long, Map> metaMap = new CompactCILinkedMap<>()
         columns.each { Column column ->
             metaMap.put(column.id, column.metaProperties)
         }
@@ -364,7 +361,7 @@ class Axis
     void makeReference(ApplicationID refAppId, String refCubeName, refAxisName)
     {
         isRef = true
-        Map args = [
+        Map<String, Object> args = [
                 (REF_TENANT): refAppId.tenant,
                 (REF_APP): refAppId.app,
                 (REF_VERSION): refAppId.version,
@@ -372,7 +369,7 @@ class Axis
                 (REF_BRANCH): refAppId.branch,
                 (REF_CUBE_NAME): refCubeName,
                 (REF_AXIS_NAME): refAxisName
-        ] as Map<String, Object>
+        ]
         addMetaProperties(args)
         reloadReferenceAxis(refCubeName, args)
     }
@@ -672,12 +669,12 @@ class Axis
     private SortedMap<Comparable, Column> createValueToColMap()
     {
         if (AxisType.NEAREST.is(type))
-        {
+        {   // TreeMap needed for Navigable interface
             valueToCol = AxisValueType.CISTRING.is(valueType) ? new TreeMap(String.CASE_INSENSITIVE_ORDER) : new TreeMap()
         }
         else
         {
-            // Note: the code below makes findColumn() faster, but then getColumnsWithoutDefault() is slower()
+            // Only need Sorted interface.  If we use a HashMap below, findColumn() is faster, but getColumns() is 3x slower (must sort).
             valueToCol = AxisValueType.CISTRING.is(valueType) ? new Object2ObjectRBTreeMap(String.CASE_INSENSITIVE_ORDER) : new Object2ObjectRBTreeMap()
         }
         return valueToCol

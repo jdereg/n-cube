@@ -409,20 +409,20 @@ class NCubeController implements NCubeConstants
 
     private static Map<String, CellInfo> valuesToCellInfo(Map<String, Object> metaProps)
     {
-        Map<String, CellInfo> map = [:] as Map
+        Map<String, CellInfo> map = new CompactCILinkedMap<>()
         for (item in metaProps.entrySet())
         {
             if (item.value instanceof CellInfo)
             {
                 CellInfo cellInfo = (CellInfo) item.value
                 cellInfo.collapseToUiSupportedTypes()       // byte/short/int => long, float => double
-                map[item.key] = cellInfo
+                map.put(item.key, cellInfo)
             }
             else
             {
                 CellInfo cellInfo = new CellInfo(item.value)
                 cellInfo.collapseToUiSupportedTypes()       // byte/short/int => long, float => double
-                map[item.key] = cellInfo
+                map.put(item.key, cellInfo)
             }
         }
         return map
