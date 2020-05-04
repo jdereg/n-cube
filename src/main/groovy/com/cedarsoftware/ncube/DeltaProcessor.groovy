@@ -1070,7 +1070,7 @@ class DeltaProcessor
     {
         Map<Set<Long>, Object> cellMap = newCube.cellMap
         cellMap.each { ids, value ->
-            Set<Long> colIds = ids as Set<Long>
+            Set<Long> colIds = (Set<Long>)ids
             Set<Long> coord = adjustCoord(colIds, oldCube.cellMap, idMap)
             if (oldCube.cellMap.containsKey(coord))
             {
