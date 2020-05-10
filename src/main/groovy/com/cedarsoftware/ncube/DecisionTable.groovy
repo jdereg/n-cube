@@ -1,7 +1,7 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
-import com.cedarsoftware.util.CompactCIHashMap
 import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.LongHashSet
 import com.cedarsoftware.util.StringUtilities
@@ -13,7 +13,6 @@ import it.unimi.dsi.fastutil.ints.IntSet
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 
 import static com.cedarsoftware.ncube.NCubeConstants.DATA_TYPE
-import static com.cedarsoftware.ncube.NCubeConstants.DECISION_TABLE
 import static com.cedarsoftware.ncube.NCubeConstants.IGNORE
 import static com.cedarsoftware.ncube.NCubeConstants.INPUT_HIGH
 import static com.cedarsoftware.ncube.NCubeConstants.INPUT_LOW
@@ -57,20 +56,36 @@ class DecisionTable
     private NCube decisionTable
     private String fieldAxisName = null
     private String rowAxisName = null
-    private Set<String> inputColumns = new CaseInsensitiveSet<>()
-    private Set<String> inputKeys = new CaseInsensitiveSet<>()
-    private Set<String> outputColumns = new CaseInsensitiveSet<>()
-    private Set<String> rangeColumns = new CaseInsensitiveSet<>()
-    private Set<String> rangeKeys = new CaseInsensitiveSet<>()
-    private Set<String> requiredColumns = new CaseInsensitiveSet<>()
-    private Map<String, Range> inputVarNameToRangeColumns = new CompactCILinkedMap<>()
+    private Set<String> inputColumns = getCIHashSet()
+    private Set<String> inputKeys = getCIHashSet()
+    private Set<String> outputColumns = getCIHashSet(4)
+    private Set<String> rangeColumns = getCIHashSet(4)
+    private Set<String> rangeKeys = getCIHashSet(4)
+    private Set<String> requiredColumns = getCIHashSet()
+    private Map<String, Range> inputVarNameToRangeColumns = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>(4))
     private static final String BANG = '!'
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings()
 
     protected DecisionTable(NCube decisionCube)
     {
         decisionTable = decisionCube
-        verifyAndCache()
+        if (decisionTable.getBusinessEngine() instanceof DecisionTable)
+        {
+            DecisionTable other = (DecisionTable) decisionCube.getBusinessEngine()
+            fieldAxisName = other.fieldAxisName
+            rowAxisName = other.rowAxisName
+            inputColumns = other.inputColumns
+            inputKeys = other.inputKeys
+            outputColumns = other.outputColumns
+            rangeColumns = other.rangeColumns
+            rangeKeys = other.rangeKeys
+            requiredColumns = other.requiredColumns
+            inputVarNameToRangeColumns = other. inputVarNameToRangeColumns
+        }
+        else
+        {
+            verifyAndCache()
+        }
     }
 
     private static class RangeSpec
@@ -81,14 +96,23 @@ class DecisionTable
         String dataType
     }
 
+    protected Set<String> getCIHashSet(Set source)
+    {
+        return new CaseInsensitiveSet<String>(source, new CaseInsensitiveMap(Collections.emptyMap(), new HashMap<>(source.size())))
+    }
+
+    protected Set<String> getCIHashSet(int initialSize = 16)
+    {
+        return new CaseInsensitiveSet<String>(Collections.emptySet(), new CaseInsensitiveMap(Collections.emptyMap(), new HashMap<>(initialSize)))
+    }
+
     /**
      * @return Set<String> All input keys that can be passed to the DecisionTable.getDecision() API.  Extra keys
      * can be passed, but will be ignored.
      */
     Set<String> getInputKeys()
     {
-        Set<String> orderedKeys = new CaseInsensitiveSet<>()
-        orderedKeys.addAll(inputKeys)
+        Set<String> orderedKeys = getCIHashSet(inputKeys)
         return orderedKeys
     }
 
@@ -98,8 +122,7 @@ class DecisionTable
      */
     Set<String> getRequiredKeys()
     {
-        Set<String> requiredKeys = new CaseInsensitiveSet<>()
-        requiredKeys.addAll(requiredColumns)
+        Set<String> requiredKeys = getCIHashSet(requiredColumns)
         return requiredKeys
     }
 
@@ -112,7 +135,7 @@ class DecisionTable
      */
     Map<Comparable, ?> getDecision(Iterable<Map<String, ?>> iterable)
     {
-        Map<Comparable, ?> results = new CompactCILinkedMap<>()
+        Map<Comparable, ?> results = new CaseInsensitiveMap<>()
         for (Map<String, ?> item : iterable)
         {
             Map<Comparable, ?> result = getDecision(item)
@@ -128,52 +151,95 @@ class DecisionTable
      */
     Map<Comparable, ?> getDecision(Map<String, ?> input)
     {
-        Map<String, Map<String, ?>> ranges = new CompactCILinkedMap<>()
-        Map<String, ?> copyInput = new CompactCILinkedMap<>(input)
+        Map<String, Map<String, ?>> ranges = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>())
+        Map<String, ?> copyInput = new CaseInsensitiveMap<>(input, new HashMap<>(input.size()))
         copyInput.keySet().retainAll(inputKeys)
         copyInput.put(IGNORE, null)
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         ensuredRequiredInputs(copyInput)
 
-        for (String colValue : rangeColumns)
+        for (String colValue : inputColumns)
         {
             Column column = fieldAxis.findColumn(colValue)
             Map colMetaProps = column.metaProperties
 
-            [INPUT_LOW, INPUT_HIGH].each { String highLow ->
-                if (colMetaProps.containsKey(highLow))
-                {   // Allow ranges to be processed in ANY order (even intermixed with other ranges)
-                    String inputVarName = colMetaProps.get(highLow)
-                    Map<String, ?> spec = getRangeSpec(ranges, inputVarName)
-                    spec.put(highLow, column.value)
+            if (rangeColumns.contains(colValue))
+            {
+                [INPUT_LOW, INPUT_HIGH].each { String highLow ->
+                    if (colMetaProps.containsKey(highLow))
+                    {
+                        // Allow ranges to be processed in ANY order (even intermixed with other ranges)
+                        String inputVarName = colMetaProps.get(highLow)
+                        Map<String, ?> spec = getRangeSpec(ranges, inputVarName)
+                        spec.put(highLow, column.value)
 
-                    if (!spec.containsKey(INPUT_VALUE))
-                    {   // Last range post (high or low) processed, sets the input_value, data_type, and copies the range spec to the input map.
-                        // ["date": date instance] becomes ("date": [low:1900, high:2100, input_value: date instance, data_type: DATE])
-                        Comparable value = convertDataType((Comparable)copyInput.get(inputVarName), (String)colMetaProps.get(DATA_TYPE))
-                        spec.put(INPUT_VALUE, value)
-                        spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
-                        copyInput.put(inputVarName, spec)
+                        if (!spec.containsKey(INPUT_VALUE))
+                        {
+                            // Last range post (high or low) processed, sets the input_value, data_type, and copies the range spec to the input map.
+                            // ["date": date instance] becomes ("date": [low:1900, high:2100, input_value: date instance, data_type: DATE])
+                            if (copyInput.get(inputVarName) instanceof Iterable)
+                            {
+                                // Multiple values supplied to range input (AND case - all must be between range in table for row to match)
+                                Iterable i = (Iterable) copyInput.get(inputVarName)
+                                Iterable<Comparable> inputs = new HashSet<>()
+                                for (Object val : i)
+                                {
+                                    Comparable value = convertDataType((Comparable) val, (String) colMetaProps.get(DATA_TYPE))
+                                    inputs.add(value)
+                                }
+                                spec.put(INPUT_VALUE, inputs)
+                            }
+                            else
+                            {
+                                // Single value supplied to match range (normal case)
+                                Comparable value = convertDataType((Comparable) copyInput.get(inputVarName), (String) colMetaProps.get(DATA_TYPE))
+                                spec.put(INPUT_VALUE, value)
+                            }
+                            spec.put(DATA_TYPE, colMetaProps.get(DATA_TYPE))
+                            copyInput.put(inputVarName, spec)
+                        }
+                    }
+                }
+            }
+            else
+            {   // Convert inputs on the Map that match non-range inputs to String (or Iterable of Strings) so that they
+                // do not have to be converted on each mapReduce row.
+                Object val = copyInput.get(colValue)
+                if (val != null || copyInput.containsKey(colValue))
+                {   // Input Map contains a key for the input decision variable (column in table)
+                    if (val instanceof Iterable)
+                    {
+                        Iterable i = (Iterable) val
+                        Iterable<Comparable> inputs = new HashSet<>()
+                        for (Object value : i)
+                        {
+                            inputs.add(convertToString(value))
+                        }
+                        copyInput.put(colValue, inputs)
+                    }
+                    else if (!(val instanceof String))
+                    {   // Convert non-Strings to Strings
+                        copyInput.put(colValue, convertToString(val))
                     }
                 }
             }
         }
 
         // Add on the IGNORE column if the field axis had it.
-        Set<String> colsToSearch = new CaseInsensitiveSet<>(inputColumns)
+        Set<String> colsToSearch = getCIHashSet(inputColumns)
         if (fieldAxis.contains(IGNORE))
         {
             colsToSearch.add(IGNORE)
         }
 
         // Add on the PRIORITY column if the field axis had it.
-        Set<String> colsToReturn = new CaseInsensitiveSet<>(outputColumns)
+        Set<String> colsToReturn = getCIHashSet(outputColumns)
         if (fieldAxis.findColumn(PRIORITY))
         {
             colsToReturn.add(PRIORITY)
         }
 
-        Map<String, ?> closureInput = new CompactCILinkedMap<>(input)
+        Map<String, ?> closureInput = new CaseInsensitiveMap<>(input, new HashMap<>(input.size()))
         closureInput.dvs = copyInput
 
         Map options = [
@@ -305,15 +371,30 @@ class DecisionTable
 
                 // 2. Check range variables
                 if (inputValue instanceof Map)
-                {   // Using [ ] notation for Map access for sake of clarity
-                    Comparable low = (Comparable)rowValues.get((String) inputValue[INPUT_LOW])
-                    Comparable high = (Comparable)rowValues.get((String) inputValue[INPUT_HIGH])
-                    Comparable value = (Comparable)inputValue[INPUT_VALUE]
-
-                    if (value == null || value < low || value >= high)
-                    {   // null is never between ranges
-                        return false
+                {
+                    Comparable low = (Comparable)rowValues.get((String) inputValue.get(INPUT_LOW))
+                    Comparable high = (Comparable)rowValues.get((String) inputValue.get(INPUT_HIGH))
+                    Object val = inputValue.get(INPUT_VALUE)
+                    if (val instanceof Iterable)
+                    {   // User supplied multiple values that must be between date range (AND case)
+                        Iterable<Comparable> inputs = (Iterable<Comparable>) val
+                        for (Comparable value : inputs)
+                        {
+                            if (value == null || value < low || value >= high)
+                            {   // null is never between ranges
+                                return false
+                            }
+                        }
                     }
+                    else
+                    {   // Single value supplied - value must be between date range
+                        Comparable value = (Comparable) val
+                        if (value == null || value < low || value >= high)
+                        {   // null is never between ranges
+                            return false
+                        }
+                    }
+
                     continue
                 }
 
@@ -323,28 +404,52 @@ class DecisionTable
                 {   // Empty cells in input columns are treated as "*" (match any).
                     continue
                 }
-                inputValue = convertToString(inputValue)
+
                 boolean exclude = cellValue.startsWith('!')
                 cellValue -= BANG
                 Iterable<String> cellValues = COMMA_SPLITTER.split(cellValue)
 
-                if (exclude)
-                {
-                    if (cellValues.contains(inputValue))
+                if (inputValue instanceof Iterable)
+                {   // Check multiple values on LHS against possible multiple in cell (or !cell).  AND case
+                    Iterable<String> inputs = (Iterable<String>) inputValue
+                    for (String anElementOfInput : inputs)
                     {
-                        return false
+                        if (!okToContinue(exclude, cellValues, anElementOfInput))
+                        {
+                            return false
+                        }
                     }
                 }
                 else
-                {
-                    if (!cellValues.contains(inputValue))
+                {   // Check single value on LHS against possible multiple in cell (or !cell)
+                    if (!okToContinue(exclude, cellValues, (String)inputValue))
                     {
                         return false
                     }
                 }
+                // continue
             }
             return true
         }
+    }
+
+    private static boolean okToContinue(boolean exclude, Iterable<String> cellValues, String inputElement)
+    {
+        if (exclude)
+        {
+            if (cellValues.contains(inputElement))
+            {
+                return false
+            }
+        }
+        else
+        {
+            if (!cellValues.contains(inputElement))
+            {
+                return false
+            }
+        }
+        return true
     }
 
     /**
@@ -427,7 +532,7 @@ class DecisionTable
             throw new IllegalStateException("Decision table: ${decisionTable.name} field / property axis must have value type of CISTRING.  It is ${fieldAxis.valueType}")
         }
 
-        Map<String, RangeSpec> rangeSpecs = new CompactCILinkedMap<>()
+        Map<String, RangeSpec> rangeSpecs = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>())
         for (Column column : decisionTable.getAxis(fieldAxisName).columnsWithoutDefault)
         {
             Map colMetaProps = column.metaProperties
@@ -546,12 +651,12 @@ class DecisionTable
             }
         }
 
-        rangeKeys = new CaseInsensitiveSet<>(inputKeys)
+        rangeKeys = getCIHashSet(inputKeys)
         rangeKeys.removeAll(inputColumns)
 
         // Convert all values in the table to the data_type specified on the column meta-property (if there is one)
         Axis rowAxis = decisionTable.getAxis(rowAxisName)
-        Map<String, ?> coord = new CompactCILinkedMap<>()
+        Map<String, ?> coord = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>())
         List<Column> rowColumns = rowAxis.columnsWithoutDefault
         Set<String> rangePlusOutputCols = new CaseInsensitiveSet<>(rangeColumns)
         rangePlusOutputCols.addAll(outputColumns)
@@ -592,11 +697,9 @@ class DecisionTable
         }
         computeInputVarToRangeColumns()
         convertSpecialColumnsToPrimitive()
-
-        // Place an boolean indicator on the NCube meta-property 'decision_table'.
-        // This will allow code that gets the NCube only, access to know if it is inside an DecisionTable.
-        // Not sure if this will be useful, as it will not be written out this way.
-        decisionTable.setMetaProperty(DECISION_TABLE, Boolean.TRUE)
+        
+        // Point NCube to this DecisionTable so that it only has to verifyAndCache() one time.
+        decisionTable.setBusinessEngine(this)
     }
 
     /**
@@ -606,7 +709,7 @@ class DecisionTable
     {
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
         Axis rowAxis = decisionTable.getAxis(rowAxisName)
-        Map<String, ?> coord = new CompactCILinkedMap<>()
+        Map<String, ?> coord = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>(4))
 
         long ignoreColId = -1
         Column ignoreCol = fieldAxis.findColumn(IGNORE)
@@ -635,6 +738,7 @@ class DecisionTable
 
             if (ignoreColId != -1)
             {
+                coord.put(fieldAxisName, IGNORE)
                 Set<Long> idCoord = new LongHashSet(ignoreColId, row.id)
                 Object value = decisionTable.getCellById(idCoord, coord, [:])
                 decisionTable.setCellById(convertToBoolean(value), idCoord, true)
@@ -643,6 +747,7 @@ class DecisionTable
             if (priorityColId != -1)
             {
                 Set<Long> idCoord = new LongHashSet(priorityColId, row.id)
+                coord.put(fieldAxisName, PRIORITY)
                 Integer intValue = convertToInteger(decisionTable.getCellById(idCoord, coord, [:]))
                 if (intValue < 1)
                 {   // If priority is not specified, then it is the lowest priority of all
@@ -780,7 +885,7 @@ class DecisionTable
     private Set<Comparable> validateDecisionTableRows(NCube blowout, List<Column> rows)
     {
         Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
-        Map<String, Comparable> coord = new CompactCIHashMap<>()
+        Map<String, Comparable> coord = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>(4))
         Set<Comparable> badRows = new CaseInsensitiveSet<>()
         Column ignoreColumn = fieldAxis.findColumn(IGNORE)
         Column priorityColumn = fieldAxis.findColumn(PRIORITY)
@@ -1056,7 +1161,7 @@ class DecisionTable
         }
         else
         {
-            // "TIntHashSet" pulled from blowout cell duplicated so that the interned version is not modified directly.
+            // "IntSet" pulled from blowout cell duplicated so that the interned version is not modified directly.
             IntSet copy = new IntOpenHashSet()
             IntIterator i = cell.priorities.iterator()
             while (i.hasNext())
@@ -1097,7 +1202,7 @@ class DecisionTable
         }
         else
         {
-            spec = new CompactCILinkedMap<>()
+            spec = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>(4))
             ranges.put(inputVarName, spec)
         }
         return spec

@@ -6,6 +6,7 @@ import com.cedarsoftware.ncube.NCubeRuntimeClient
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.CompactCILinkedMap
 import groovy.transform.CompileStatic
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
 
 import static com.cedarsoftware.visualizer.VisualizerConstants.*
 
@@ -153,7 +154,7 @@ class VisualizerInfo
     protected void calculateAggregateInfo()
     {
         //Determine maxLevel and availableGroupsAllLevels
-        Map<Integer, Integer> levelNodeCount = [:]
+        Map<Integer, Integer> levelNodeCount = new Int2IntOpenHashMap()
         nodes.values().each{Map node ->
             availableGroupsAllLevels << (node.group as String) - groupSuffix
             long nodeLevel = node.level as long

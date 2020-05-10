@@ -460,6 +460,7 @@ class TestDecisionTable extends NCubeBaseTest
 
         col = field.findColumn('high')
         col.setMetaProperty('input_high', 10i)
+        ncube.setBusinessEngine(null)
 
         try
         {
@@ -791,6 +792,52 @@ class TestDecisionTable extends NCubeBaseTest
         decision = dt.getDecision([profit: 1, loc: 'a', date: 900])
         assert decision.size() == 1
         assert decision.containsKey(7L)
+    }
+
+    @Test
+    void testMultipleInputs()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/testANDMultipleInputs.json')
+        Map rows = dt.getDecision([lineOfBusiness: ['WC', 'PAC'], date: '2020-05-01'])
+        assert rows.size() == 2
+        Collection rowz = (Collection)rows.values()
+        Map row = (Map) rowz[0]
+        assert row.Commission == '12.0'
+        row = (Map)rowz[1]
+        assert row.Commission == '16.0'
+
+        rows = dt.getDecision([lineOfBusiness: ['WC', 'TAC'], date: '2020-05-01'])
+        assert rows.size() == 1
+        rowz = (Collection)rows.values()
+        row = (Map) rowz[0]
+        assert row.Commission == '10.0'
+
+        rows = dt.getDecision([program: ['p', 'q'], date: '2020-05-01'])
+        assert rows.size() == 3
+        rowz = (Collection)rows.values()
+        row = (Map) rowz[0]
+        assert row.Commission == '12.0'
+        row = (Map)rowz[1]
+        assert row.Commission == '15.0'
+        row = (Map)rowz[2]
+        assert row.Commission == '16.0'
+    }
+
+    @Test
+    void testMultipleInputsRange()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/testANDMultipleInputs.json')
+        Map rows = dt.getDecision([lineOfBusiness: ['WC', 'PAC'], date: ['2020-05-01', '2000-01-01', '2050-12-31']])
+        assert rows.size() == 2
+        Collection rowz = (Collection) rows.values()
+        Map row = (Map) rowz[0]
+        assert row.Commission == '12.0'
+        row = (Map) rowz[1]
+        assert row.Commission == '16.0'
+
+        dt = getDecisionTableFromJson('decision-tables/testANDMultipleInputs.json')
+        rows = dt.getDecision([lineOfBusiness: ['WC', 'PAC'], date: ['2020-05-01', '1850-12-31']])
+        assert rows.isEmpty()
     }
 
     @Test

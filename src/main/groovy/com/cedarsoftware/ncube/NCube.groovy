@@ -19,6 +19,7 @@ import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.CompactLinkedMap
 import com.cedarsoftware.util.LongHashSet
 import com.cedarsoftware.util.MapUtilities
+import com.cedarsoftware.util.MathUtil
 import com.cedarsoftware.util.TrackingMap
 import com.cedarsoftware.util.io.JsonObject
 import com.cedarsoftware.util.io.JsonWriter
@@ -114,6 +115,7 @@ class NCube<T>
     private static ConcurrentMap primitives = new ConcurrentHashMap()
     //  Sets up the defaultApplicationId for cubes loaded in from disk.
     private transient ApplicationID appId = ApplicationID.testAppId
+    private transient Object engine = null
     private static final ThreadLocal<Deque<StackEntry>> executionStack = new ThreadLocal<Deque<StackEntry>>() {
         Deque<StackEntry> initialValue()
         {
@@ -133,6 +135,23 @@ class NCube<T>
             validateCubeName(name)
         }
         this.name = name
+    }
+
+    /**
+     * @return reference to associated business engine (RulesEngine, DecisionTable, TruthTable, ...)
+     */
+    Object getBusinessEngine()
+    {
+        return engine
+    }
+
+    /**
+     * Associate business engine (RulesEngine, DecisionTable, TruthTable, ...) to this NCube.
+     * @param businessEngine Object engine to associate.
+     */
+    void setBusinessEngine(Object businessEngine)
+    {
+        engine = businessEngine
     }
 
     /**
@@ -1221,11 +1240,11 @@ class NCube<T>
 
         if (rowAxis.type != AxisType.RULE)
         {
-            commandInput.informAdditionalUsage([rowAxisName] as Collection<Object>)
+            commandInput.informAdditionalUsage(Arrays.asList(rowAxisName))
         }
         if (colAxis.type != AxisType.RULE)
         {
-            commandInput.informAdditionalUsage([colAxisName] as Collection<Object>)
+            commandInput.informAdditionalUsage(Arrays.asList(colAxisName))
         }
         trackInputKeysUsed(commandInput, output)
 
@@ -1236,15 +1255,25 @@ class NCube<T>
         Collection<Column> rowColumns
         Object rowAxisValue = input.get(rowAxisName)
         if (rowAxisValue)
-        {
-            rowColumns = selectColumns(rowAxis, rowAxisValue instanceof Collection ? rowAxisValue as Set : [rowAxisValue] as Set)
+        {   // Caller is limiting which rows to include by supplying the row axis name with a bound value on input.
+            Set set
+            if (rowAxisValue instanceof Collection)
+            {
+                set = new HashSet((Collection)rowAxisValue)
+            }
+            else
+            {
+                set = new HashSet()
+                set.add(rowAxisValue)
+            }
+            rowColumns = selectColumns(rowAxis, set)
             while (rowColumns.contains(null))
             {
                 rowColumns.remove(null)
             }
         }
         else
-        {
+        {   // Scan all rows
             rowColumns = rowAxis.columns
         }
 
@@ -1454,7 +1483,7 @@ class NCube<T>
                     {
                         throw new IllegalStateException("Non-discrete axis columns must have a meta-property 'name' set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
                     }
-                    columns.add(axis.findColumnByName(column.columnName))
+                    columns.add(column)
                 }
                 return columns
             }
@@ -1737,7 +1766,8 @@ class NCube<T>
         while (i.hasNext())
         {
             Long id = i.next()
-            axisToCoord.put(id.intdiv(Axis.BASE_AXIS_ID).longValue(), id)
+            long axisId = MathUtil.divide(id, Axis.BASE_AXIS_ID)
+            axisToCoord.put(axisId, id)
         }
         return axisToCoord
     }
@@ -2383,7 +2413,8 @@ class NCube<T>
      */
     Axis getAxisFromColumnId(long id, boolean columnMustExist = true)
     {
-        Axis axis = idToAxis.get(id.intdiv(Axis.BASE_AXIS_ID).longValue())
+        long axisId = MathUtil.divide(id, Axis.BASE_AXIS_ID)
+        Axis axis = idToAxis.get((Long)axisId)
         if (axis == null)
         {
             return null
@@ -3581,6 +3612,10 @@ class NCube<T>
         }
 
         parser.close()
+        if (ncube.getMetaProperty(DECISION_TABLE))
+        {
+            DecisionTable decisionTable = new DecisionTable(ncube)
+        }
         return ncube
     }
     
