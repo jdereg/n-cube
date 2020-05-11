@@ -56,6 +56,11 @@
           "id":4001308413854,
           "type":"string",
           "value":"group4"
+        },
+        {
+          "id":4000562285288,
+          "type":"string",
+          "value":"invalidGroup"
         }
       ]
     }
@@ -72,6 +77,14 @@
     {
       "id":[
         5001514718226,
+        4000562285288
+      ],
+      "type":"string",
+      "value":"com.cedarsoftware.ncube.rules.TestRule"
+    },
+    {
+      "id":[
+        5001514718226,
         4000874029183
       ],
       "type":"string",
@@ -84,6 +97,14 @@
       ],
       "type":"string",
       "value":"com.cedarsoftware.ncube.rules.TestRule"
+    },
+    {
+      "id":[
+        5000290003816,
+        4000562285288
+      ],
+      "type":"string",
+      "value":"rule.foo.bar"
     },
     {
       "id":[

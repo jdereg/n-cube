@@ -229,6 +229,22 @@ class RulesEngineTest extends NCubeBaseTest
     }
 
     @Test
+    void testExecuteGroups_GroupWithNonExistantNCube()
+    {
+        Map root = [:]
+        try
+        {
+            rulesEngine.executeGroups(['invalidGroup'], root)
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.localizedMessage, "rulesengine", "NCube", "defined", "does not exist.")
+        }
+        assert root.isEmpty()
+    }
+
+    @Test
     void testExecuteGroups_Group1()
     {
         Map root = [:]

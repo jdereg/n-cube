@@ -119,6 +119,10 @@ class RulesEngine
             rule.init(appId, input, output)
 
             NCube ncube = ncubeRuntime.getCube(appId, ncubeName)
+            if (!ncube)
+            {
+                throw new IllegalStateException("RulesEngine: ${name}, AppId: ${appId}, NCube defined in ${COL_NCUBE} column of ${ncubeRules.name} does not exist.")
+            }
             verifyOrchestration(ncube)
             ncube.getCell(input, output)
             errors.addAll(rule.errors)
