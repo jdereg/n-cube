@@ -1,11 +1,14 @@
 ### Revision History
-* 4.7.7-SNAPSHOT
+* 4.7.7
   * Updated `RulesEngine` to throw an IllegalArgumentException if it encounters a cell expected to contain an `NCube` name, but for which there is no `NCube`.  Avoids `NullPointerException` when you make a typo.
   * Updated `JsonHttpProxy.requestToken()` to throw a `RuntimeException` if it fails to get a token.
   * Updated `DecisionTable` to allow getting the names of the required columns, input columns, and output columns.
-  * Updated `DecisionTable` to more specifically check the metaProperties `required`, `output_value`, and `input_value` for a value of `true` before treating them as "enabled". 
+  * Updated `DecisionTable` to more specifically check the metaProperties `required`, `output_value`, and `input_value` for a value of `true` before treating them as "enabled".
+  * Updated `DecisionTable` to support multiple inputs being associated to a decision variable.  In this case, all values associated to the input variable must be present in the cell associated to the input variable (or all must fit within the range).
+  * Updated to consume `Spring 5.2.6`
+  * Updated to consume `Spring boot 2.2.7` 
 * 4.7.6
-  * `DecisionTable` updated with a new interface allowing you to pass in an Iterable<Map> to `getDecision()`.  Results of each inputMap are merged and returned.
+  * `DecisionTable` updated with a new interface allowing you to pass in an Iterable<Map> to `getDecision()`.  Results of each inputMap are merged and returned.  The 'OR' case.
   * `DecisionTable` updated so that if an input_value is not provided for an optional key, it will no longer prevent rows where that column has a value from being included in the results.
   * If you define your `input_value` metaProperty with a `false` value, the `DecisionTable` will ignore it.  Allows you to temporarily disable an input_value for testing.
   * Updated to consume `java-util 1.50.0`
