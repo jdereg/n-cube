@@ -272,6 +272,30 @@ class DecisionTable
     }
 
     /**
+     * @return Set<String> containing the name of the columns that are used as inputs.
+     */
+    Set<String> getInputColumnNames()
+    {
+        return inputColumns
+    }
+
+    /**
+     * @return Set<String> containing the name of the columns that are considered outputs.
+     */
+    Set<String> getOutputColumnNames()
+    {
+        return outputColumns
+    }
+
+    /**
+     * @return Set<String> containing the name of the columns that are required.
+     */
+    Set<String> getRequiredColumnNames()
+    {
+        return requiredColumns
+    }
+
+    /**
      * Validate that the Decision Table has no overlapping rules.  In other words, it must return 0 or 1
      * records, never more.
      * NOTE: Currently, only supports one range variable (low, high) columns.
