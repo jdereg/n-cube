@@ -1,4 +1,9 @@
 ### Revision History
+* 4.7.7-SNAPSHOT
+  * Updated `RulesEngine` to throw an IllegalArgumentException if it encounters a cell expected to contain an `NCube` name, but for which there is no `NCube`.  Avoids `NullPointerException` when you make a typo.
+  * Updated `JsonHttpProxy.requestToken()` to throw a `RuntimeException` if it fails to get a token.
+  * Updated `DecisionTable` to allow getting the names of the required columns, input columns, and output columns.
+  * Updated `DecisionTable` to more specifically check the metaProperties `required`, `output_value`, and `input_value` for a value of `true` before treating them as "enabled". 
 * 4.7.6
   * `DecisionTable` updated with a new interface allowing you to pass in an Iterable<Map> to `getDecision()`.  Results of each inputMap are merged and returned.
   * `DecisionTable` updated so that if an input_value is not provided for an optional key, it will no longer prevent rows where that column has a value from being included in the results.

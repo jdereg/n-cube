@@ -563,7 +563,7 @@ class DecisionTable
             String columnValue = column.value
 
             // Input Discrete
-            if (colMetaProps.containsKey(INPUT_VALUE) && convertToBoolean(colMetaProps[INPUT_VALUE]))
+            if (colMetaProps.get(INPUT_VALUE))
             {
                 inputColumns.add(columnValue)
                 inputKeys.add(columnValue)
@@ -591,7 +591,7 @@ class DecisionTable
                     }
                     inputVarName = colMetaProps.get(INPUT_LOW)
                     inputKeys.add(inputVarName)
-                    if (colMetaProps.containsKey(REQUIRED))
+                    if (colMetaProps.get(REQUIRED))
                     {
                         requiredColumns.add(inputVarName)
                     }
@@ -615,7 +615,7 @@ class DecisionTable
                     }
                     inputVarName = colMetaProps.get(INPUT_HIGH)
                     inputKeys.add(inputVarName)
-                    if (colMetaProps.containsKey(REQUIRED))
+                    if (colMetaProps.get(REQUIRED))
                     {
                         requiredColumns.add(inputVarName)
                     }
@@ -634,14 +634,14 @@ class DecisionTable
                 rangeSpecs.put(inputVarName, rangeSpec)
             }
             else
-            {   // Non-Range Required Input
-                if (colMetaProps.containsKey(REQUIRED))
+            {   // Required Input Discrete
+                if (colMetaProps.get(REQUIRED))
                 {   // REQUIRED on non-input columns will be verified later in the code below.
                     requiredColumns.add(columnValue)
                 }
             }
             // Output
-            if (colMetaProps.containsKey(OUTPUT_VALUE))
+            if (colMetaProps.get(OUTPUT_VALUE))
             {
                 outputColumns.add(columnValue)
             }

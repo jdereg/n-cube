@@ -893,6 +893,56 @@ class TestDecisionTable extends NCubeBaseTest
         println "${numInputs} decision variables by ${numRows} rules validation time: ${(stop - start) / 1000000}"
     }
 
+    @Test
+    void testIgnoredMetaProperties()
+    {
+        // Adding the 'input_value', 'output_value', and 'required' metaProperties on the attribute column with a value
+        // of false should be the same as not putting the metaProperties on the column at all.
+
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/ignore_disabled_metaProps.json')
+        Set set = dt.validateDecisionTable()
+        assert set.empty
+        // inputColEnabled: 'aaa' matches row 1 and 2
+        // inputColDisabled: '555' should have ZERO effect since the input_value metaProperty is set to false
+        // inputRequired: 'two' matches row 2 and 3
+        // inputNotRequired has input_value set to true and required set to false, so it's a valid input but it's not required.
+        Map decision = dt.getDecision([inputColEnabled: 'aaa', inputColDisabled: '555', inputRequired: 'two'])
+        assert decision.size() == 1
+        assert decision.containsKey(2L)
+        // The only other output_value is set to false and therefore shouldn't be treated as output
+        assert ((Map) decision[2L]).containsKey('outputColEnabled')
+        assert !((Map) decision[2L]).containsKey('outputColDisabled')
+
+        // inputColEnabled: 'ccc' matches row 4 and 5
+        // inputRequired: 'three' matches row 4 and 5
+        // inputNotRequired: '123456' matches row 4
+        decision = dt.getDecision([inputColEnabled: 'ccc', inputRequired: 'three', inputNotRequired: '123456'])
+        assert decision.size() == 1
+        assert decision.containsKey(4L)
+
+        assert dt.getInputColumnNames().size() == 3
+        assert dt.getInputColumnNames().containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
+        assert dt.getOutputColumnNames().size() == 1
+        assert dt.getOutputColumnNames().contains('outputColEnabled')
+        assert dt.getRequiredColumnNames().size() == 1
+        assert dt.getRequiredColumnNames().contains('inputRequired')
+    }
+
+    @Test
+    void testColumnTypeGetters()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/ignore_disabled_metaProps.json')
+        Set set = dt.validateDecisionTable()
+        assert set.empty
+
+        assert dt.getInputColumnNames().size() == 3
+        assert dt.getInputColumnNames().containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
+        assert dt.getOutputColumnNames().size() == 1
+        assert dt.getOutputColumnNames().contains('outputColEnabled')
+        assert dt.getRequiredColumnNames().size() == 1
+        assert dt.getRequiredColumnNames().contains('inputRequired')
+    }
+
     private static DecisionTable getDecisionTableFromJson(String file)
     {
         String json = NCubeRuntime.getResourceAsString(file)
