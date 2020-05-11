@@ -191,28 +191,9 @@ class JsonHttpProxy implements CallableBean
             reader = new JsonReader(new BufferedInputStream(response.entity.content))
             Map envelope = reader.readObject() as Map
             parsedJsonOk = true
-            
-            if (envelope.exception != null)
-            {
-                throw (Exception)envelope.exception
-            }
-            if (!envelope.status)
-            {
-                String msg
-                if (envelope.data instanceof String)
-                {
-                    msg = envelope.data
-                }
-                else if (envelope.data != null)
-                {
-                    msg = envelope.data.toString()
-                }
-                else
-                {
-                    msg = 'no extra info provided.'
-                }
-                throw new RuntimeException("REST call [${bean}.${methodName}] indicated failure on server: ${msg}")
-            }
+
+            checkEnvelope(envelope, "${bean}.${methodName}")
+
             return envelope.data
         }
         catch (ThreadDeath t)
@@ -233,6 +214,31 @@ class JsonHttpProxy implements CallableBean
             {
                 IOUtilities.close(reader)
             }
+        }
+    }
+
+    private static void checkEnvelope(Map envelope, String name)
+    {
+        if (envelope.exception != null)
+        {
+            throw (Exception)envelope.exception
+        }
+        if (!envelope.status)
+        {
+            String msg
+            if (envelope.data instanceof String)
+            {
+                msg = envelope.data
+            }
+            else if (envelope.data != null)
+            {
+                msg = envelope.data.toString()
+            }
+            else
+            {
+                msg = 'no extra info provided.'
+            }
+            throw new RuntimeException("REST call [${name}] indicated failure on server: ${msg}")
         }
     }
 
@@ -292,6 +298,9 @@ class JsonHttpProxy implements CallableBean
                 HttpResponse response = httpClient.execute(request)
                 reader = new JsonReader(new BufferedInputStream(response.entity.content))
                 Map envelope = reader.readObject() as Map
+
+                if (200 != response.statusLine.statusCode)
+                    throw new RuntimeException("Failed to acquire token: ${envelope?.error_description}")
 
                 token = envelope.access_token
                 long expiresInSeconds = (long) envelope.expires_in
