@@ -405,7 +405,7 @@ class DecisionTable
                     continue
                 }
 
-                boolean exclude = cellValue.startsWith('!')
+                boolean exclude = cellValue.startsWith(BANG)
                 cellValue -= BANG
                 Iterable<String> cellValues = COMMA_SPLITTER.split(cellValue)
 

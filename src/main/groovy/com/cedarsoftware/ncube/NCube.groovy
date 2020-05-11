@@ -3614,7 +3614,7 @@ class NCube<T>
         parser.close()
         if (ncube.getMetaProperty(DECISION_TABLE))
         {
-            DecisionTable decisionTable = new DecisionTable(ncube)
+            new DecisionTable(ncube)
         }
         return ncube
     }
