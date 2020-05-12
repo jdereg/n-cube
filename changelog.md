@@ -1,4 +1,6 @@
 ### Revision History
+* 4.7.8-SNAPSHOT
+  *
 * 4.7.7
   * Updated `RulesEngine` to throw an IllegalArgumentException if it encounters a cell expected to contain an `NCube` name, but for which there is no `NCube`.  Avoids `NullPointerException` when you make a typo.
   * Updated `JsonHttpProxy.requestToken()` to throw a `RuntimeException` if it fails to get a token.
