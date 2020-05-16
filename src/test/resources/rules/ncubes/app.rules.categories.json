@@ -1,6 +1,7 @@
 {
   "ncube":"app.rules.categories",
   "default_view_axis_order":"[\"rulegroup\",\"category\"]",
+  "decision_table":true,
   "axes":[
     {
       "id":3,
@@ -40,16 +41,19 @@
         {
           "id":4001899704128,
           "type":"string",
+          "input_value":true,
           "value":"category1"
         },
         {
           "id":4000638572143,
           "type":"string",
+          "input_value":true,
           "value":"category2"
         },
         {
           "id":4001289061906,
           "type":"string",
+          "input_value":true,
           "value":"category3"
         }
       ]

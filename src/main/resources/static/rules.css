@@ -1,0 +1,145 @@
+/* codeTip container */
+.codeTip {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px solid #aba8a8;
+    font-family: monospace;
+    font-size: .9em;
+    background-color: #e8e8e8;
+    border-radius: 5px;
+    margin: 0px 8px 2px 0px;
+    padding: 0px 5px 0px 5px;
+    vertical-align: middle;
+    top: -1px;
+}
+
+/* codeTip text */
+.codeTip .codeTipText {
+    display: inline;
+    visibility: hidden;
+    background-color: #e2e2e2;
+    color: #232ca2;
+    padding: 12px;
+    border-radius: 6px;
+    white-space: pre;
+    font-family: monospace;
+    font-size: 1.1em;
+
+    /* Position the codeTip text*/
+    position: absolute;
+    z-index: 1;
+}
+
+/* Show the codeTip text when you mouse over the tooltip container */
+.codeTip:hover .codeTipText {
+    visibility: visible;
+}
+
+.conditionTrue {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px solid #aba8a8;
+    font-family: monospace;
+    font-size: .9em;
+    background-color: #e8e8e8;
+    border-radius: 5px;
+    margin: 0px 8px 2px 0px;
+    padding: 0px 5px 0px 5px;
+    vertical-align: middle;
+    top: -1px;
+}
+
+/* conditionTip container */
+.conditionTip {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px solid #aba8a8;
+    font-family: monospace;
+    font-size: .9em;
+    background-color: #e8e8e8;
+    border-radius: 5px;
+    margin: 0px 8px 2px 0px;
+    padding: 0px 5px 0px 5px;
+    vertical-align: middle;
+    top: -1px;
+}
+
+/* conditionTip text */
+.conditionTip .conditionTipText {
+    display: inline;
+    visibility: hidden;
+    background-color: #e2e2e2;
+    color: #232ca2;
+    padding: 12px;
+    border-radius: 6px;
+    white-space: pre;
+    font-family: monospace;
+    font-size: 1.1em;
+
+    /* Position the conditionTip text*/
+    position: absolute;
+    z-index: 1;
+}
+
+/* Show the codeTip text when you mouse over the tooltip container */
+.conditionTip:hover .conditionTipText {
+    visibility: visible;
+}
+
+.className {
+    display: inline;
+    font-family: monospace;
+    font-size: 1.2em;
+    vertical-align: middle;
+    margin-left: 2px;
+    margin-right: 2px;
+}
+
+.ruleType {
+    font-weight: bold;
+    display: inline;
+    color: #3a3ab0
+}
+
+.ruleTitle {
+    font-weight: bold;
+}
+
+.ruleMethod {
+    display: inline;
+}
+
+.ruleName {
+    display: inherit;
+}
+
+.ruleName span {
+    display: inherit;
+    font-weight: bold;
+}
+
+.ruleCondition {
+    display: inherit;
+}
+
+.docText {
+    display: inherit;
+    margin-right: 6px;
+}
+
+.methodName {
+    display: none;
+}
+
+.noContent {
+    font-style: italic;
+    color: dimgray;
+}
+
+.ruleGroup {
+    list-style: none;
+}
+
+.ruleGroupSeparator {
+    border-top: 1px solid #bcbcbc;
+}

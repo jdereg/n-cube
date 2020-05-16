@@ -45,12 +45,13 @@ var RULES = (function ($)
         {
             ruleType = ruleTypes[i];
             rule = data[ruleType];
-            ruleTypeAndName = ruleType + ' (' + rule['className'] + ')';
+            ruleTypeAndName = ruleNameTemplate(ruleType, rule['className'])
             ul = buildObject(rule['objects']);
-            li = $('<li/>');
+            li = $('<li class="ruleGroup"/>');
             li.append(ruleTypeAndName);
             li.append(ul);
             ruleList.append(li);
+            ruleList.append('<hr class="ruleGroupSeparator">')
         }
 
         $('a').click(function () {
@@ -60,16 +61,17 @@ var RULES = (function ($)
 
     function buildObject(rules) // return ul with object and methods
     {
-        var i, len, name, object, methods, li;
+        var i, len, name, title, object, methods, li;
         var ul = $('<ul/>');
         var objects = Object.keys(rules);
         for (i = 0, len = objects.length; i < len; i++)
         {
             name = objects[i];
+            title = ruleTitleTemplate(objects[i]);
             object = rules[name];
             methods = buildMethods(object);
-            li = $('<li/>');
-            li.append(name);
+            li = $('<li class="ruleGroup"/>');
+            li.append(title);
             li.append(methods);
             ul.append(li);
         }
@@ -85,34 +87,82 @@ var RULES = (function ($)
         {
             rule = rules[i];
             li = $('<li/>');
-            li.append(rule['value']);
-            li.append(buildNCubeList(rule['ncubes'], rule['appId']));
+            li.append(methodTemplate(rule));
             ul.append(li);
         }
         return ul;
     }
 
-    function buildNCubeList(ncubes, appId)
+    function ruleNameTemplate(ruleType, className)
     {
-        var i, len, ncube, ref;
-        var list = ' [';
-        if (ncubes === undefined)
-        {
-            return '';
-        }
+        return `<span class="ruleType">${ruleType}</span> (<span class="className">${className}</span>)`;
+    }
 
-        for (i = 0, len = ncubes.length; i < len; i++)
+    function ruleTitleTemplate(name)
+    {
+        return `<span class="ruleTitle">${name}</span>`
+    }
+
+    function methodTemplate(rule)
+    {
+        let ruleHtml = '<span class="ruleMethod">'
+        if (rule['name'])
         {
-            ncube = ncubes[i];
-            ref = '<a data-appId="' + appId + '" href="#">' + ncubes[i] + '</a>';
-            list += ref;
-            if (i < len -1)
+            ruleHtml += `<span class="ruleName"><span>${rule['name']}</span>: </span>`
+        }
+        if (rule['condition'])
+        {
+            if (rule['condition'] === "true" || rule['condition'] === "false")
             {
-                list += ', '
+                ruleHtml += `<span class="conditionTrue">${rule['condition']}</span>`
+            }
+            else
+            {
+                ruleHtml += `<span class="ruleCondition conditionTip"><em>Condition</em><span class="conditionTipText">${rule['condition']}</span></span>`
             }
         }
-        list += ']';
-        return list;
+        if (rule['noContent'])
+        {
+            ruleHtml += `<span class="noContent">[Rule has no content]</span>`
+            ruleHtml += '</span>'
+            return ruleHtml
+        }
+        if (rule['documentation'])
+        {
+            ruleHtml += `<span class="docText">${rule['documentation']}</span>`
+        }
+        if (rule['code'])
+        {
+            ruleHtml += `<span class="codeTip"><em>Code</em><span class="codeTipText">${rule['code']}</span></span>` // note: Just changed the inner pre to a span
+        }
+        if (rule['methodName'])
+        {
+            ruleHtml += `<span class="methodName conditionTip"><em>Method</em><span class="conditionTipText">${rule['methodName']}</span></span>`
+        }
+        if (rule['ncubes'])
+        {
+            var i, len, ncube, ref;
+            let ncubes = rule['ncubes'];
+            if (ncubes.length > 0)
+            {
+                let appId = rule['appId'];
+                var list = ' [';
+                for (i = 0, len = ncubes.length; i < len; i++)
+                {
+                    ncube = ncubes[i];
+                    ref = `<a class="ncubes" data-appId="${appId}" href="#">${ncubes[i]}</a>`;
+                    list += ref;
+                    if (i < len -1)
+                    {
+                        list += ', '
+                    }
+                }
+                list += ']'
+                ruleHtml += list
+            }
+        }
+        ruleHtml += '</span>'
+        return ruleHtml
     }
 
     function resetRules()

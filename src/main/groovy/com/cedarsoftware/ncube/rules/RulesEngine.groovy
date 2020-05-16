@@ -20,6 +20,7 @@ import static com.cedarsoftware.ncube.AxisType.DISCRETE
 import static com.cedarsoftware.ncube.AxisType.RULE
 import static com.cedarsoftware.ncube.AxisValueType.CISTRING
 import static com.cedarsoftware.ncube.AxisValueType.STRING
+import static com.cedarsoftware.ncube.NCube.MAP_REDUCE_COLUMNS_TO_RETURN
 import static com.cedarsoftware.ncube.NCubeAppContext.getNcubeRuntime
 import static com.cedarsoftware.util.StringUtilities.hasContent
 
@@ -36,7 +37,7 @@ class RulesEngine
     static final String COL_EXCEPTION = 'throwException'
 
     private static final Set IGNORED_METHODS = ['equals', 'toString', 'hashCode', 'annotationType'] as Set
-    private static final Pattern PATTERN_METHOD_NAME = Pattern.compile(".*input.rule.((?:[^(]+))\\(.*")
+    private static final Pattern PATTERN_METHOD_NAME = Pattern.compile(".*input\\.rule\\.((?:[^(]+))\\(.*")
     private static final Pattern PATTERN_NCUBE_NAME = Pattern.compile(".*'(rule.(?:[^']+))'.*", Pattern.DOTALL)
     protected volatile boolean verificationComplete = false
     private Set<String> columnsToReturn
@@ -155,7 +156,7 @@ class RulesEngine
     }
 
     /**
-     * Execute rules by defined by categories. Use the where Closure to define which categories apply for rule execution.
+     * Execute rules defined by categories. Use the where Closure to define which categories apply for rule execution.
      * Example Closure: {Map input -> input['product'] == 'workerscompensation' && input['type'] == 'validation'}
      * @param where
      * @param root Object
@@ -163,7 +164,10 @@ class RulesEngine
      * @param output Map (optional)
      * @return List<RulesError>
      * @throws RulesException if any errors are recorded during execution
+     * @deprecated As of release 4.7.8. Use {@link #execute(java.util.List<java.util.Map<>, java.lang.Object, java.util.Map, java.util.Map)
+     * execute(List, Object, Map, Map)} with DecisionTable criteria instead.
      */
+    @Deprecated()
     List<RulesError> execute(Closure where, Object root, Map input = [:], Map output = [:])
     {
         verifyNCubeSetup()
@@ -382,8 +386,14 @@ class RulesEngine
         return info
     }
 
-    private void generateObjectDocumentation(Map map, String ruleGroup, Class rule, String ncubeName)
+    private void generateObjectDocumentation(Map map, String ruleGroup, Class rule, String ncubeName, List<String> visitedNCubes = [])
     {
+
+        if (visitedNCubes.contains(ncubeName))
+            return
+
+        visitedNCubes.add(ncubeName)
+
         String entityName = Splitter.on('.').split(ncubeName).last()
         List methods = []
         NCube rulesNCube = ncubeRuntime.getCube(appId, ncubeName)
@@ -392,23 +402,44 @@ class RulesEngine
         for (Column column : columns)
         {
             // TODO - enhance this part of the code if rule orchestration gets scoped (for example, by clientName)
+            String ruleName = column.metaProperties.name?: column.toString()
             GroovyExpression expression = (GroovyExpression) rulesNCube.getCellNoExecute([(AXIS_RULE): column.columnName])
-            String cmd = expression.cmd
-            String condition = ((GroovyExpression) column.value).cmd
+            String conditionExprString = ((GroovyExpression) column.value)?.cmd
+            String condition = conditionExprString ?: true // for Default column
 
-            if (cmd.startsWith('input.rule.'))
+            if (expression != null)
             {
-                Map methodInfo = generateMethodDocumentation(rule, cmd, condition)
-                methods.add(methodInfo)
-            }
-            else if (cmd.contains("rule.${ruleGroup}."))
-            {
-                String ncubeNameNext = findStringAgainstPattern(PATTERN_NCUBE_NAME, cmd)
-                generateObjectDocumentation(map, ruleGroup, rule, ncubeNameNext)
+                String cmd = expression.cmd
+                if (cmd.startsWith('input.rule.'))
+                {
+                    // Expression references a rule
+                    List<String> cmdLines = cmd.tokenize('\n')
+                    Map methodInfo = generateMethodDocumentation(rule, cmdLines.first(), condition, ruleName)
+
+                    if (cmdLines.size() > 1)
+                    {
+                        // If the expression does something after the rule method, include the code as well.
+                        methodInfo['code'] = escapeCode(cmd)
+                    }
+                    methods.add(methodInfo)
+                }
+                else if (cmd.contains("rule.${ruleGroup}."))
+                {
+                    // Expression contains code referencing another ruleGroup
+                    String ncubeNameNext = findStringAgainstPattern(PATTERN_NCUBE_NAME, escapeCode(cmd))
+                    generateObjectDocumentation(map, ruleGroup, rule, ncubeNameNext, visitedNCubes)
+                    methods.add([name: ruleName, condition: condition, code: escapeCode(cmd)])
+                }
+                else
+                {
+                    // Expression just contains code
+                    methods.add([name: ruleName, condition: condition, code: escapeCode(cmd)])
+                }
             }
             else
             {
-                methods.add([value: cmd, condition: condition])
+                // Rule expression is empty
+                methods.add([name: ruleName, condition: condition, noContent: true])
             }
         }
         if (methods)
@@ -417,21 +448,28 @@ class RulesEngine
         }
     }
 
-    private Map generateMethodDocumentation(Class rule, String cmd, String condition)
+    /**
+     * Escape the < and > so that it can render in the HTML.
+     * @param cmd
+     * @return
+     */
+    private static String escapeCode(String cmd)
+    {
+        String escapedCmd = cmd.replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+        return escapedCmd
+    }
+
+    private Map generateMethodDocumentation(Class rule, String cmd, String condition, String ruleName)
     {
         String methodName = findStringAgainstPattern(PATTERN_METHOD_NAME, cmd)
-        Map methodInfo = [methodName: methodName, condition: condition] as Map
+        Map methodInfo = [name: ruleName, condition: condition, methodName: methodName] as Map
         Method method = ReflectionUtils.getNonOverloadedMethod(rule, methodName)
         if (!method)
         {
             throw new IllegalStateException("Method: ${methodName} does not exist on class: ${rule.name}")
         }
         Documentation documentation = (Documentation) ReflectionUtils.getMethodAnnotation(method, Documentation)
-        if (!documentation)
-        {
-            methodInfo['value'] = 'No documentation provided'
-        }
-        else
+        if (documentation)
         {
             Method[] declaredMethods = documentation.class.declaredMethods
             for (Method declaredMethod : declaredMethods)
@@ -442,10 +480,17 @@ class RulesEngine
                     def value = documentation.invokeMethod(declaredName, null)
                     if (value)
                     {
-                        methodInfo[declaredName] = value
-                        if ('ncubes' == declaredName)
+                        if (declaredName == 'value')
                         {
+                            methodInfo['documentation'] = value
+                        } else if (declaredName == 'ncubes')
+                        {
+                            methodInfo['ncubes'] = value
                             addDefaultAppId(documentation, methodInfo)
+                        }
+                        else if (declaredName == 'appId')
+                        {
+                            methodInfo['appId'] = value
                         }
                     }
                 }
@@ -454,6 +499,11 @@ class RulesEngine
         return methodInfo
     }
 
+    /**
+     * If the annotation did not include the appId, update the value in methodInfo with the default appId.
+     * @param documentation
+     * @param methodInfo
+     */
     private void addDefaultAppId(Documentation documentation, Map methodInfo)
     {
         if (!hasContent(documentation.appId()))
@@ -474,7 +524,7 @@ class RulesEngine
 
     private List<String> getRuleGroupsFromClosure(Closure where)
     {
-        Map options = [(NCube.MAP_REDUCE_COLUMNS_TO_RETURN): [] as Set, (NCube.MAP_REDUCE_COLUMNS_TO_RETURN): columnsToReturn]
+        Map options = [(MAP_REDUCE_COLUMNS_TO_RETURN): [] as Set, (MAP_REDUCE_COLUMNS_TO_RETURN): columnsToReturn]
         Map result = ncubeCategories.mapReduce(AXIS_CATEGORY, where, options)
         List<String> ruleGroups = new ArrayList<>(result.keySet())
         return ruleGroups
@@ -545,7 +595,6 @@ class RulesEngine
         checkAxis(ncubeRules, AXIS_RULE_GROUP)
         checkAxis(ncubeRules, AXIS_ATTRIBUTE)
         checkColumns(ncubeRules, AXIS_ATTRIBUTE, [COL_CLASS, COL_NCUBE])
-
     }
 
     private void verifyCategoriesSetup()
@@ -557,6 +606,11 @@ class RulesEngine
         }
     }
 
+    /**
+     * Axis must exist with type: DISCRETE, and valueType: STRING or CISTRING.
+     * @param ncube
+     * @param axisName
+     */
     private void checkAxis(NCube ncube, String axisName)
     {
         Axis axis = ncube.getAxis(axisName)
@@ -577,6 +631,12 @@ class RulesEngine
         }
     }
 
+    /**
+     * All columnNames must exist on axisName in ncube.
+     * @param ncube
+     * @param axisName
+     * @param columnNames
+     */
     private void checkColumns(NCube ncube, String axisName, List<String> columnNames)
     {
         Axis axis = ncube.getAxis(axisName)

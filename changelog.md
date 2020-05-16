@@ -1,4 +1,21 @@
 ### Revision History
+* 4.7.8-SNAPSHOT
+  * Marked `RulesEngine.execute(Closure, Object, Map, Map)` as deprecated in preparation to replace the `RulesEngine` categories `NCube` to be treated as a `DecisionTable`.
+  * Updated `RulesEngine` documentation generation.
+    * Code changes:
+        * Fixed stack overflow when a rule expression called another rule that had already been processed (added visitor pattern).
+        * Fixed issue with reading the Default column of a ruleAxis.
+        * Fixed NPE when a rule expression has no code. 
+    * UI changes:
+        * Added a `rules.css` to define display styles for each piece of rule info.
+        * The name of a ruleGroup will now display in a dark blue.  The `BusinessRule` class name will appear next to it in a monospace font.
+        * Each NCube rule orchestration name will be displayed in bold.
+        * Each rule in a ruleGroup will now display the rule column name followed by the rule condition followed by the `@Documentation` value.  
+        * If a rule condition is a primitive boolean, it will display the boolean.  Otherwise, it will display "*Condition*", with a hover tooltip that shows the condition expression as code. 
+        * If a rule expression references another ruleGroup, provide the name of the rule column and a "Code" blob with a tooltip to see the code.
+        * If a rule expression is not simply a reference to a method on the `BusinessRule` (ie: `input.rule.someMethod()`, the UI will also display the "Code" blob with tooltip.
+        * If a rule expression is empty, it will display `[Rule has no content]`.
+        * Each ruleGroup will be separated by a line for easier visibility.
 * 4.7.7
   * Updated `RulesEngine` to throw an IllegalArgumentException if it encounters a cell expected to contain an `NCube` name, but for which there is no `NCube`.  Avoids `NullPointerException` when you make a typo.
   * Updated `JsonHttpProxy.requestToken()` to throw a `RuntimeException` if it fails to get a token.
