@@ -4,6 +4,7 @@ import com.cedarsoftware.ncube.NCubeBaseTest
 import com.cedarsoftware.ncube.NCubeRuntime
 import com.cedarsoftware.util.DeepEquals
 import com.cedarsoftware.util.io.JsonReader
+import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
@@ -368,6 +369,8 @@ class RulesEngineTest extends NCubeBaseTest
         String json = NCubeRuntime.getResourceAsString('rules/group1and3.json')
         Map expected = (Map) JsonReader.jsonToJava(json)
         Map actual = rulesEngine.generateDocumentationForGroups(['group1', 'group3'])
+        println('actual json:\n'+ JsonWriter.objectToJson(actual))
+        println('\n\n\nexpected json:\n'+json)
         assert DeepEquals.deepEquals(expected, actual)
     }
 
@@ -439,6 +442,8 @@ class RulesEngineTest extends NCubeBaseTest
         Map expected = (Map) JsonReader.jsonToJava(json)
         Map categories = [category3: 'tiger'] as Map
         Map actual = rulesEngine.generateDocumentation(categories)
+        println('actual json:\n'+ JsonWriter.objectToJson(actual))
+        println('\n\n\nexpected json:\n'+json)
         assert DeepEquals.deepEquals(expected, actual)
     }
 
@@ -449,6 +454,8 @@ class RulesEngineTest extends NCubeBaseTest
         Map expected = (Map) JsonReader.jsonToJava(json)
         List categories = [[category1: 'foo', category2: 'apple'] as Map, [category1: 'bar'] as Map]
         Map actual = rulesEngine.generateDocumentation(categories)
+        println('actual json:\n'+ JsonWriter.objectToJson(actual))
+        println('\n\n\nexpected json:\n'+json)
         assert DeepEquals.deepEquals(expected, actual)
     }
 
