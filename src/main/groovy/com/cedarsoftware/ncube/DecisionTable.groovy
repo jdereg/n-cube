@@ -53,7 +53,7 @@ import static java.lang.String.CASE_INSENSITIVE_ORDER
 @CompileStatic
 class DecisionTable
 {
-    private NCube decisionTable
+    private NCube decisionCube
     private String fieldAxisName = null
     private String rowAxisName = null
     private Set<String> inputColumns = getCIHashSet()
@@ -68,8 +68,8 @@ class DecisionTable
 
     protected DecisionTable(NCube decisionCube)
     {
-        decisionTable = decisionCube
-        if (decisionTable.getBusinessEngine() instanceof DecisionTable)
+        this.decisionCube = decisionCube
+        if (this.decisionCube.getBusinessEngine() instanceof DecisionTable)
         {
             DecisionTable other = (DecisionTable) decisionCube.getBusinessEngine()
             fieldAxisName = other.fieldAxisName
@@ -80,7 +80,7 @@ class DecisionTable
             rangeColumns = other.rangeColumns
             rangeKeys = other.rangeKeys
             requiredColumns = other.requiredColumns
-            inputVarNameToRangeColumns = other. inputVarNameToRangeColumns
+            inputVarNameToRangeColumns = other.inputVarNameToRangeColumns
         }
         else
         {
@@ -127,7 +127,7 @@ class DecisionTable
     }
 
     /**
-     * Main API for querying a Decision Table with multiple query inputs.
+     * Main API for querying a Decision Table with multiple inputs, where the result will be OR'ed together.
      * @param iterable Iterable<Map> containing one or more input Maps containing the key/value pairs for all the
      * input_value columns. Each Map will perform a separate query and the results of each query will be merged into a
      * single result.
@@ -155,7 +155,7 @@ class DecisionTable
         Map<String, ?> copyInput = new CaseInsensitiveMap<>(input, new HashMap<>(input.size()))
         copyInput.keySet().retainAll(inputKeys)
         copyInput.put(IGNORE, null)
-        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        Axis fieldAxis = decisionCube.getAxis(fieldAxisName)
         ensuredRequiredInputs(copyInput)
 
         for (String colValue : inputColumns)
@@ -248,7 +248,7 @@ class DecisionTable
                 input: closureInput
         ]
 
-        Map<Comparable, ?> result = decisionTable.mapReduce(fieldAxisName, decisionTableClosure, options)
+        Map<Comparable, ?> result = decisionCube.mapReduce(fieldAxisName, decisionTableClosure, options)
         result = determinePriority(result)
         return result
     }
@@ -304,7 +304,7 @@ class DecisionTable
      */
     Set<Comparable> validateDecisionTable()
     {
-        List<Column> rows = decisionTable.getAxis(rowAxisName).columnsWithoutDefault
+        List<Column> rows = decisionCube.getAxis(rowAxisName).columnsWithoutDefault
         NCube blowout = createValidationNCube(rows)
         Set<Comparable> badRows = validateDecisionTableRows(blowout, rows)
         return badRows
@@ -315,7 +315,7 @@ class DecisionTable
      */
     NCube getUnderlyingNCube()
     {
-        return decisionTable
+        return decisionCube
     }
 
     /**
@@ -327,8 +327,8 @@ class DecisionTable
      */
     Map<String, Set<String>> getDefinedValues()
     {
-        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
-        Axis rowAxis = decisionTable.getAxis(rowAxisName)
+        Axis fieldAxis = decisionCube.getAxis(fieldAxisName)
+        Axis rowAxis = decisionCube.getAxis(rowAxisName)
         List<Column> rows = rowAxis.columnsWithoutDefault
         Map<String, Set<String>> definedValues = [:]
         Map<String, Comparable> coord = [:]
@@ -355,7 +355,7 @@ class DecisionTable
                 String rowValue = row.value
                 coord.put(rowAxisName, rowValue)
                 Set<Long> idCoord = new LongHashSet(field.id, row.id)
-                String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:], null, true))
+                String cellValue = convertToString(decisionCube.getCellById(idCoord, coord, [:], null, true))
                 if (hasContent(cellValue))
                 {
                     cellValue -= BANG
@@ -494,13 +494,13 @@ class DecisionTable
             return
         }
 
-        if (decisionTable.numDimensions != 2)
+        if (decisionCube.numDimensions != 2)
         {
-            throw new IllegalStateException("Decision table: ${decisionTable.name} must have 2 axes.")
+            throw new IllegalStateException("Decision table: ${decisionCube.name} must have 2 axes.")
         }
 
         Set<String> decisionMetaPropertyKeys = [INPUT_VALUE, INPUT_LOW, INPUT_HIGH, OUTPUT_VALUE] as Set<String>
-        List<Axis> axes = decisionTable.axes
+        List<Axis> axes = decisionCube.axes
         Axis first = axes.first()
         Axis second = axes.last()
 
@@ -542,22 +542,22 @@ class DecisionTable
 
         if (!fieldAxisName || !rowAxisName)
         {
-            throw new IllegalStateException("Decision table: ${decisionTable.name} must have one axis with one or more columns with meta-property keys: input_value and/or input_high/input_low.")
+            throw new IllegalStateException("Decision table: ${decisionCube.name} must have one axis with one or more columns with meta-property keys: input_value and/or input_high/input_low.")
         }
 
-        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        Axis fieldAxis = decisionCube.getAxis(fieldAxisName)
         if (fieldAxis.type != AxisType.DISCRETE)
         {
-            throw new IllegalStateException("Decision table: ${decisionTable.name} field / property axis must be a DISCRETE axis.  It is ${fieldAxis.type}")
+            throw new IllegalStateException("Decision table: ${decisionCube.name} field / property axis must be a DISCRETE axis.  It is ${fieldAxis.type}")
         }
 
         if (fieldAxis.valueType != AxisValueType.CISTRING)
         {
-            throw new IllegalStateException("Decision table: ${decisionTable.name} field / property axis must have value type of CISTRING.  It is ${fieldAxis.valueType}")
+            throw new IllegalStateException("Decision table: ${decisionCube.name} field / property axis must have value type of CISTRING.  It is ${fieldAxis.valueType}")
         }
 
         Map<String, RangeSpec> rangeSpecs = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>())
-        for (Column column : decisionTable.getAxis(fieldAxisName).columnsWithoutDefault)
+        for (Column column : decisionCube.getAxis(fieldAxisName).columnsWithoutDefault)
         {
             Map colMetaProps = column.metaProperties
             String columnValue = column.value
@@ -575,7 +575,7 @@ class DecisionTable
                 String dataType = colMetaProps.get(DATA_TYPE)
                 if (dataType == null || !['LONG', 'DOUBLE', 'DATE', 'BIG_DECIMAL', 'STRING'].contains(dataType.toUpperCase()))
                 {
-                    throw new IllegalStateException("Range columns must have 'data_type' meta-property set, column: ${columnValue}, ncube: ${decisionTable.name}. Valid values are DATE, LONG, DOUBLE, BIG_DECIMAL, STRING.")
+                    throw new IllegalStateException("Range columns must have 'data_type' meta-property set, column: ${columnValue}, ncube: ${decisionCube.name}. Valid values are DATE, LONG, DOUBLE, BIG_DECIMAL, STRING.")
                 }
                 inputColumns.add(columnValue)
                 rangeColumns.add(columnValue)
@@ -587,7 +587,7 @@ class DecisionTable
                     Object inputVariableName = colMetaProps.get(INPUT_LOW)
                     if (!(inputVariableName instanceof String))
                     {
-                        throw new IllegalStateException("INPUT_LOW meta-property value must be of type String.  Column: ${columnValue}, ncube: ${decisionTable.name}")
+                        throw new IllegalStateException("INPUT_LOW meta-property value must be of type String.  Column: ${columnValue}, ncube: ${decisionCube.name}")
                     }
                     inputVarName = colMetaProps.get(INPUT_LOW)
                     inputKeys.add(inputVarName)
@@ -602,7 +602,7 @@ class DecisionTable
                     }
                     if (rangeSpec.lowColumnName)
                     {
-                        throw new IllegalStateException("More than one low range column with same input variable name found: ${INPUT_LOW}, ncube: ${decisionTable.name}. Each range variable should have a unique name.")
+                        throw new IllegalStateException("More than one low range column with same input variable name found: ${INPUT_LOW}, ncube: ${decisionCube.name}. Each range variable should have a unique name.")
                     }
                     rangeSpec.lowColumnName = column.value
                 }
@@ -611,7 +611,7 @@ class DecisionTable
                     Object inputVariableName = colMetaProps.get(INPUT_HIGH)
                     if (!(inputVariableName instanceof String))
                     {
-                        throw new IllegalStateException("INPUT_HIGH meta-property value must be of type String.  Column: ${columnValue}, ncube: ${decisionTable.name}")
+                        throw new IllegalStateException("INPUT_HIGH meta-property value must be of type String.  Column: ${columnValue}, ncube: ${decisionCube.name}")
                     }
                     inputVarName = colMetaProps.get(INPUT_HIGH)
                     inputKeys.add(inputVarName)
@@ -651,7 +651,7 @@ class DecisionTable
         requiredColumnsCopy.removeAll(inputKeys)
         if (!requiredColumnsCopy.empty)
         {
-            throw new IllegalStateException("REQUIRED meta-property found on columns that are not input_value, input_low, or input_high. These were: ${requiredColumnsCopy}, ncube: ${decisionTable.name}")
+            throw new IllegalStateException("REQUIRED meta-property found on columns that are not input_value, input_low, or input_high. These were: ${requiredColumnsCopy}, ncube: ${decisionCube.name}")
         }
 
         // Throw error if a range is only half-defined (lower with no upper, upper with no lower).
@@ -671,7 +671,7 @@ class DecisionTable
             }
             if (boundName1)
             {
-                throw new IllegalStateException("${boundName1} range Column defined without matching ${boundName2} range Column. Input variable name: ${rangeSpec.inputVarName}, data type: ${rangeSpec.dataType}, ncube: ${decisionTable.name}")
+                throw new IllegalStateException("${boundName1} range Column defined without matching ${boundName2} range Column. Input variable name: ${rangeSpec.inputVarName}, data type: ${rangeSpec.dataType}, ncube: ${decisionCube.name}")
             }
         }
 
@@ -679,7 +679,7 @@ class DecisionTable
         rangeKeys.removeAll(inputColumns)
 
         // Convert all values in the table to the data_type specified on the column meta-property (if there is one)
-        Axis rowAxis = decisionTable.getAxis(rowAxisName)
+        Axis rowAxis = decisionCube.getAxis(rowAxisName)
         Map<String, ?> coord = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>())
         List<Column> rowColumns = rowAxis.columnsWithoutDefault
         Set<String> rangePlusOutputCols = new CaseInsensitiveSet<>(rangeColumns)
@@ -700,30 +700,30 @@ class DecisionTable
             {
                 coord.put(rowAxisName, row.value)
                 Set<Long> idCoord = new LongHashSet(column.id, row.id)
-                Object value = decisionTable.getCellById(idCoord, coord, [:], null, true)
+                Object value = decisionCube.getCellById(idCoord, coord, [:], null, true)
 
                 if (rangeColumns.contains(columnValue))
                 {   // Convert range column values, ensure their cell values are not null
                     if (value == null || !(value instanceof Comparable))
                     {
-                        throw new IllegalStateException("Values in range column must be instanceof Comparable, row ${row.value}, field: ${columnValue}, ncube: ${decisionTable.name}")
+                        throw new IllegalStateException("Values in range column must be instanceof Comparable, row ${row.value}, field: ${columnValue}, ncube: ${decisionCube.name}")
                     }
                 }
                 else
                 {
                     if (!(value == null || value instanceof Comparable))
                     {
-                        throw new IllegalStateException("Values in columns with DATA_TYPE meta-property must be instanceof Comparable, row ${row.value}, field: ${columnValue}, ncube: ${decisionTable.name}")
+                        throw new IllegalStateException("Values in columns with DATA_TYPE meta-property must be instanceof Comparable, row ${row.value}, field: ${columnValue}, ncube: ${decisionCube.name}")
                     }
                 }
-                decisionTable.setCellById(convertDataType((Comparable) value, dataType), idCoord, true)
+                decisionCube.setCellById(convertDataType((Comparable) value, dataType), idCoord, true)
             }
         }
         computeInputVarToRangeColumns()
         convertSpecialColumnsToPrimitive()
         
         // Point NCube to this DecisionTable so that it only has to verifyAndCache() one time.
-        decisionTable.setBusinessEngine(this)
+        decisionCube.setBusinessEngine(this)
     }
 
     /**
@@ -731,8 +731,8 @@ class DecisionTable
      */
     private void convertSpecialColumnsToPrimitive()
     {
-        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
-        Axis rowAxis = decisionTable.getAxis(rowAxisName)
+        Axis fieldAxis = decisionCube.getAxis(fieldAxisName)
+        Axis rowAxis = decisionCube.getAxis(rowAxisName)
         Map<String, ?> coord = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>(4))
 
         long ignoreColId = -1
@@ -764,20 +764,20 @@ class DecisionTable
             {
                 coord.put(fieldAxisName, IGNORE)
                 Set<Long> idCoord = new LongHashSet(ignoreColId, row.id)
-                Object value = decisionTable.getCellById(idCoord, coord, [:])
-                decisionTable.setCellById(convertToBoolean(value), idCoord, true)
+                Object value = decisionCube.getCellById(idCoord, coord, [:])
+                decisionCube.setCellById(convertToBoolean(value), idCoord, true)
             }
 
             if (priorityColId != -1)
             {
                 Set<Long> idCoord = new LongHashSet(priorityColId, row.id)
                 coord.put(fieldAxisName, PRIORITY)
-                Integer intValue = convertToInteger(decisionTable.getCellById(idCoord, coord, [:]))
+                Integer intValue = convertToInteger(decisionCube.getCellById(idCoord, coord, [:]))
                 if (intValue < 1)
                 {   // If priority is not specified, then it is the lowest priority of all
                     intValue = Integer.MAX_VALUE
                 }
-                decisionTable.setCellById(intValue, idCoord, true)
+                decisionCube.setCellById(intValue, idCoord, true)
             }
         }
     }
@@ -787,7 +787,7 @@ class DecisionTable
      */
     private void computeInputVarToRangeColumns()
     {
-        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        Axis fieldAxis = decisionCube.getAxis(fieldAxisName)
 
         for (String colValue : inputColumns)
         {
@@ -854,7 +854,7 @@ class DecisionTable
     {
         NCube blowout = new NCube('validation')
         Map<String, Comparable> coord = [:]
-        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        Axis fieldAxis = decisionCube.getAxis(fieldAxisName)
         Set<String> colsToProcess = new CaseInsensitiveSet<>(inputColumns)
         colsToProcess.removeAll(rangeColumns)
 
@@ -871,7 +871,7 @@ class DecisionTable
                 String rowValue = row.value
                 coord.put(rowAxisName, rowValue)
                 Set<Long> idCoord = new LongHashSet(field.id, row.id)
-                String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:], null, true))
+                String cellValue = convertToString(decisionCube.getCellById(idCoord, coord, [:], null, true))
                 if (hasContent(cellValue))
                 {
                     cellValue -= BANG
@@ -908,7 +908,7 @@ class DecisionTable
      */
     private Set<Comparable> validateDecisionTableRows(NCube blowout, List<Column> rows)
     {
-        Axis fieldAxis = decisionTable.getAxis(fieldAxisName)
+        Axis fieldAxis = decisionCube.getAxis(fieldAxisName)
         Map<String, Comparable> coord = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>(4))
         Set<Comparable> badRows = new CaseInsensitiveSet<>()
         Column ignoreColumn = fieldAxis.findColumn(IGNORE)
@@ -948,7 +948,7 @@ class DecisionTable
             {
                 coord.put(fieldAxisName, IGNORE)
                 Set<Long> idCoord = new LongHashSet(rowId, ignoreColumn.id)
-                if (decisionTable.getCellById(idCoord, coord, [:], null, true))
+                if (decisionCube.getCellById(idCoord, coord, [:], null, true))
                 {
                     continue
                 }
@@ -1078,12 +1078,12 @@ class DecisionTable
             coord.put(fieldAxisName, lowColumn.value)
             Set<Long> idCoord = new LongHashSet(lowColumn.id, rowId)
             Range range = new Range()
-            range.low = (Comparable) decisionTable.getCellById(idCoord, coord, [:], null, true)
+            range.low = (Comparable) decisionCube.getCellById(idCoord, coord, [:], null, true)
 
             Column highColumn = (Column) bounds.high
             coord.put(fieldAxisName, highColumn.value)
             idCoord = new LongHashSet(highColumn.id, rowId)
-            range.high = (Comparable) decisionTable.getCellById(idCoord, coord, [:], null, true)
+            range.high = (Comparable) decisionCube.getCellById(idCoord, coord, [:], null, true)
             range.priority = priority
 
             ranges.put(rangeName, internRange(range, internedRanges, primitives))
@@ -1112,7 +1112,7 @@ class DecisionTable
             Column field = fieldAxis.findColumn(colValue)
             Set<Long> idCoord = new LongHashSet(field.id, row.id)
             coord.put(fieldAxisName, field.value)
-            String cellValue = convertToString(decisionTable.getCellById(idCoord, coord, [:], null, true))
+            String cellValue = convertToString(decisionCube.getCellById(idCoord, coord, [:], null, true))
 
             if (hasContent(cellValue))
             {
@@ -1163,7 +1163,7 @@ class DecisionTable
         {
             coord.put(fieldAxisName, priorityColumn.value)
             Set<Long> idCoord = new LongHashSet(priorityColumn.id, rowId)
-            return decisionTable.getCellById(idCoord, coord, [:], null, true)
+            return decisionCube.getCellById(idCoord, coord, [:], null, true)
         }
         else
         {
@@ -1209,7 +1209,7 @@ class DecisionTable
         {
             Set<String> requiredCopy = new CaseInsensitiveSet<>(requiredColumns)
             requiredCopy.removeAll(input.keySet())
-            throw new IllegalArgumentException("Required input keys: ${requiredCopy} not found, decision table: ${decisionTable.name}")
+            throw new IllegalArgumentException("Required input keys: ${requiredCopy} not found, decision table: ${decisionCube.name}")
         }
     }
 
@@ -1265,7 +1265,7 @@ class DecisionTable
         {
             return convertToBoolean(value)
         }
-        throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL, STRING, or BOOLEAN. Data type: ${dataType}, value: ${value}, decision table: ${decisionTable.name}")
+        throw new IllegalStateException("Data type must be one of: DATE, LONG, DOUBLE, BIG_DECIMAL, STRING, or BOOLEAN. Data type: ${dataType}, value: ${value}, decision table: ${decisionCube.name}")
     }
 
     /**
