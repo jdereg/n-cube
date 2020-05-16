@@ -112,13 +112,17 @@ var RULES = (function ($)
         }
         if (rule['condition'])
         {
-            if (rule['condition'] === "true" || rule['condition'] === "false")
+            if (rule['condition'] === "true")
             {
-                ruleHtml += `<span class="conditionTrue">${rule['condition']}</span>`
+                ruleHtml += `<span class="codeTip true">${rule['condition']}</span>`
+            }
+            else if (rule['condition'] === "false")
+            {
+                ruleHtml += `<span class="codeTip false">${rule['condition']}</span>`
             }
             else
             {
-                ruleHtml += `<span class="ruleCondition conditionTip"><em>Condition</em><span class="conditionTipText">${rule['condition']}</span></span>`
+                ruleHtml += `<span class="codeTip condition"><em>Condition</em><span class="codeTipText">${rule['condition']}</span></span>`
             }
         }
         if (rule['noContent'])
@@ -133,11 +137,11 @@ var RULES = (function ($)
         }
         if (rule['code'])
         {
-            ruleHtml += `<span class="codeTip"><em>Code</em><span class="codeTipText">${rule['code']}</span></span>` // note: Just changed the inner pre to a span
+            ruleHtml += `<span class="code codeTip"><em>Code</em><span class="codeTipText">${rule['code']}</span></span>`
         }
         if (rule['methodName'])
         {
-            ruleHtml += `<span class="methodName conditionTip"><em>Method</em><span class="conditionTipText">${rule['methodName']}</span></span>`
+            ruleHtml += `<span class="methodName codeTip"><em>Method</em><span class="codeTipText">${rule['methodName']}</span></span>`
         }
         if (rule['ncubes'])
         {
