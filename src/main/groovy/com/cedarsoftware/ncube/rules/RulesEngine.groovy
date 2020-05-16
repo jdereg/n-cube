@@ -496,6 +496,11 @@ class RulesEngine
                 }
             }
         }
+        else
+        {
+            // If it calls a method and it doesn't have the annotation, return the code block.
+            methodInfo['code'] = cmd
+        }
         return methodInfo
     }
 
