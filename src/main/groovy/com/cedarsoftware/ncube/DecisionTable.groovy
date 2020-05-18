@@ -379,11 +379,11 @@ class DecisionTable
 
             for (Map.Entry<String, ?> entry : inputMap)
             {
-                // 1. Check special IGNORE row variable
                 String decVarName = entry.key
                 Object decVarValue = rowValues.get(decVarName)
                 Object inputValue = entry.value
 
+                // 1. Check special IGNORE row variable
                 if (IGNORE == decVarName)
                 {
                     if (decVarValue)
@@ -419,7 +419,7 @@ class DecisionTable
                         }
                     }
 
-                    continue
+                    continue    // check next decision variable
                 }
 
                 // 3. Check discrete decision variables
@@ -440,7 +440,7 @@ class DecisionTable
                     {
                         if (!okToContinue(exclude, cellValues, anElementOfInput))
                         {
-                            return false
+                            return false    // row does not match
                         }
                     }
                 }
@@ -448,12 +448,12 @@ class DecisionTable
                 {   // Check single value on LHS against possible multiple in cell (or !cell)
                     if (!okToContinue(exclude, cellValues, (String)inputValue))
                     {
-                        return false
+                        return false    // row does not match
                     }
                 }
-                // continue
+                // continue (check next decision variable)
             }
-            return true
+            return true    // row match!
         }
     }
 
