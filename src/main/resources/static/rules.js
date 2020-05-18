@@ -108,7 +108,7 @@ var RULES = (function ($)
         let ruleHtml = '<span class="ruleMethod">'
         if (rule['name'])
         {
-            ruleHtml += `<span class="ruleName"><span>${rule['name']}</span>: </span>`
+            ruleHtml += `<span class="ruleName"><span>${rule['name']}</span>:</span> `
         }
         if (rule['condition'])
         {
