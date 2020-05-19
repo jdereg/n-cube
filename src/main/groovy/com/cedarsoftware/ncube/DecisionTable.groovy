@@ -426,7 +426,7 @@ class DecisionTable
                 String cellValue = convertToString(decVarValue)
                 if (StringUtilities.isEmpty(cellValue))
                 {   // Empty cells in input columns are treated as "*" (match any).
-                    continue
+                    continue   // check next decision variable
                 }
 
                 boolean exclude = cellValue.startsWith(BANG)
