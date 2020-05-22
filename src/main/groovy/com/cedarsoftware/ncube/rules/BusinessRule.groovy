@@ -5,6 +5,7 @@ import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.util.Converter
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.slf4j.Logger
 
 import static com.cedarsoftware.ncube.NCubeAppContext.getNcubeRuntime
 
@@ -29,6 +30,7 @@ class BusinessRule
     void init(ApplicationID appId, Map input, Map output)
     {
         input['rule'] = this
+        input['log'] = log
         this.appId = appId
         this.input = input
         this.output = output
@@ -37,6 +39,11 @@ class BusinessRule
     Object getRoot()
     {
         return root
+    }
+
+    Logger getLog()
+    {
+        return log
     }
 
     /**

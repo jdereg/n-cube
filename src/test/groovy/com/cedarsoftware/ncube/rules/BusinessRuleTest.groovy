@@ -4,6 +4,7 @@ import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.ncube.NCubeBaseTest
 import groovy.transform.CompileStatic
 import org.junit.Test
+import org.slf4j.Logger
 
 import static com.cedarsoftware.ncube.ApplicationID.testAppId
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
@@ -26,6 +27,15 @@ class BusinessRuleTest extends NCubeBaseTest
     {
         BusinessRule br = new BusinessRule(null)
         assert null == br.root
+    }
+
+    @Test
+    void testLogger()
+    {
+        BusinessRule br = new BusinessRule(null)
+        assert br.log != null
+        assert br.getLog() != null
+        assert br.getLog() instanceof Logger
     }
 
     @Test
@@ -52,7 +62,7 @@ class BusinessRuleTest extends NCubeBaseTest
         rule.getMapOrList(object, 'field')
         assert 1 == rule.errors.size()
         RulesError exception = rule.errors[0]
-        assertContainsIgnoreCase(( String)exception.message, 'field', 'not', 'list', 'map', 'map')
+        assertContainsIgnoreCase((String)exception.message, 'field', 'not', 'list', 'map', 'map')
     }
 
     @Test

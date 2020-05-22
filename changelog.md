@@ -1,5 +1,6 @@
 ### Revision History
 * 4.7.8-SNAPSHOT
+  * Updated `BusinessRule` to include a `getLog()` method to return the `org.slf4j.Logger` so that all classes extending it can use the same logger (helpful when writing in Java and `@Slf4j` isn't available).  Also added it to `input` during `init()` so that it's available from orchestration NCubes as `input.log.info()`.
   * Marked `RulesEngine.execute(Closure, Object, Map, Map)` as deprecated in preparation to replace the `RulesEngine` categories `NCube` to be treated as a `DecisionTable`.
   * Updated `RulesEngine` documentation generation.
     * Code changes:
