@@ -127,6 +127,15 @@ class DecisionTable
     }
 
     /**
+     * @return Set<String> All output keys that are returned when calling the DecisionTable.getDecision() API.
+     */
+    Set<String> getOutputKeys()
+    {
+        Set<String> outputKeys = getCIHashSet(outputColumns)
+        return outputKeys
+    }
+
+    /**
      * Main API for querying a Decision Table with multiple inputs, where the result will be OR'ed together.
      * @param iterable Iterable<Map> containing one or more input Maps containing the key/value pairs for all the
      * input_value columns. Each Map will perform a separate query and the results of each query will be merged into a
@@ -269,30 +278,6 @@ class DecisionTable
     String getDecisionRowName()
     {
         return rowAxisName
-    }
-
-    /**
-     * @return Set<String> containing the name of the columns that are used as inputs.
-     */
-    Set<String> getInputColumnNames()
-    {
-        return inputColumns
-    }
-
-    /**
-     * @return Set<String> containing the name of the columns that are considered outputs.
-     */
-    Set<String> getOutputColumnNames()
-    {
-        return outputColumns
-    }
-
-    /**
-     * @return Set<String> containing the name of the columns that are required.
-     */
-    Set<String> getRequiredColumnNames()
-    {
-        return requiredColumns
     }
 
     /**

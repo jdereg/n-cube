@@ -920,27 +920,70 @@ class TestDecisionTable extends NCubeBaseTest
         assert decision.size() == 1
         assert decision.containsKey(4L)
 
-        assert dt.getInputColumnNames().size() == 3
-        assert dt.getInputColumnNames().containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
-        assert dt.getOutputColumnNames().size() == 1
-        assert dt.getOutputColumnNames().contains('outputColEnabled')
-        assert dt.getRequiredColumnNames().size() == 1
-        assert dt.getRequiredColumnNames().contains('inputRequired')
+        assert dt.getInputKeys().size() == 3
+        assert dt.getInputKeys().containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
+        assert dt.getOutputKeys().size() == 1
+        assert dt.getOutputKeys().contains('outputColEnabled')
+        assert dt.getRequiredKeys().size() == 1
+        assert dt.getRequiredKeys().contains('inputRequired')
     }
 
     @Test
-    void testColumnTypeGetters()
+    void testKeyGetters()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/ignore_disabled_metaProps.json')
         Set set = dt.validateDecisionTable()
         assert set.empty
 
-        assert dt.getInputColumnNames().size() == 3
-        assert dt.getInputColumnNames().containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
-        assert dt.getOutputColumnNames().size() == 1
-        assert dt.getOutputColumnNames().contains('outputColEnabled')
-        assert dt.getRequiredColumnNames().size() == 1
-        assert dt.getRequiredColumnNames().contains('inputRequired')
+        assert dt.getInputKeys().size() == 3
+        assert dt.getInputKeys().containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
+        assert dt.getOutputKeys().size() == 1
+        assert dt.getOutputKeys().contains('outputColEnabled')
+        assert dt.getRequiredKeys().size() == 1
+        assert dt.getRequiredKeys().contains('inputRequired')
+    }
+
+    @Test
+    void testGetterOutputModification()
+    {   // Make sure the getter methods return copies so that you can't impact the DecisionTable by modifying them.
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/ignore_disabled_metaProps.json')
+        Set set = dt.validateDecisionTable()
+        assert set.empty
+
+        // getInputKeys
+        Set<String> inputKeys = dt.getInputKeys()
+        assert inputKeys.size() == 3
+        assert dt.getInputKeys().containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
+
+        inputKeys.remove('inputColEnabled')
+        inputKeys.remove('inputRequired')
+        inputKeys.remove('inputNotRequired')
+
+        Set<String> inputKeysAfter = dt.getInputKeys()
+        assert inputKeysAfter.size() == 3
+        assert inputKeysAfter.containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
+
+        // getOutputKeys
+        Set<String> outputKeys = dt.getOutputKeys()
+        assert outputKeys.size() == 1
+        assert outputKeys.contains('outputColEnabled')
+
+        outputKeys.remove('outputColEnabled')
+
+        Set<String> outputKeysAfter = dt.getOutputKeys()
+        assert outputKeysAfter.size() == 1
+        assert outputKeysAfter.contains('outputColEnabled')
+
+        // getRequiredKeys
+        Set<String> requiredKeys = dt.getRequiredKeys()
+        assert requiredKeys.size() == 1
+        assert requiredKeys.contains('inputRequired')
+
+        requiredKeys.remove('inputRequired')
+
+        Set<String> requiredKeysAfter = dt.getRequiredKeys()
+        assert requiredKeysAfter.size() == 1
+        assert requiredKeysAfter.contains('inputRequired')
     }
 
     private static DecisionTable getDecisionTableFromJson(String file)
