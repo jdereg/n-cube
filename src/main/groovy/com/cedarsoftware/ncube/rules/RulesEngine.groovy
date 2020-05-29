@@ -156,30 +156,6 @@ class RulesEngine
     }
 
     /**
-     * Execute rules defined by categories. Use the where Closure to define which categories apply for rule execution.
-     * Example Closure: {Map input -> input['product'] == 'workerscompensation' && input['type'] == 'validation'}
-     * @param where
-     * @param root Object
-     * @param input Map (optional)
-     * @param output Map (optional)
-     * @return List<RulesError>
-     * @throws RulesException if any errors are recorded during execution
-     * @deprecated As of release 4.7.8. Use {@link #execute(java.util.List<java.util.Map<>, java.lang.Object, java.util.Map, java.util.Map)
-     * execute(List, Object, Map, Map)} with DecisionTable criteria instead.
-     */
-    @Deprecated()
-    List<RulesError> execute(Closure where, Object root, Map input = [:], Map output = [:])
-    {
-        verifyNCubeSetup()
-        if (!ncubeCategories)
-        {
-            throw new IllegalStateException("Categories ncube not setup in app: ${appId}.")
-        }
-        List<String> ruleGroups = getRuleGroupsFromClosure(where)
-        executeGroups(ruleGroups, root, input, output)
-    }
-
-    /**
      * Execute rules by defined by categories. Use the categories Map to define which categories apply for rule execution.
      * Example Map: [product: 'workerscompensation', type: 'validation']
      * The value for a given key can also be a List which will act like a logic OR for selection.

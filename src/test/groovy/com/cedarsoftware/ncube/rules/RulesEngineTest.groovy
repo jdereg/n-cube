@@ -288,45 +288,6 @@ class RulesEngineTest extends NCubeBaseTest
     }
 
     @Test
-    void testExecute_Closure_Null()
-    {
-        try
-        {
-            rulesEngine.execute((Closure) null, [:])
-            fail()
-        }
-        catch (IllegalArgumentException e)
-        {
-            assertContainsIgnoreCase(e.message, 'where', 'not', 'null')
-        }
-    }
-
-    @Test
-    void testExecute_Closure_SingleCategory()
-    {
-        Map root = [:]
-        Closure where = {Map input -> input['category1'] == 'foo'}
-        rulesEngine.execute(where, root)
-        assert 4 == root.keySet().size()
-        assert root['rule1']
-        assert root['rule2']
-        assert root['rule3']
-        assert root['rule5']
-    }
-
-    @Test
-    void testExecute_Closure_MultipleCategories()
-    {
-        Map root = [:]
-        Closure where = {Map input -> input['category1'] == 'foo' && input['category3'] == 'tiger'}
-        rulesEngine.execute(where, root)
-        assert 3 == root.keySet().size()
-        assert root['rule1']
-        assert root['rule2']
-        assert root['rule3']
-    }
-
-    @Test
     void testExecute_Map_SingleCategory()
     {
         Map root = [:]

@@ -2,7 +2,6 @@ package com.cedarsoftware.ncube.rules.examples;
 
 import com.cedarsoftware.ncube.rules.RulesConfiguration;
 import com.cedarsoftware.ncube.rules.RulesEngine;
-import groovy.lang.Closure;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -32,17 +31,6 @@ public class Demo
         ruleGroups.add("TransformationRules");
         ruleGroups.add("ValidationRules");
         policyRulesEngine.executeGroups(ruleGroups, policy);
-    }
-
-    public void runRulesSelectedByClosure(Map policy, boolean mutable)
-    {
-        Closure categorySelector = new Closure(null)
-        {
-            public Object doCall(Map input) {
-                return mutable == (boolean) input.get("mutable");
-            }
-        };
-        policyRulesEngine.execute(categorySelector, policy);
     }
 
     public void runRulesSelectedByMap(Map policy)

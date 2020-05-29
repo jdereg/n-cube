@@ -1,5 +1,5 @@
 ### Revision History
-* 4.7.8-SNAPSHOT
+* 4.7.8
   * Updated `BusinessRule` to include a `getLog()` method to return the `org.slf4j.Logger` so that all classes extending it can use the same logger (helpful when writing in Java and `@Slf4j` isn't available).  Also added it to `input` during `init()` so that it's available from orchestration NCubes as `input.log.info()`.
   * Marked `RulesEngine.execute(Closure, Object, Map, Map)` as deprecated in preparation to replace the `RulesEngine` categories `NCube` to be treated as a `DecisionTable`.
   * Updated `RulesEngine` documentation generation:
@@ -21,6 +21,7 @@
     * Renamed `DecisionTable.getOutputColumnNames()` to `DecisionTable.getOutputKeys()` to better match `DecisionTable.getInputKeys()`.
     * Removed `DecisionTable.getRequiredColumnNames()` and `DecisionTable.getInputColumnNames()` as they were redundant.
     * Made `DecisionTable.getOutputKeys()` return a copy to prevent accidental modification.
+  * Updated to consume `java-util 1.52.0`
 * 4.7.7
   * Updated `RulesEngine` to throw an IllegalArgumentException if it encounters a cell expected to contain an `NCube` name, but for which there is no `NCube`.  Avoids `NullPointerException` when you make a typo.
   * Updated `JsonHttpProxy.requestToken()` to throw a `RuntimeException` if it fails to get a token.
