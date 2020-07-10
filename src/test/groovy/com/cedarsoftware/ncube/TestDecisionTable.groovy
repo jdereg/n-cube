@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube
 
-
 import groovy.transform.CompileStatic
 import org.junit.Ignore
 import org.junit.Test
@@ -88,6 +87,249 @@ class TestDecisionTable extends NCubeBaseTest
         assert pets.contains('cat')
         assert pets.contains('horse')
         assert pets.contains('lizard')
+    }
+
+    @Test
+    void testOr()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map<String, Object> input = [a:['_Or_', 'baz', 'qux'], age:10]
+        Map rows = dt.getDecision(input)
+
+        assert rows.containsKey(1L)
+        assert rows.containsKey(2L)
+        assert rows.containsKey(5L)
+        assert rows.containsKey(7L)
+        assert rows.containsKey(8L)
+        assert rows.containsKey(9L)
+        assert rows.size() == 6
+
+        dt = getDecisionTableFromJson('decision-tables/operator.json')
+        input = [a: ['_or_', 'baz'], age: 10]
+        rows = dt.getDecision(input)
+
+        assert rows.containsKey(1L)
+        assert rows.containsKey(2L)
+        assert rows.containsKey(5L)
+        assert rows.containsKey(8L)
+        assert rows.containsKey(9L)
+        assert rows.size() == 5
+    }
+
+    @Test
+    void testOrErrorHandling()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map<String, Object> input = [a:['_or_'], age:10]
+        try
+        {
+            dt.getDecision(input)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'must', '2')
+        }
+    }
+
+    @Test
+    void testAnd()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map<String, Object> input = [a:['_AND_', 'foo', 'qux'], age:10]
+        Map rows = dt.getDecision(input)
+        assert rows.containsKey(1L)
+        assert rows.size() == 1
+
+        dt = getDecisionTableFromJson('decision-tables/operator.json')
+        input = [a:['_and_', 'foo', 'bar', 'baz'], age:10]
+        rows = dt.getDecision(input)
+        assert rows.containsKey(1L)
+        assert rows.containsKey(2L)
+        assert rows.size() == 2
+
+        dt = getDecisionTableFromJson('decision-tables/operator.json')
+        input = [a:['_and_', 'baz'], age:10]
+        rows = dt.getDecision(input)
+        assert rows.containsKey(1L)
+        assert rows.containsKey(2L)
+        assert rows.containsKey(5L)
+        assert rows.containsKey(8L)
+        assert rows.containsKey(9L)
+        assert rows.size() == 5
+    }
+
+    @Test
+    void testAndErrorHandling()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map<String, Object> input = [a:['_and_'], age:10]
+        try
+        {
+            dt.getDecision(input)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'must', '2')
+        }
+    }
+
+    @Test
+    void testNor()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map<String, Object> input = [a:['_Nor_', 'baz', 'qux'], age:10]
+        Map rows = dt.getDecision(input)
+
+        assert rows.containsKey(3L)
+        assert rows.containsKey(4L)
+        assert rows.containsKey(6L)
+        assert rows.containsKey(10L)
+        assert rows.size() == 4
+
+        dt = getDecisionTableFromJson('decision-tables/operator.json')
+        input = [a: ['_nor_', 'baz'], age: 10]
+        rows = dt.getDecision(input)
+
+        assert rows.containsKey(3L)
+        assert rows.containsKey(4L)
+        assert rows.containsKey(6L)
+        assert rows.containsKey(7L)
+        assert rows.containsKey(10L)
+        assert rows.size() == 5
+    }
+
+    @Test
+    void testNorErrorHandling()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map<String, Object> input = [a:['_nor_'], age:10]
+        try
+        {
+            dt.getDecision(input)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'must', '2')
+        }
+    }
+
+    @Test
+    void testNand()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map<String, Object> input = [a:['_Nand_', 'baz', 'qux'], age:10]
+        Map rows = dt.getDecision(input)
+
+        assert rows.containsKey(2L)
+        assert rows.containsKey(3L)
+        assert rows.containsKey(4L)
+        assert rows.containsKey(6L)
+        assert rows.containsKey(7L)
+        assert rows.containsKey(10L)
+        assert rows.size() == 6
+
+        dt = getDecisionTableFromJson('decision-tables/operator.json')
+        input = [a: ['_nand_', 'baz'], age: 10]
+        rows = dt.getDecision(input)
+
+        assert rows.containsKey(3L)
+        assert rows.containsKey(4L)
+        assert rows.containsKey(6L)
+        assert rows.containsKey(7L)
+        assert rows.containsKey(10L)
+        assert rows.size() == 5
+    }
+
+    @Test
+    void testNandErrorHandling()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map<String, Object> input = [a:['_nand_'], age:10]
+        try
+        {
+            dt.getDecision(input)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'must', '2')
+        }
+    }
+
+    @Test
+    void testNot()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map<String, Object> input = [a:['_not_', 'foo'], age:10]
+        Map rows = dt.getDecision(input)
+        assert rows.containsKey(5L)
+        assert rows.containsKey(6L)
+        assert rows.containsKey(7L)
+        assert rows.containsKey(8L)
+        assert rows.containsKey(9L)
+
+        assert rows.size() == 5
+
+        Map<String, Object> input2 = [a:['_not_', 'qux'], age:10]
+        rows = dt.getDecision(input2)
+        assert rows.containsKey(2L)
+        assert rows.containsKey(3L)
+        assert rows.containsKey(4L)
+        assert rows.containsKey(6L)
+        assert rows.containsKey(10L)
+        assert rows.size() == 5
+
+        rows = dt.getDecision([input, input2] as Iterable)
+        println rows
+    }
+
+    @Test
+    void testNotErrorHandling()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map<String, Object> input = [a: ['_not_'], age: 10]
+        try
+        {
+            dt.getDecision(input)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'must', 'contain', '2')
+        }
+
+        input = [a: ['_not_', 1L, 2L], age: 10]
+        try
+        {
+            dt.getDecision(input)
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'expected', '2')
+        }
+    }
+
+    @Test
+    void testEmptyIterable()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map<String, Object> input = [a: [], age: 10]
+        Map rows = dt.getDecision(input)
+        assert rows.containsKey(1L)
+        assert rows.containsKey(2L)
+        assert rows.containsKey(3L)
+        assert rows.containsKey(4L)
+        assert rows.containsKey(5L)
+        assert rows.containsKey(6L)
+        assert rows.containsKey(7L)
+        assert rows.containsKey(8L)
+        assert rows.containsKey(9L)
+        assert rows.containsKey(10L)
+        assert rows.size() == 10
     }
 
     @Test
@@ -798,7 +1040,7 @@ class TestDecisionTable extends NCubeBaseTest
     void testMultipleInputs()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/testANDMultipleInputs.json')
-        Map rows = dt.getDecision([lineOfBusiness: ['WC', 'PAC'], date: '2020-05-01'])
+        Map rows = dt.getDecision([lineOfBusiness: ['_and_', 'WC', 'PAC'], date: '2020-05-01'])
         assert rows.size() == 2
         Collection rowz = (Collection)rows.values()
         Map row = (Map) rowz[0]
@@ -806,13 +1048,13 @@ class TestDecisionTable extends NCubeBaseTest
         row = (Map)rowz[1]
         assert row.Commission == '16.0'
 
-        rows = dt.getDecision([lineOfBusiness: ['WC', 'TAC'], date: '2020-05-01'])
+        rows = dt.getDecision([lineOfBusiness: ['_and_', 'WC', 'TAC'], date: '2020-05-01'])
         assert rows.size() == 1
         rowz = (Collection)rows.values()
         row = (Map) rowz[0]
         assert row.Commission == '10.0'
 
-        rows = dt.getDecision([program: ['p', 'q'], date: '2020-05-01'])
+        rows = dt.getDecision([program: ['_and_', 'p', 'q'], date: '2020-05-01'])
         assert rows.size() == 3
         rowz = (Collection)rows.values()
         row = (Map) rowz[0]
@@ -824,22 +1066,152 @@ class TestDecisionTable extends NCubeBaseTest
     }
 
     @Test
-    void testMultipleInputsRange()
+    void testMultipleInputsAndRange()
     {
-        DecisionTable dt = getDecisionTableFromJson('decision-tables/testANDMultipleInputs.json')
-        Map rows = dt.getDecision([lineOfBusiness: ['WC', 'PAC'], date: ['2020-05-01', '2000-01-01', '2050-12-31']])
-        assert rows.size() == 2
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map rows = dt.getDecision([a: 'bar', age: ['_and_', 100, 125, 175]])
+        assert rows.size() == 5
         Collection rowz = (Collection) rows.values()
         Map row = (Map) rowz[0]
-        assert row.Commission == '12.0'
+        assert row.output == 11L
         row = (Map) rowz[1]
-        assert row.Commission == '16.0'
+        assert row.output == 12L
+        row = (Map) rowz[2]
+        assert row.output == 13L
+        row = (Map) rowz[3]
+        assert row.output == 15L
+        row = (Map) rowz[4]
+        assert row.output == 19L
 
-        dt = getDecisionTableFromJson('decision-tables/testANDMultipleInputs.json')
-        rows = dt.getDecision([lineOfBusiness: ['WC', 'PAC'], date: ['2020-05-01', '1850-12-31']])
-        assert rows.isEmpty()
+        rows = dt.getDecision([a: 'bar', age: ['_and_', 100, 125, 175, 200]])
+        assert rows.size() == 0
     }
 
+    @Test
+    void testMultipleInputsOrRange()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map rows = dt.getDecision([a: 'baz', age: ['_or_', 50, 125, 275]])
+        assert rows.size() == 10
+        Collection rowz = (Collection) rows.values()
+        Map row = (Map) rowz[0]
+        assert row.output == 1
+        row = (Map) rowz[1]
+        assert row.output == 2
+        row = (Map) rowz[2]
+        assert row.output == 5
+        row = (Map) rowz[3]
+        assert row.output == 8
+        row = (Map) rowz[4]
+        assert row.output == 9
+        row = (Map) rowz[5]
+        assert row.output == 11
+        row = (Map) rowz[6]
+        assert row.output == 12
+        row = (Map) rowz[7]
+        assert row.output == 15
+        row = (Map) rowz[8]
+        assert row.output == 18
+        row = (Map) rowz[9]
+        assert row.output == 19
+
+        rows = dt.getDecision([a: 'bar', age: ['_or_', 1000, 900, 100]])
+        assert rows.size() == 5
+        rowz = (Collection) rows.values()
+        row = (Map) rowz[0]
+        assert row.output == 11
+        row = (Map) rowz[1]
+        assert row.output == 12
+        row = (Map) rowz[2]
+        assert row.output == 13
+        row = (Map) rowz[3]
+        assert row.output == 15
+        row = (Map) rowz[4]
+        assert row.output == 19
+    }
+
+    @Test
+    void testMultipleInputsNandRange()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map rows = dt.getDecision([a: 'bar', age: ['_nand_', 100, 125, 175]])
+        println rows
+        assert rows.size() == 5
+        Collection rowz = (Collection) rows.values()
+        Map row = (Map) rowz[0]
+        assert row.output == 1
+        row = (Map) rowz[1]
+        assert row.output == 2
+        row = (Map) rowz[2]
+        assert row.output == 3
+        row = (Map) rowz[3]
+        assert row.output == 5
+        row = (Map) rowz[4]
+        assert row.output == 9
+    }
+
+    @Test
+    void testMultipleInputsNorRange()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        Map rows = dt.getDecision([a: 'baz', age: ['_nor_', 50, 125, 275]])
+
+        assert rows.size() == 0
+
+        rows = dt.getDecision([a: 'baz', age: ['_nor_', -50, 105]])
+        assert rows.size() == 5
+        Collection rowz = (Collection) rows.values()
+        Map row = (Map) rowz[0]
+        assert row.output == 1
+        row = (Map) rowz[1]
+        assert row.output == 2
+        row = (Map) rowz[2]
+        assert row.output == 5
+        row = (Map) rowz[3]
+        assert row.output == 8
+        row = (Map) rowz[4]
+        assert row.output == 9
+    }
+
+    @Test
+    void testMultipleInputsNotRange()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/operator.json')
+        try
+        {
+            dt.getDecision([a: 'baz', age: ['_not_', 50, 110]])
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'expected', '2', 'arg')
+        }
+
+        Map rows = dt.getDecision([a:'foo', age: ['_not_', -50]])
+        assert rows.size() == 10
+        Collection rowz = (Collection) rows.values()
+        Map row = (Map) rowz[0]
+        assert row.output == 1
+        row = (Map) rowz[1]
+        assert row.output == 2
+        row = (Map) rowz[2]
+        assert row.output == 3
+        row = (Map) rowz[3]
+        assert row.output == 4
+        row = (Map) rowz[4]
+        assert row.output == 10
+        row = (Map) rowz[5]
+        assert row.output == 11
+        row = (Map) rowz[6]
+        assert row.output == 12
+        row = (Map) rowz[7]
+        assert row.output == 13
+        row = (Map) rowz[8]
+        assert row.output == 14
+        row = (Map) rowz[9]
+        assert row.output == 20
+    }
+    
     @Test
     void testBigDecisionTablePerformance()
     {

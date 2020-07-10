@@ -122,4 +122,10 @@ interface NCubeConstants
     final String IGNORE = 'ignore'
     final String REQUIRED = 'required'
     final String DECISION_TABLE = 'decision_table'
+
+    final String _OR_ = "_or_"
+    final String _AND_ = "_and_"
+    final String _NOR_ = "_nor_"
+    final String _NAND_ = "_nand_"
+    final String _NOT_ = "_not_"
 }

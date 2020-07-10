@@ -12,14 +12,7 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import it.unimi.dsi.fastutil.ints.IntSet
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 
-import static com.cedarsoftware.ncube.NCubeConstants.DATA_TYPE
-import static com.cedarsoftware.ncube.NCubeConstants.IGNORE
-import static com.cedarsoftware.ncube.NCubeConstants.INPUT_HIGH
-import static com.cedarsoftware.ncube.NCubeConstants.INPUT_LOW
-import static com.cedarsoftware.ncube.NCubeConstants.INPUT_VALUE
-import static com.cedarsoftware.ncube.NCubeConstants.OUTPUT_VALUE
-import static com.cedarsoftware.ncube.NCubeConstants.PRIORITY
-import static com.cedarsoftware.ncube.NCubeConstants.REQUIRED
+import static com.cedarsoftware.ncube.NCubeConstants.*
 import static com.cedarsoftware.util.Converter.convertToBigDecimal
 import static com.cedarsoftware.util.Converter.convertToBoolean
 import static com.cedarsoftware.util.Converter.convertToDate
@@ -56,16 +49,17 @@ class DecisionTable
     private NCube decisionCube
     private String fieldAxisName = null
     private String rowAxisName = null
-    private Set<String> inputColumns = getCIHashSet()
-    private Set<String> inputKeys = getCIHashSet()
-    private Set<String> outputColumns = getCIHashSet(4)
-    private Set<String> rangeColumns = getCIHashSet(4)
-    private Set<String> rangeKeys = getCIHashSet(4)
-    private Set<String> requiredColumns = getCIHashSet()
+    private Set<String> inputColumns = getLinkedHashSet()
+    private Set<String> inputKeys = getLinkedHashSet()
+    private Set<String> outputColumns = getLinkedHashSet(4)
+    private Set<String> rangeColumns = getLinkedHashSet(4)
+    private Set<String> rangeKeys = getLinkedHashSet(4)
+    private Set<String> requiredColumns = getLinkedHashSet()
     private Map<String, Range> inputVarNameToRangeColumns = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>(4))
     private static final String BANG = '!'
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings()
-
+    private static List operators = [_OR_, _AND_, _NOR_, _NAND_, _NOT_]
+    
     protected DecisionTable(NCube decisionCube)
     {
         this.decisionCube = decisionCube
@@ -96,14 +90,14 @@ class DecisionTable
         String dataType
     }
 
-    protected Set<String> getCIHashSet(Set source)
+    protected Set<String> getLinkedHashSet(Set source)
     {
-        return new CaseInsensitiveSet<String>(source, new CaseInsensitiveMap(Collections.emptyMap(), new HashMap<>(source.size())))
+        return new CaseInsensitiveSet<String>(source, new CaseInsensitiveMap(Collections.emptyMap(), new LinkedHashMap<>(source.size())))
     }
 
-    protected Set<String> getCIHashSet(int initialSize = 16)
+    protected Set<String> getLinkedHashSet(int initialSize = 16)
     {
-        return new CaseInsensitiveSet<String>(Collections.emptySet(), new CaseInsensitiveMap(Collections.emptyMap(), new HashMap<>(initialSize)))
+        return new CaseInsensitiveSet<String>(Collections.emptySet(), new CaseInsensitiveMap(Collections.emptyMap(), new LinkedHashMap<>(initialSize)))
     }
 
     /**
@@ -112,7 +106,7 @@ class DecisionTable
      */
     Set<String> getInputKeys()
     {
-        Set<String> orderedKeys = getCIHashSet(inputKeys)
+        Set<String> orderedKeys = getLinkedHashSet(inputKeys)
         return orderedKeys
     }
 
@@ -122,7 +116,7 @@ class DecisionTable
      */
     Set<String> getRequiredKeys()
     {
-        Set<String> requiredKeys = getCIHashSet(requiredColumns)
+        Set<String> requiredKeys = getLinkedHashSet(requiredColumns)
         return requiredKeys
     }
 
@@ -131,7 +125,7 @@ class DecisionTable
      */
     Set<String> getOutputKeys()
     {
-        Set<String> outputKeys = getCIHashSet(outputColumns)
+        Set<String> outputKeys = getLinkedHashSet(outputColumns)
         return outputKeys
     }
 
@@ -144,11 +138,18 @@ class DecisionTable
      */
     Map<Comparable, ?> getDecision(Iterable<Map<String, ?>> iterable)
     {
-        Map<Comparable, ?> results = new CaseInsensitiveMap<>()
-        for (Map<String, ?> item : iterable)
+        Map<Comparable, ?> results = new TreeMap<>()
+        if (iterable.size() == 0)
         {
-            Map<Comparable, ?> result = getDecision(item)
-            results.putAll(result)
+            return getDecision([:])
+        }
+        else
+        {
+            for (Map<String, ?> item : iterable)
+            {
+                Map<Comparable, ?> result = getDecision(item)
+                results.putAll(result)
+            }
         }
         return results
     }
@@ -188,13 +189,31 @@ class DecisionTable
                             // ["date": date instance] becomes ("date": [low:1900, high:2100, input_value: date instance, data_type: DATE])
                             if (copyInput.get(inputVarName) instanceof Iterable)
                             {
-                                // Multiple values supplied to range input (AND case - all must be between range in table for row to match)
+                                // Multiple values supplied to range input (operator case)
                                 Iterable i = (Iterable) copyInput.get(inputVarName)
-                                Iterable<Comparable> inputs = new HashSet<>()
-                                for (Object val : i)
+                                Iterable<Comparable> inputs = new LinkedHashSet<>()
+                                if (i.size() > 0)
                                 {
-                                    Comparable value = convertDataType((Comparable) val, (String) colMetaProps.get(DATA_TYPE))
-                                    inputs.add(value)
+                                    String op = _OR_
+                                    if (i.size() > 1)
+                                    {
+                                        op = i.first()
+                                        if (!(op instanceof String) || !operators.contains(((String) op).toLowerCase()))
+                                        {
+                                            throw new IllegalArgumentException("When passing an array of items to check against a range, the first element must be one of the following operators: ${operators}.  Found: ${op}")
+                                        }
+                                    }
+                                    op = op.toLowerCase()
+                                    inputs.add(op)
+                                    Iterator<Comparable> it = i.iterator()
+
+                                    it.next()    // skip first/operator element
+                                    
+                                    while (it.hasNext())
+                                    {
+                                        Comparable value = convertDataType((Comparable) it.next(), (String) colMetaProps.get(DATA_TYPE))
+                                        inputs.add(value)
+                                    }
                                 }
                                 spec.put(INPUT_VALUE, inputs)
                             }
@@ -219,7 +238,7 @@ class DecisionTable
                     if (val instanceof Iterable)
                     {
                         Iterable i = (Iterable) val
-                        Iterable<Comparable> inputs = new HashSet<>()
+                        Iterable<Comparable> inputs = new LinkedHashSet<>()
                         for (Object value : i)
                         {
                             inputs.add(convertToString(value))
@@ -235,14 +254,14 @@ class DecisionTable
         }
 
         // Add on the IGNORE column if the field axis had it.
-        Set<String> colsToSearch = getCIHashSet(inputColumns)
+        Set<String> colsToSearch = getLinkedHashSet(inputColumns)
         if (fieldAxis.contains(IGNORE))
         {
             colsToSearch.add(IGNORE)
         }
 
         // Add on the PRIORITY column if the field axis had it.
-        Set<String> colsToReturn = getCIHashSet(outputColumns)
+        Set<String> colsToReturn = getLinkedHashSet(outputColumns)
         if (fieldAxis.findColumn(PRIORITY))
         {
             colsToReturn.add(PRIORITY)
@@ -384,22 +403,20 @@ class DecisionTable
                     Comparable low = (Comparable)rowValues.get((String) inputValue.get(INPUT_LOW))
                     Comparable high = (Comparable)rowValues.get((String) inputValue.get(INPUT_HIGH))
                     Object val = inputValue.get(INPUT_VALUE)
+                    
                     if (val instanceof Iterable)
-                    {   // User supplied multiple values that must be between date range (AND case)
+                    {   // User supplied multiple values that must be between range values (1, all, none, etc.)
                         Iterable<Comparable> inputs = (Iterable<Comparable>) val
-                        for (Comparable value : inputs)
+                        if (!isWithin(inputs, low, high))
                         {
-                            if (value == null || value < low || value >= high)
-                            {   // null is never between ranges
-                                return false
-                            }
+                            return false
                         }
                     }
                     else
-                    {   // Single value supplied - value must be between date range
+                    {   // Single value supplied - value must be between range values
                         Comparable value = (Comparable) val
-                        if (value == null || value < low || value >= high)
-                        {   // null is never between ranges
+                        if (!isWithin(value, low, high))
+                        {
                             return false
                         }
                     }
@@ -419,14 +436,26 @@ class DecisionTable
                 Iterable<String> cellValues = COMMA_SPLITTER.split(cellValue)
 
                 if (inputValue instanceof Iterable)
-                {   // Check multiple values on LHS against possible multiple in cell (or !cell).  AND case
+                {
                     Iterable<String> inputs = (Iterable<String>) inputValue
-                    for (String anElementOfInput : inputs)
-                    {
-                        if (!okToContinue(exclude, cellValues, anElementOfInput))
+
+                    if (inputs.size() == 0)
+                    {   // Empty [] - treat as nothing assigned to input.  Early check for 'required' already happened.
+                        continue;
+                    }
+
+                    String elem1 = inputs.first().toLowerCase()
+                    if (inputs.size() == 1)
+                    {   // Special handle one element array as "equals" or "contains"
+                        if (okToContinue(exclude, cellValues, elem1))
                         {
-                            return false    // row does not match
+                            continue
                         }
+                    }
+
+                    if (!executeOperator(inputs, exclude, cellValues))
+                    {
+                        return false
                     }
                 }
                 else
@@ -459,6 +488,185 @@ class DecisionTable
             }
         }
         return true
+    }
+
+    private static boolean executeOperator(Iterable<String> inputs, boolean exclude, Iterable<String> cellValues)
+    {
+        if (inputs.size() < 2)
+        {
+            throw new IllegalArgumentException("Array of elements must contain at least 2, found: ${inputs}")
+        }
+        Iterator<String> i = inputs.iterator()
+        String operator = i.next().toLowerCase()
+        validateOperator(operator)
+        
+        if (_AND_ == operator)
+        {   // _and_ operator
+            return and(i, exclude, cellValues)
+        }
+        else if (_OR_ == operator)
+        {   // _or_ operator
+            return or(i, exclude, cellValues)
+        }
+        else if (_NOT_ == operator)
+        {
+            if (inputs.size() != 2)
+            {
+                throw new IllegalArgumentException("_not_ operator, expected 2 arguments, found: ${inputs}")
+            }
+            return not(i, exclude, cellValues)
+        }
+        else if (_NAND_ == operator)
+        {
+            return !and(i, exclude, cellValues)
+        }
+        else if (_NOR_ == operator)
+        {
+            return !or(i, exclude, cellValues)
+        }
+        return true
+    }
+
+    private static boolean and(Iterator<String> i, boolean exclude, Iterable<String> cellValues)
+    {
+        while (i.hasNext())
+        {
+            String elem = i.next()
+            if (!okToContinue(exclude, cellValues, elem))
+            {
+                return false    // row does not match
+            }
+        }
+        return true // all passed
+    }
+
+    private static boolean or(Iterator<String> i, boolean exclude, Iterable<String> cellValues)
+    {
+        boolean matched = false
+        while (i.hasNext())
+        {
+            String elem = i.next()
+            if (okToContinue(exclude, cellValues, elem))
+            {
+                matched = true
+                break
+            }
+        }
+        return matched      // at least one matched
+    }
+
+    private static boolean not(Iterator<String> i, boolean exclude, Iterable<String> cellValues)
+    {
+        String elem = i.next()
+        return !okToContinue(exclude, cellValues, elem)
+    }
+
+    private static boolean isWithin(Comparable value, Comparable low, Comparable high)
+    {
+        return value != null && value >= low && value < high
+    }
+
+    private static boolean isWithin(Iterable<Comparable> inputs, Comparable low, Comparable high)
+    {
+        if (inputs.size() == 0)
+        {   // REQUIRED has already been checked.
+            return true
+        }
+
+        Comparable item1 = inputs.first()
+        if (inputs.size() == 1)
+        {
+            if (item1 instanceof String)
+            {
+                String possibleOperator = ((String)item1).toLowerCase()
+                if (operators.contains(possibleOperator))
+                {
+                    throw new IllegalArgumentException("Operator ${possibleOperator} found, must have at least 1 argument.")
+                }
+            }
+            return isWithin(item1, low, high)
+        }
+
+        if (!(item1 instanceof String))
+        {
+            throw new IllegalArgumentException("First element of collection must be one of the following operators: ${operators}. Found ${item1}")
+        }
+        String operator = ((String) item1).toLowerCase()
+        validateOperator(operator)
+        Iterator<Comparable> i = inputs.iterator()
+        i.next()    // skip operator
+
+        if (_AND_ == operator)
+        {   // _and_ operator
+            return allWithin(i, low, high)
+        }
+        else if (_OR_ == operator)
+        {   // _or_ operator
+            return oneWithin(i, low, high)
+        }
+        else if (_NOT_ == operator)
+        {
+            if (inputs.size() != 2)
+            {
+                throw new IllegalArgumentException("_not_ operator, expected 2 arguments, found: ${inputs}")
+            }
+            return !isWithin(i.next(), low, high)
+        }
+        else if (_NAND_ == operator)
+        {
+            return !allWithin(i, low, high)
+        }
+        else if (_NOR_ == operator)
+        {
+            return !oneWithin(i, low, high)
+        }
+        return true
+    }
+
+    /**
+     * Implement the 'AND' operator for ranges (relational comparison).  All values referenced by the passed
+     * in interator must be within (low, high).  This means value >= low AND value < high.
+     */
+    private static allWithin(Iterator<Comparable> values, Comparable low, Comparable high)
+    {
+        while (values.hasNext())
+        {
+            Comparable testValue = values.next()
+            if (!isWithin(testValue, low, high))
+            {   // Fail fast
+                return false
+            }
+        }
+        return true
+    }
+
+    /**
+     * Implement the 'OR' operator for ranges (relational comparison).  All values referenced by the passed
+     * in interator must be within (low, high).  This means value >= low AND value < high.
+     */
+    private static oneWithin(Iterator<Comparable> values, Comparable low, Comparable high)
+    {
+        while (values.hasNext())
+        {
+            Comparable testValue = values.next()
+            if (isWithin(testValue, low, high))
+            {   // Fail fast
+                return true
+            }
+        }
+        return false
+    }
+
+    private static void validateOperator(String op)
+    {
+        if (op == null)
+        {
+            throw new IllegalArgumentException("Operator cannot be null.  The 1st element of an array associated to an input must be one of the following: ${operators}")
+        }
+        if (!operators.contains(op))
+        {
+            throw new IllegalArgumentException("For array input variables, the operator must be the first element and must be one of the following: ${operators}.  Found operator: ${op}")
+        }
     }
 
     /**
@@ -660,7 +868,7 @@ class DecisionTable
             }
         }
 
-        rangeKeys = getCIHashSet(inputKeys)
+        rangeKeys = getLinkedHashSet(inputKeys)
         rangeKeys.removeAll(inputColumns)
 
         // Convert all values in the table to the data_type specified on the column meta-property (if there is one)
@@ -1195,6 +1403,22 @@ class DecisionTable
             Set<String> requiredCopy = new CaseInsensitiveSet<>(requiredColumns)
             requiredCopy.removeAll(input.keySet())
             throw new IllegalArgumentException("Required input keys: ${requiredCopy} not found, decision table: ${decisionCube.name}")
+        }
+
+        Iterator<String> i = requiredColumns.iterator()
+        while (i.hasNext())
+        {
+            String key = i.next();
+            Object value = input.get(key)
+            
+            if (value instanceof Iterable)
+            {
+                Iterable iterable = (Iterable) value
+                if (iterable.size() == 0)
+                {
+                    throw new IllegalArgumentException("Required input key: ${key} has an empty array '[]' for its value.  Required inputs must have at least one value associated to them, decision table: ${decisionCube.name}")
+                }
+            }
         }
     }
 
