@@ -113,6 +113,31 @@ In this example, the input was:
 and that input matched row `134` which had a value of `OH` for `state` and the value `12345` for `SKU`.
 Both the `state` column and the `SKU` column have the meta-property `INPUT_VALUE: true`.
 
+#### AND, OR, NOT, NAND, and NOR
+When passing inputs, if you want to compare multiple input values against an input, use the following form:
+```groovy
+[profitCenter: ['_or_', 100, 110, 120, 175]]
+```
+
+In this example, the profit center must be any of the passed in values for the row to be selected.  Similarly, 
+the following example would ensure that all the values supplied match the row (meaning more than one value [comma separated] is
+already in a cell within the row)
+
+```groovy
+[status: ['_and_', 'A1', 'A2', 'D3']]
+```
+
+In this example, the status column must contain an 'A1', 'A2', and 'D3'.  This implies that the cells in this column have multiple (comma delimited values).
+
+`DecisionTable` also supports `NOT`, `NAND`, `NOR`.  The operator `_not_` can only have one argument.  When specifying `_not_` for your input variable (in a List), only the rows that
+do not match the `_not_` value specified in the input will be returned.  Remember, the cell in the `DecisionTable` can have one more values (comma delimited).
+ 
+`NAND` is the same as (`not AND`).  This means that with `NAND`, you will get the exact opposite rows that match `AND`.
+Another way to think of `NAND` - only return the rows where all specified values do not occur together. Remember, a cell can have one more values.
+
+`NOR` is the same as (`not OR`).  This means that with `NOR` you will get the exact opposite rows that match `OR`.  Another way
+to think of `NOR` - only return the rows when none of the values are present in the cell.  Remember the cell can have one or more values.
+ 
 ---
 
 #### Field axis

@@ -10,7 +10,7 @@ n-cube is a Rules Engine, Decision Table, Decision Tree, Templating Engine, and 
 <dependency>
   <groupId>com.cedarsoftware</groupId>
   <artifactId>n-cube</artifactId>
-  <version>4.7.9</version>
+  <version>4.8.0</version>
 </dependency>
 ```
 
@@ -58,26 +58,11 @@ In general, as cells execute, they write to the `output` map.  The `input` coord
 
 Both condition columns and executed cells can tell the rule engine to restart execution of the conditions as well as to terminate any further conditions from being executed.  This is a linear rules execution flow, and intentionally not the RETE algorithm.
 
-### Decision Table
-When using n-cube as a decision table, each axis represents a decision variable.  For example, a state axis with all of the states of a country.  When accessed, the `input` coordinate would have the 'state' variable as a key in the input map, and the associated value to state would be a state, for example, 'KS' (Kansas).  If the data changes over time, it is common to add a 'date' axis.  Meaning that at one point in time, say for Kansas, the value 10 was returned, but within a different time frame, perhaps 11 is returned.
+### Decision Table ([Developer Guide](README-decision.md))
+DecisionTable allows you to match unlimited input variables against columns on a DecisionTable.  These are created as an NCube with two dimensions, one axis representing the input variables, output variables, and the other axis representing the rows of the decision table.  See the `DecisionTable` [Developer Guide](README-decision.md) user guide for detailed documentation.  
 
-Common decision variables are country, state / providence, date, business unit, business codes, user role, actions, resources, and so no.  There is no limit to the number of axes that an n-cube can have (other than memory).
-
-Decision tables are great and work best when all variable combinations make sense (a * b * c ... * n).  If the problem space has some combinations that do not make sense, then you may want to use n-cube's Decision Tree capability.  n-cube allows you to combine decision tables, decision trees, rules, and so on, ad infinitum.
-
-### Decision Tree
-A good example for a decision tree, is modeling the continents and countries of the world.  Not all continents have the same countries.  Therefore, it would not make sense to have an n-cube with one axis as 'continents' and another axis as 'countries.'  Instead, the initial (entry or outer n-cube) 'world' would have an axis 'continents', with columns Africa, Antarctica, Asia, Australia, Europe, North America, South America.  For each continent column, it's corresponding cell is a reference to a 'country' n-cube for that continent.  The cell reference is written like this: `@NorthAmericaCountries[:]` for example.  When this cell is executed, it in turn calls the 'NorthAmericaCountries' n-cube with the same input as was passed to the original ncube.  The `[ : ]` means that no modifications are being made to the input.  Additional inputs could be added here, as well as existing inputs could be changed before accessing the joined n-cube.
-
-In the 'NorthAmericaCountries' n-cube, the cells would return a value (or if a subdivision of the countries is needed like 'States', the cells would join to yet further n-cubes modeling those subdivisions).  In order to 'talk to' or 'use' this n-cube decision tree, the code would look like this: `Map coord = [Continent:'NA', Country:'USA', State:'OH']` for example.  This would hit the North America column in the world n-cube, that cell would call the NorthAmericaCountries n-cube, which would then join to the 'UsaStates' n-cube.  To reach a Canadian province, for example, the input coordinate would look like this: `Map coord = [Continent:'NA', Country:'Canada', Province:'Quebec']`.  Notice that the 3rd parameter to the input is not state but province.  Both inputs work, because at each decision level, the appropriate n-cubes join to each other.
-
-At each n-cube along the decision path, it could have additional 'scope' or dimensionality.  For example, a product axis may exist as a second axis on the cubes (or some of the cubes).  Think of a decision tree as stitching together multiple decision tables.  The cells are whatever you need them to be (Strings, numbers, Java objects, Groovy code to executed, etc.) In the case of code, think of your execution path of your program as going through a 'scope router' or 'scope filter' before the appropriate code is selected and executed.
-
-### Template Engine
-n-cube can be used to return templates (think of a template as an HTML page, for example, with replaceable parts - like mail merge.  Not limited to HTML, it could be any text file.)  When a template cell is executed, variables within the template are replaced (like mail merge).  If you have used the Apache project's Velocity project, Groovy templates, or have written JSP / ASP files, then you already have an idea on how to use templates.
-
-Snippets written like this `<%  code or variable references   %>` or `${code / variable references}` can be added to the template.  Before the template is returned (think HTML page), these variable sections are executed.  The replaceable sections can reference n-cubes, for example, to get language specific content, region specific content, mobile / non-mobile content, browser specific content, and so on, to then fill-in a variable portion of the page.
-
-Instead of actually storing the HTML, Groovy Code, etc. directly in an n-cube cell, the content can be referenced via a URL.  This allows the HTML page to be stored on a CDN (Content Delivery Network), and then selectively retrieved (per language, state, business unit, date, etc.) and then substitutions within the page made as well (if needed, using the templating mechanism).  Image files can be referenced this way as well, allowing different images to be retrieved depending on state, date, language, product, and so on.
+### Managing Master Data
+NCubes can be created to maintain lists of data elements outside application code.  This allows master data to be editing without redeploying application code.  There are many 'refresh' stragies available, so that NCube configuration data can be updated and deployed applications automatically receive the updates, or you can enforce the NCube data to be `released` as a new version for the deployed application can pick it up.
 
 ### Creating n-cubes
 Use either the Simple JSON format to create n-cubes, or the nCubeEditor to editing the pages.  At the moment, there is no cloud-based editor for n-cube, so you need to set up the nCubeEditor as a web-app within a Java container like tomcat or jetty.  See the sample JSON files in the test / resources directories for examples.
