@@ -131,4 +131,41 @@ class BusinessRule
         return constants.getCell([name: name])
     }
 
+    /**
+     * Traverse the data model from a given source to a given target and run the target rules.
+     * @param sourceName String member variable name of a Map on the BusinessRule class
+     * @param fieldName String name of the field/key on the source Map
+     * @param targetName String member variable name of a Map on the BusinessRule class
+     * @param ncubeName String name of the NCube for rules of the target
+     */
+    void runTargetRules(String sourceName, String fieldName, String targetName, String ncubeName)
+    {
+        if (!this.hasProperty(sourceName))
+        {
+            throw new IllegalArgumentException("Class: ${this.class.name} does not have property: ${sourceName}.")
+        }
+
+        Map<String, Object> source = (Map<String, Object>) this.getProperty(sourceName)
+        List<Map> targets = getMapOrList(source, fieldName)
+
+        for (Map target : targets)
+        {
+            if (this.hasProperty(targetName))
+            {
+                this.setProperty(targetName, target)
+                // continue to rules for target
+                NCube ncube = ncubeRuntime.getCube(appId, ncubeName)
+                if (ncube == null)
+                {
+                    throw new IllegalArgumentException("NCube: ${ncubeName} does not exist in appId: ${appId}.")
+                }
+                ncube.getCell(input, output)
+            }
+            else
+            {
+                throw new IllegalArgumentException("Field name: ${fieldName} does not exist on map: ${source}.")
+            }
+        }
+    }
+
 }

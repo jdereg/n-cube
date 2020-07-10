@@ -386,7 +386,12 @@ class RulesEngine
             if (expression != null)
             {
                 String cmd = expression.cmd
-                if (cmd.startsWith('input.rule.'))
+                if (cmd.startsWith('input.rule.runTargetRules('))
+                {
+                    traverseRules(map, ruleGroup, rule, cmd, visitedNCubes)
+                    methods.add([name: ruleName, condition: condition, code: escapeCode(cmd)])
+                }
+                else if (cmd.startsWith('input.rule.'))
                 {
                     // Expression references a rule
                     List<String> cmdLines = cmd.tokenize('\n')
@@ -401,9 +406,7 @@ class RulesEngine
                 }
                 else if (cmd.contains("rule.${ruleGroup}."))
                 {
-                    // Expression contains code referencing another ruleGroup
-                    String ncubeNameNext = findStringAgainstPattern(PATTERN_NCUBE_NAME, escapeCode(cmd))
-                    generateObjectDocumentation(map, ruleGroup, rule, ncubeNameNext, visitedNCubes)
+                    traverseRules(map, ruleGroup, rule, cmd, visitedNCubes)
                     methods.add([name: ruleName, condition: condition, code: escapeCode(cmd)])
                 }
                 else
@@ -422,6 +425,13 @@ class RulesEngine
         {
             map[entityName] = [rules: methods] as Map
         }
+    }
+
+    private void traverseRules(Map map, String ruleGroup, Class rule, String cmd, List<String> visitedNCubes = [])
+    {
+        // Expression contains code referencing another ruleGroup
+        String ncubeNameNext = findStringAgainstPattern(PATTERN_NCUBE_NAME, escapeCode(cmd))
+        generateObjectDocumentation(map, ruleGroup, rule, ncubeNameNext, visitedNCubes)
     }
 
     /**

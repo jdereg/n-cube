@@ -174,4 +174,78 @@ class BusinessRuleTest extends NCubeBaseTest
         }
 
     }
+
+    @Test
+    void testTraverse_NoSource()
+    {
+        BusinessRule rule = new BusinessRule(null)
+        try
+        {
+            rule.runTargetRules('foo', 'field1', 'bar', 'rule.baz')
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'class', 'does not', 'property')
+        }
+    }
+
+    @Test
+    void testTraverse_NoField()
+    {
+        BusinessRule rule = new BusinessRule([foo: []])
+        rule.runTargetRules('root', 'field1', 'bar', 'rule.baz')
+        assert 1 == rule.errors.size()
+        RulesError exception = rule.errors[0]
+        assertContainsIgnoreCase((String)exception.message, 'field', 'not exist', 'map')
+    }
+
+    @Test
+    void testTraverse_NoTarget()
+    {
+        BusinessRule rule = new BusinessRule([field1: [:]])
+        try
+        {
+            rule.runTargetRules('root', 'field1', 'bar', 'rule.baz')
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'field name', 'does not', 'exist')
+        }
+    }
+
+    @Test
+    void testTraverse_NoNCube()
+    {
+        BusinessRule rule = new TestRule([field1: [:]])
+        rule.appId = testAppId
+        rule.input = [:]
+        rule.output = [:]
+        try
+        {
+            rule.runTargetRules('root', 'field1', 'foo', 'rule.baz')
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'ncube', 'does not', 'exist', 'appId')
+        }
+    }
+
+    @Test
+    void testTraverse()
+    {
+        NCube mockConstants = new NCube('rule.baz')
+        mockConstants.applicationID = testAppId
+        ncubeRuntime.addCube(mockConstants)
+
+        BusinessRule rule = new TestRule([field1: [:]])
+        rule.appId = testAppId
+        rule.input = [:]
+        rule.output = [:]
+        rule.runTargetRules('root', 'field1', 'foo', 'rule.baz')
+        assert rule.errors.empty
+
+        ncubeRuntime.clearCache(testAppId)
+    }
 }
