@@ -129,14 +129,14 @@ already in a cell within the row)
 
 In this example, the status column must contain an 'A1', 'A2', and 'D3'.  This implies that the cells in this column have multiple (comma delimited values).
 
-`DecisionTable` also supports `NOT`, `NAND`, `NOR`.  The operator `_not_` can only have one argument.  When specifying `_not_` for your input variable (in a List), only the rows that
-do not match the `_not_` value specified in the input will be returned.  Remember, the cell in the `DecisionTable` can have one more values (comma delimited).
+`DecisionTable` also supports `NOT`, `NAND`, `NOR`.  The operator `_not_` can only have one argument.  When specifying `_not_` for your input variable (in a List), the rows that
+do not match the `_not_` value specified in the input will be returned.  Remember, the cell in the `DecisionTable` can have one or more values (comma delimited).
  
 `NAND` is the same as (`not AND`).  This means that with `NAND`, you will get the exact opposite rows that match `AND`.
-Another way to think of `NAND` - only return the rows where all specified values do not occur together. Remember, a cell can have one more values.
+Another way to think of `NAND` - return the rows where all specified values do not occur together. Remember, a cell can have one or more values.
 
 `NOR` is the same as (`not OR`).  This means that with `NOR` you will get the exact opposite rows that match `OR`.  Another way
-to think of `NOR` - only return the rows when none of the values are present in the cell.  Remember the cell can have one or more values.
+to think of `NOR` - return the rows when none of the values are present in the cell.  Remember the cell can have one or more values.
  
 ---
 
