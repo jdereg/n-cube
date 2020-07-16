@@ -370,7 +370,7 @@ class RulesEngine
 
         visitedNCubes.add(ncubeName)
 
-        String entityName = Splitter.on('.').split(ncubeName).last()
+        String entityName = ncubeName.split("rule.${ruleGroup}.".toString()).last()
         List methods = []
         NCube rulesNCube = ncubeRuntime.getCube(appId, ncubeName)
         Axis ruleAxis = rulesNCube.getAxis(AXIS_RULE)

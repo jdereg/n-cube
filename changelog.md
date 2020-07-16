@@ -1,4 +1,6 @@
 ### Revision History
+* 4.8.1
+  * Updated `RulesEngine` documentation to handle orchestration NCubes that end in the same string after the last`.` in the name.
 * 4.8.0
   * Added support for `AND`, `OR`, `NOT`, `NAND`, `NOR` to `DecisionTable`.  Can be used with both regular input columns and range input columns.  Also, multiple values can be used with `AND`, `OR`, `NAND`, and `NOR`.  `NOT` can only have one value.  See the [Decision Table Developer Guide](README-decision.md) for more information. 
   * Added `BusinessRule.runTargetRules()` that traverses the data model running the rules for a target on a given source.
