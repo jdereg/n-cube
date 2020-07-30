@@ -20,14 +20,50 @@ import groovy.transform.CompileStatic
 import org.apache.http.HttpHost
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
 
 import javax.annotation.PostConstruct
 
 /**
- * This class defines allowable actions against persisted n-cubes
+ * We configure all NCube Spring beans here (annotation based).  When pulling in the NCube library into a Spring / Spring
+ * Boot application, you need to set one (1) of three (3) profiles:
+ * <ul>
+ *  <li>ncube-client: Use this if you are acting as a client of n-cube-storage server.  You will use the NCubeRuntime
+ *  class to talk to the ncube-storage-server.</li>
+ *  <li>ncube-storage-server: This springboot profile runs as a springboot app that takes HTTP JSON requests.  The requests
+ *  can be made directly or use the NCubeRuntime library to make them.  This server only allows fetching and saving
+ *  ncubes, any operations that do not execute code within an NCube.</li>
+ *  <li>ncube-combined-server: This springboot profile runs as a springboot app that takes HTTP JSON requests.  The requests
+ *  can be made directly or use the NCubeRuntime library to make them.  This server does allow execution of code within
+ *  the NCubes. Run the server in this mode for the NCubeEditor, for example - meaning this server is setup to be called
+ *  from a Javascript front-end.  The server can perform the executions needed (showing cell values in calculated mode, running
+ *  NCube tests, etc.)</li></ul>
+ *  <br>
+ *  In the consuming Springboot application, make sure you use the following in your Spring Application class:<pre>
+
+   {@code
+    ...
+    @ComponentScan(basePackages = ['com.cedarsoftware.config'])
+    class NCubeApplication
+    ...
+   }
+
+   For a Spring (but not Springboot) application to consume NCube, use the XML way to component scan:
+
+ {@literal<}context:component-scan base-package="com.cedarsoftware.config" /{@literal>}
+   </pre>
+ *  This will pick up all the NCube beans, including the NCubeRuntime bean.
  *
+ * To make calls to the NCube servers, use the NCubeRuntime class:<pre>
+
+    import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
+    ...
+    NCube myCube = ncubeRuntime.getCube(...)
+    ...
+    </pre>
+
  * @author John DeRegnaucourt (jdereg@gmail.com)
  *         <br>
  *         Copyright (c) Cedar Software LLC
@@ -42,11 +78,12 @@ import javax.annotation.PostConstruct
  *         distributed under the License is distributed on an "AS IS" BASIS,
  *         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *         See the License for the specific language governing permissions and
- *         limitations under the License.
+ *         limitatœions under the License.
  */
 
 @CompileStatic
 @Configuration
+@ComponentScan(basePackages = ['com.cedarsoftware.ncube.util'])
 class NCubeConfiguration
 {
     // Target server (storage-server)

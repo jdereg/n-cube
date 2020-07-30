@@ -167,7 +167,7 @@ class GCacheManager implements CacheManager
                 {
                     log.info("Cache eviction: key=${removalNotification.key}, value=${removalNotification?.value?.toString()}")
                 }
-                closure(removalNotification.value)
+                closure.call(removalNotification.value)
             }
         }
     }

@@ -49,7 +49,7 @@ import static java.util.Arrays.asList
  *         limitations under the License.
  */
 @Slf4j
-@ComponentScan(basePackages = ['com.cedarsoftware.config','com.cedarsoftware.ncube.util'])
+@ComponentScan(basePackages = ['com.cedarsoftware.config'])
 @SpringBootApplication(exclude = [HibernateJpaAutoConfiguration])
 @CompileStatic
 class NCubeApplication
