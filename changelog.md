@@ -1,7 +1,7 @@
 ### Revision History
 * 4.8.2
-  * Added support for `ncube.legacy.grv.exp` configuration for backwards compatibility in `NCubeGroovyExpression`
-  * Fixed `NCube.getMap` - it is now copying the coordinate map before passing to `getCell()` which could have modified it.
+  * Added support for `ncube.legacy.grv.exp` configuration for backwards compatibility in `NCubeGroovyExpression` - @HonorKnight
+  * Fixed `NCube.getMap` - it is now copying the coordinate map before passing to `getCell()` which could have modified it. - Defect found by: @HonorKnight
   * Updated to consume `java-util 1.60.0`
 * 4.8.1
   * Updated `RulesEngine` documentation to handle orchestration NCubes that end in the same string after the last`.` in the name.
