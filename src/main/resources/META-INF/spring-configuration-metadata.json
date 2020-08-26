@@ -196,6 +196,12 @@
       "name": "ncube.rules.engines",
       "type": "java.util.List<Map<String, String>>",
       "description": "List of rules engines. See README.md for more information."
+    },
+    {
+      "name": "ncube.legacy.grv.exp",
+      "type": "java.lang.Boolean",
+      "description": "If true, \"at\" type methods on NCubeGroovyExpression will add their coords to their input map. This is legacy behavior that is probably not desirable going forward. We're allowing it for backwards compatibility.",
+      "defaultValue": "false"
     }
   ]
 }

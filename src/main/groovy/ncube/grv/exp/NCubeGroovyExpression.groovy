@@ -47,6 +47,7 @@ class NCubeGroovyExpression
     public Map output
     public NCube ncube
     private static NCubeMutableClient mutableClient = null
+    private static boolean legacyNCubeGroovyExpression = false
 
     /**
      * Fetch the named n-cube from the NCubeRuntime.  It looks at the same
@@ -251,7 +252,7 @@ class NCubeGroovyExpression
     def use(Map altInput, String cubeName = ncube.name, def defaultValue = null)
     {
         Map copy = inputWithoutTrackingMap
-        Map origInput = dupe(copy)
+        Map origInput = new CompactCILinkedMap(copy)
         Map modInput = dupe(copy)
         modInput.putAll(altInput)
         return getCube(cubeName).use(modInput, origInput, output, defaultValue)
@@ -280,7 +281,7 @@ class NCubeGroovyExpression
         }
 
         Map copy = inputWithoutTrackingMap
-        Map origInput = dupe(copy)
+        Map origInput = new CompactCILinkedMap(copy)
         Map modInput = dupe(copy)
         modInput.putAll(altInput)
         return target.use(modInput, origInput, output, defaultValue)
@@ -298,7 +299,7 @@ class NCubeGroovyExpression
 
     private Map dupe(Map map)
     {
-        return new CompactCILinkedMap(map)
+        return legacyNCubeGroovyExpression ? map : new CompactCILinkedMap(map)
     }
 
     /**
@@ -522,5 +523,15 @@ class NCubeGroovyExpression
     Object run()
     {
         throw new IllegalStateException("run() should never be called on ${getClass().name}. This can occur for a cell marked GroovyExpression which should be set to GroovyMethod. NCube: ${ncube.name}, input: ${input.toString()}")
+    }
+
+    /**
+     * If true, "at" type methods on NCubeGroovyExpression will add their coords to their input map.
+     * This is legacy behavior that is probably not desirable going forward. We're allowing it for backwards compatibility.
+     * @param arg boolean
+     */
+    static void setLegacyNCubeGroovyExpression(boolean arg)
+    {
+        legacyNCubeGroovyExpression = arg
     }
 }

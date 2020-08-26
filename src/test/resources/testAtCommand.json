@@ -124,7 +124,7 @@
             {
                 "key":{"bu":"EQM","state":"WY"},
                 "type":"exp",
-                "value":"@([bu:'EQM',state:'GA'])"
+                "value":"@([bu:'ALT']); return @([state:'GA'])"
             }
         ]
 }

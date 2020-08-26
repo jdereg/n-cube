@@ -1,4 +1,7 @@
 ### Revision History
+* 4.8.2
+  * Added support for ncube.legacy.grv.exp configuration for backwards compatibility in `NCubeGroovyExpression`
+  * Fixed `NCube.getMap` not copying the coordinate map before modifying it
 * 4.8.1
   * Updated `RulesEngine` documentation to handle orchestration NCubes that end in the same string after the last`.` in the name.
 * 4.8.0

@@ -1171,8 +1171,9 @@ class NCube<T>
 
         for (column in columns)
         {
-            coord.put(axisName, wildcardAxis.getValueToLocateColumn(column))
-            result.put(column.value, getCell(coord, output, defaultValue))
+            final Map params = new CompactCILinkedMap<>(coord)
+            params.put(axisName, wildcardAxis.getValueToLocateColumn(column))
+            result.put(column.value, getCell(params, output, defaultValue))
         }
 
         return result

@@ -17,6 +17,7 @@ import com.cedarsoftware.util.HsqlSchemaCreator
 import com.cedarsoftware.util.JsonHttpProxy
 import com.cedarsoftware.util.ReflectiveProxy
 import groovy.transform.CompileStatic
+import ncube.grv.exp.NCubeGroovyExpression
 import org.apache.http.HttpHost
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
@@ -118,6 +119,10 @@ class NCubeConfiguration
 
     // Limit size of coordinate displayed in each CommandCell exception list (--> [coordinate])
     @Value('${ncube.stackEntry.coordinate.value.max:1000}') int stackEntryCoordinateValueMaxSize
+
+    // If true, "at" type methods on NCubeGroovyExpression will add their coords to their input map.
+    // This is legacy behavior that is probably not desirable going forward. We're allowing it for backwards compatibility.
+    @Value('${ncube.legacy.grv.exp:false}') boolean legacyNCubeGroovyExpression
 
     @Bean(name = 'ncubeRemoval')
     Closure getNcubeRemoval()
@@ -280,6 +285,7 @@ class NCubeConfiguration
         CdnClassLoader.generatedClassesDirectory = classesDirectory
         GroovyBase.generatedSourcesDirectory = sourcesDirectory
         NCube.stackEntryCoordinateValueMaxSize = stackEntryCoordinateValueMaxSize
+        NCubeGroovyExpression.legacyNCubeGroovyExpression = legacyNCubeGroovyExpression
     }
 
     @Profile('test-database')
