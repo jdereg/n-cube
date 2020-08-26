@@ -528,10 +528,10 @@ class NCubeGroovyExpression
     /**
      * If true, "at" type methods on NCubeGroovyExpression will add their coords to their input map.
      * This is legacy behavior that is probably not desirable going forward. We're allowing it for backwards compatibility.
-     * @param arg boolean
+     * @param legacySupport boolean
      */
-    static void setLegacyNCubeGroovyExpression(boolean arg)
+    static void setLegacyNCubeGroovyExpression(boolean legacySupport)
     {
-        legacyNCubeGroovyExpression = arg
+        legacyNCubeGroovyExpression = legacySupport
     }
 }

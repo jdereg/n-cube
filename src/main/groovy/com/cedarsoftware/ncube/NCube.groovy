@@ -1171,9 +1171,9 @@ class NCube<T>
 
         for (column in columns)
         {
-            final Map params = new CompactCILinkedMap<>(coord)
-            params.put(axisName, wildcardAxis.getValueToLocateColumn(column))
-            result.put(column.value, getCell(params, output, defaultValue))
+            final Map input = new CompactCILinkedMap<>(coord)
+            input.put(axisName, wildcardAxis.getValueToLocateColumn(column))
+            result.put(column.value, getCell(input, output, defaultValue))
         }
 
         return result
@@ -2084,7 +2084,7 @@ class NCube<T>
         Set<Long> ids = new HashSet<>()
         for (Map.Entry<String, List<Column>> entry : bindings.entrySet())
         {
-            Column col = entry.value.get(0);
+            Column col = entry.value.get(0)
             if (col == null)
             {
                 String axisName = entry.key
