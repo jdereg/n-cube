@@ -37,7 +37,7 @@ import static com.cedarsoftware.ncube.SnapshotPolicy.RELEASE_ONLY
 @Component
 class LocalFileCache
 {
-    @Value('${ncube.cache.dir:}') String cacheDir
+    @Value('${ncube.cache.dir:#{null}}') String cacheDir
     @Value('${ncube.cache.snapshotPolicy:RELEASE_ONLY}') SnapshotPolicy snapshotPolicy
 
     LocalFileCache() {
