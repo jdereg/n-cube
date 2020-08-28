@@ -9,6 +9,7 @@ import com.cedarsoftware.ncube.NCubeJdbcPersisterAdapter
 import com.cedarsoftware.ncube.NCubeManager
 import com.cedarsoftware.ncube.NCubePersister
 import com.cedarsoftware.ncube.NCubeRuntime
+import com.cedarsoftware.ncube.PreCompiler
 import com.cedarsoftware.ncube.rules.RulesConfiguration
 import com.cedarsoftware.ncube.rules.RulesController
 import com.cedarsoftware.ncube.util.CdnClassLoader
@@ -20,6 +21,7 @@ import groovy.transform.CompileStatic
 import ncube.grv.exp.NCubeGroovyExpression
 import org.apache.http.HttpHost
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
@@ -84,6 +86,7 @@ import javax.annotation.PostConstruct
 
 @CompileStatic
 @Configuration
+@ConfigurationProperties('ncube.performance')
 @ComponentScan(basePackages = ['com.cedarsoftware.ncube.util'])
 class NCubeConfiguration
 {
@@ -123,6 +126,8 @@ class NCubeConfiguration
     // If true, "at" type methods on NCubeGroovyExpression will add their coords to their input map.
     // This is legacy behavior that is probably not desirable going forward. We're allowing it for backwards compatibility.
     @Value('${ncube.legacy.grv.exp:false}') boolean legacyNCubeGroovyExpression
+
+    List<Map<String, String>> precompiledAppIds
 
     @Bean(name = 'ncubeRemoval')
     Closure getNcubeRemoval()
@@ -213,6 +218,15 @@ class NCubeConfiguration
     RulesConfiguration getRulesConfiguration()
     {
         return new RulesConfiguration()
+    }
+
+    @Bean('preCompiler')
+    @Profile(['ncube-client'])
+    PreCompiler getPreCompiler()
+    {
+        List<Map<String, String>> appIds = precompiledAppIds ?: []
+        PreCompiler preCompiler = new PreCompiler(getRulesConfiguration(), appIds)
+        return preCompiler
     }
 
     // v========== runtime-server ==========v

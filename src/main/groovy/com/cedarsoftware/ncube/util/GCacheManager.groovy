@@ -130,8 +130,7 @@ class GCacheManager implements CacheManager
             return
         }
         GuavaCache gCache = cache as GuavaCache
-        com.google.common.cache.Cache googleCache = gCache.nativeCache
-        Iterator i = googleCache.asMap().entrySet().iterator()
+        Iterator i = gCache.asMap().entrySet().iterator()
         while (i.hasNext())
         {
             Map.Entry entry = i.next()

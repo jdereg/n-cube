@@ -17,7 +17,7 @@ import static org.springframework.http.HttpStatus.OK
 @CompileStatic
 class RulesController
 {
-    private RulesConfiguration rulesConfiguration
+    private final RulesConfiguration rulesConfiguration
 
     RulesController(RulesConfiguration rulesConfiguration)
     {

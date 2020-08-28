@@ -1,4 +1,6 @@
 ### Revision History
+* 4.8.3-SNAPSHOT
+  * Added `PreCompiler` that will compile all cells in `NCubes` defined in `ncube.rules.engines` and `ncube.performance.compiledAppIds`.
 * 4.8.2
   * Added support for `ncube.legacy.grv.exp` configuration for backwards compatibility in `NCubeGroovyExpression` - @HonorKnight
   * Fixed `NCube.getMap` - it is now copying the coordinate map before passing to `getCell()` which could have modified it. - Defect found by: @HonorKnight

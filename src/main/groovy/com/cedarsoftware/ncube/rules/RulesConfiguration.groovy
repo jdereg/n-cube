@@ -64,6 +64,12 @@ class RulesConfiguration
         }
     }
 
+    void addRulesEngine(String engineName, ApplicationID appId, String rules, String categories)
+    {
+        RulesEngine rulesEngine = new RulesEngine(engineName, appId, rules, categories)
+        rulesEngines[engineName] = rulesEngine
+    }
+
     RulesEngine getRulesEngine(String name)
     {
         return rulesEngines[name]

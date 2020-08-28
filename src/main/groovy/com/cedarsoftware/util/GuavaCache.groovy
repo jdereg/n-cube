@@ -16,6 +16,7 @@
 package com.cedarsoftware.util
 
 import groovy.transform.CompileStatic
+import org.springframework.cache.Cache
 import org.springframework.cache.support.NullValue
 
 import java.util.concurrent.Callable
@@ -38,7 +39,7 @@ import org.springframework.util.Assert
  * @since 4.0
  */
 @CompileStatic
-class GuavaCache extends AbstractValueAdaptingCache
+class GuavaCache extends AbstractValueAdaptingCache implements Cache
 {
     private final String name
 
@@ -81,6 +82,11 @@ class GuavaCache extends AbstractValueAdaptingCache
     final com.google.common.cache.Cache<Object, Object> getNativeCache()
     {
         return cache
+    }
+
+    Map<Object, Object> asMap()
+    {
+        return cache.asMap()
     }
 
     ValueWrapper get(Object key)

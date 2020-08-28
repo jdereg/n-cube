@@ -112,7 +112,7 @@ class TestNCubeRuntimeFileCaching extends NCubeBaseTest
     @Test
     void testDefaultSettings()
     {
-        assertEquals('',((NCubeRuntime)ncubeRuntime).localFileCache.cacheDir)
+        assertEquals(null,((NCubeRuntime)ncubeRuntime).localFileCache.cacheDir)
         assertEquals(RELEASE_ONLY,((NCubeRuntime)ncubeRuntime).localFileCache.snapshotPolicy)
     }
 
