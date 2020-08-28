@@ -1,6 +1,7 @@
 package com.cedarsoftware.ncube
 
 import groovy.transform.CompileStatic
+import org.springframework.cache.Cache
 
 /**
  * @author John DeRegnaucourt (jdereg@gmail.com), Josh Snyder (joshsnyder@gmail.com)
@@ -36,6 +37,8 @@ interface NCubeRuntimeClient extends NCubeClient
 
     boolean isCached(ApplicationID appId, String cubeName)
 
+    Cache getCacheForApp(ApplicationID appId)
+
     URL getActualUrl(ApplicationID appId, String url, Map input)
 
     String getUrlContent(ApplicationID appId, String url, Map input)
@@ -51,6 +54,8 @@ interface NCubeRuntimeClient extends NCubeClient
     void addAdvice(ApplicationID appId, String wildcard, Advice advice)
 
     void addCube(NCube ncube)
+
+    void addCube(NCube ncube, boolean force)
 
     Map<String, Object> getSystemParams()
 

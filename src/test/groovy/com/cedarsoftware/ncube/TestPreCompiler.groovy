@@ -32,7 +32,9 @@ class TestPreCompiler extends NCubeCleanupBaseTest
     @Test
     void testPreCompile()
     {
-        NCube ncube = ncubeRuntime.getCube(testAppId, 'rule.group1.type1.object1')
+        Map<String, Object> searchOptions = [(SEARCH_ACTIVE_RECORDS_ONLY): true, (SEARCH_INCLUDE_CUBE_DATA): true] as Map
+        NCubeInfoDto dto = ncubeRuntime.search(testAppId, 'rule.group1.type1.object1', null, searchOptions).first()
+        NCube ncube = NCube.createCubeFromBytes(dto.bytes)
         GroovyExpression cell = (GroovyExpression) ncube.getCellNoExecute([rules: 'Rule 1'])
         assert null == cell.runnableCode
 
@@ -41,6 +43,8 @@ class TestPreCompiler extends NCubeCleanupBaseTest
         PreCompiler preCompiler = new PreCompiler(rulesConfiguration, [])
         preCompiler.precompile()
 
+        ncube = ncubeRuntime.getCube(testAppId, 'rule.group1.type1.object1')
+        cell = (GroovyExpression) ncube.getCellNoExecute([rules: 'Rule 1'])
         assert null != cell.runnableCode
     }
 }

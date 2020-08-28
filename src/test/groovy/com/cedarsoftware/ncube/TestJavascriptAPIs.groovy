@@ -75,6 +75,7 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
         Set<String> allowedRunTimeMethods = [
                 'getCube(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String)',
                 'addCube(class com.cedarsoftware.ncube.NCube)',
+                'addCube(class com.cedarsoftware.ncube.NCube, boolean)',
                 'getBootVersion(class java.lang.String, class java.lang.String)',
                 'getSystemParams()',
                 'getTestCauses(class java.lang.Throwable)',
@@ -88,6 +89,7 @@ class TestJavascriptAPIs extends NCubeCleanupBaseTest
                 'getUrlContent(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, interface java.util.Map)',
                 'clearCache(class com.cedarsoftware.ncube.ApplicationID, interface java.util.Collection)',
                 'isCached(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String)',
+                'getCacheForApp(class com.cedarsoftware.ncube.ApplicationID)',
                 'isTrackBindingsOn()',
                 'getCells(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, class [Ljava.lang.Object;, interface java.util.Map, interface java.util.Map)',
                 'getCells(class com.cedarsoftware.ncube.ApplicationID, class java.lang.String, class [Ljava.lang.Object;, interface java.util.Map, interface java.util.Map, class java.lang.Object)'

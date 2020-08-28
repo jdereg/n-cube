@@ -4,16 +4,14 @@ import com.cedarsoftware.ncube.rules.RulesConfiguration
 import com.cedarsoftware.ncube.rules.RulesEngine
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.cache.Cache
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.ConfigurableApplicationContext
-import org.springframework.context.event.EventListener
 
 import static com.cedarsoftware.ncube.ApplicationID.DEFAULT_TENANT
 import static com.cedarsoftware.ncube.ApplicationID.HEAD
-import static com.cedarsoftware.ncube.NCubeAppContext.getNcubeRuntime
+import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_ACTIVE_RECORDS_ONLY
 import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_INCLUDE_CUBE_DATA
 import static com.cedarsoftware.ncube.ReleaseStatus.RELEASE
@@ -57,8 +55,7 @@ class PreCompiler implements ApplicationContextAware
         this.precompiledAppIds = precompiledAppIds
     }
 
-    @EventListener
-    void onApplicationEvent(ApplicationStartedEvent event)
+    void compile()
     {
         Closure closure = {
             precompile()
@@ -85,14 +82,12 @@ class PreCompiler implements ApplicationContextAware
         boolean hasCompileErrors = false
         Map<String, Object> searchOptions = [(SEARCH_ACTIVE_RECORDS_ONLY): true, (SEARCH_INCLUDE_CUBE_DATA): true] as Map
 
-        NCubeRuntime fullRuntime = (NCubeRuntime) ncubeRuntime
-
         // compile all NCube cells
         for (ApplicationID appId : appIds)
         {
             log.info("Compiling NCubes for appId: ${appId}")
-            Cache cache = fullRuntime.getCacheForApp(appId)
-            List<NCubeInfoDto> dtos = fullRuntime.search(appId, '*', null, searchOptions)
+            Cache cache = ncubeRuntime.getCacheForApp(appId)
+            List<NCubeInfoDto> dtos = ncubeRuntime.search(appId, '*', null, searchOptions)
             for (NCubeInfoDto dto : dtos)
             {
                 NCube ncube = cache.get(dto.name, NCube.class)
@@ -100,20 +95,12 @@ class PreCompiler implements ApplicationContextAware
                 {
                     NCube ncubeFromBytes = NCube.createCubeFromBytes(dto.bytes)
                     ncubeFromBytes.applicationID = dto.applicationID
-                    hasCompileErrors = checkCompileErrors(ncubeFromBytes.compile(), hasCompileErrors)
-                    NCube ncubeFromCache = cache.get(dto.name, NCube.class)
-                    if (ncubeFromCache == null)
-                    {
-                        fullRuntime.addCube(ncubeFromBytes)
-                    }
-                    else
-                    {
-                        hasCompileErrors = checkCompileErrors(ncubeFromCache.compile(), hasCompileErrors)
-                    }
+                    hasCompileErrors = checkCompileErrors(ncubeFromBytes, hasCompileErrors)
+                    ncubeRuntime.addCube(ncubeFromBytes, false)
                 }
                 else
                 {
-                    hasCompileErrors = checkCompileErrors(ncube.compile(), hasCompileErrors)
+                    hasCompileErrors = checkCompileErrors(ncube, hasCompileErrors)
                 }
             }
         }
@@ -132,15 +119,16 @@ class PreCompiler implements ApplicationContextAware
         }
     }
 
-    private static boolean checkCompileErrors(CompileInfo compileInfo, boolean hasCompileErrors)
+    private static boolean checkCompileErrors(NCube ncube, boolean hasCompileErrors)
     {
-        if (!hasCompileErrors)
+        CompileInfo compileInfo = ncube.compile()
+        if (hasCompileErrors)
         {
-            return !compileInfo.getExceptions().empty
+            return true
         }
         else
         {
-            return hasCompileErrors
+            return !compileInfo.getExceptions().empty
         }
     }
 
@@ -166,6 +154,12 @@ class PreCompiler implements ApplicationContextAware
 
             String version = precompiledAppId[APP_VERSION]
             if (!hasContent(version))
+            {
+                log.warn("Missing 'version' property in ncube.performance.precompileApps: ${precompiledAppId}.")
+                continue
+            }
+
+            if ('latest' == version?.toLowerCase())
             {
                 Object[] versions = ncubeRuntime.getVersions(app)
                 for (Object ver : versions)

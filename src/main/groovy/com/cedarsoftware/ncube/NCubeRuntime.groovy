@@ -1327,12 +1327,12 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
      * Add a cube to the internal cache of available cubes.
      * @param ncube NCube to add to the list.
      */
-    void addCube(NCube ncube)
+    void addCube(NCube ncube, boolean force = true)
     {
         ApplicationID appId = ncube.applicationID
         ApplicationID.validateAppId(appId)
         validateCube(ncube)
-        prepareCube(ncube, true)
+        prepareCube(ncube, force)
     }
 
     /**
