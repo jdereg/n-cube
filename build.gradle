@@ -9,7 +9,7 @@ plugins {
 
 group = 'com.cedarsoftware'
 description = 'n-cube'
-version = '4.8.2'
+version = '4.9.0-SNAPSHOT'
 
 // Example builds
 //gradle clean build 
@@ -88,14 +88,14 @@ publishing {
     }
 }
 
-signing {
-    sign configurations.archives
-    sign publishing.publications.maven
-}
-
-tasks.withType(Sign) {
-    onlyIf { !version.endsWith("SNAPSHOT") }
-}
+//signing {
+//    sign configurations.archives
+//    sign publishing.publications.maven
+//}
+//
+//tasks.withType(Sign) {
+//    onlyIf { !version.endsWith("SNAPSHOT") }
+//}
 
 uploadArchives {
     repositories {

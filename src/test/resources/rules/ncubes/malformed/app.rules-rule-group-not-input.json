@@ -32,7 +32,6 @@
         {
           "id":5001529076077,
           "type":"string",
-          "input_value":true,
           "output_value":true,
           "value":"ruleGroup"
         },

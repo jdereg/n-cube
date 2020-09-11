@@ -6,7 +6,6 @@ import com.cedarsoftware.ncube.Column
 import com.cedarsoftware.ncube.GroovyExpression
 import com.cedarsoftware.ncube.NCube
 import com.cedarsoftware.util.ReflectionUtils
-import com.google.common.base.Splitter
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 
@@ -16,46 +15,39 @@ import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
-import static com.cedarsoftware.ncube.AxisType.DISCRETE
 import static com.cedarsoftware.ncube.AxisType.RULE
-import static com.cedarsoftware.ncube.AxisValueType.CISTRING
-import static com.cedarsoftware.ncube.AxisValueType.STRING
-import static com.cedarsoftware.ncube.NCube.MAP_REDUCE_COLUMNS_TO_RETURN
 import static com.cedarsoftware.ncube.NCubeAppContext.getNcubeRuntime
+import static com.cedarsoftware.ncube.NCubeConstants.INPUT_VALUE
+import static com.cedarsoftware.ncube.NCubeConstants.OUTPUT_VALUE
+import static com.cedarsoftware.ncube.NCubeConstants._OR_
 import static com.cedarsoftware.util.StringUtilities.hasContent
 
 @Slf4j
 @CompileStatic
 class RulesEngine
 {
-    static final String AXIS_RULE_GROUP = 'ruleGroup'
-    static final String AXIS_CATEGORY = 'category'
-    static final String AXIS_ATTRIBUTE = 'attribute'
     static final String AXIS_RULE = 'rules'
     static final String COL_CLASS = 'className'
     static final String COL_NCUBE = 'ncube'
+    static final String COL_RULE_GROUP = 'ruleGroup'
     static final String COL_EXCEPTION = 'throwException'
 
     private static final Set IGNORED_METHODS = ['equals', 'toString', 'hashCode', 'annotationType'] as Set
     private static final Pattern PATTERN_METHOD_NAME = Pattern.compile(".*input\\.rule\\.((?:[^(]+))\\(.*")
     private static final Pattern PATTERN_NCUBE_NAME = Pattern.compile(".*'(rule.(?:[^']+))'.*", Pattern.DOTALL)
     protected volatile boolean verificationComplete = false
-    private Set<String> columnsToReturn
     private ConcurrentMap<String, Boolean> verifiedOrchestrations = new ConcurrentHashMap<>()
 
     private String name
     private ApplicationID appId
     private String rules
-    private String categories
     private NCube ncubeRules
-    private NCube ncubeCategories
 
-    RulesEngine(String name, ApplicationID appId, String rules, String categories = null)
+    RulesEngine(String name, ApplicationID appId, String rules)
     {
         this.name = name
         this.appId = appId
         this.rules = rules
-        this.categories = categories
     }
 
     /**
@@ -89,25 +81,42 @@ class RulesEngine
      */
     List<RulesError> executeGroups(List<String> ruleGroups, Object root, Map input = [:], Map output = [:])
     {
+        // if you make a change here, also make a change in generateDocumentationForGroups()
         verifyNCubeSetup()
-
         if (ruleGroups == null)
         {
             throw new IllegalArgumentException("Rule groups to execute must not be null")
         }
 
         List<RulesError> errors = []
+        if (ruleGroups.empty)
+        {
+            return errors
+        }
 
-        Axis ruleGroupAxis = ncubeRules.getAxis(AXIS_RULE_GROUP)
+        List<String> ruleGroupsForDecision = []
+        ruleGroupsForDecision.add(_OR_)
+        ruleGroupsForDecision.addAll(ruleGroups)
+
+        Map<Comparable, Object> decision = (Map<Comparable, Object>) ncubeRules.decisionTable.getDecision([(COL_RULE_GROUP): ruleGroupsForDecision])
+        Map<String, Map<String, Object>> ruleGroupIndex = [:]
+
+        for (String key : decision.keySet())
+        {
+            Map<String, Object> row = (Map<String, Object>) decision[key]
+            String ruleGroup = row[COL_RULE_GROUP]
+            ruleGroupIndex[ruleGroup] = row
+        }
+
         for (String ruleGroup : ruleGroups)
         {
-            // if you make a change here, also make a change in generateDocumentationForGroups
-            if (!ruleGroupAxis.findColumn(ruleGroup))
+            Map ruleInfo = ruleGroupIndex[ruleGroup]
+            if (!ruleInfo)
             {
                 log.info("RulesEngine: ${name}, AppId: ${appId}, NCube: ${ncubeRules.name}, rule group ${ruleGroup} is not defined.")
                 continue
             }
-            Map ruleInfo = ncubeRules.getMap([(AXIS_RULE_GROUP): ruleGroup, (AXIS_ATTRIBUTE): [] as Set])
+
             String className = ruleInfo[COL_CLASS]
             String ncubeName = ruleInfo[COL_NCUBE]
             Boolean throwException = ruleInfo[COL_EXCEPTION]
@@ -152,7 +161,7 @@ class RulesEngine
             throw new IllegalArgumentException("Rule group must not be null.")
         }
         verifyNCubeSetup()
-        executeGroups([ruleGroup], root, input, output)
+        return executeGroups([ruleGroup], root, input, output)
     }
 
     /**
@@ -160,7 +169,7 @@ class RulesEngine
      * Example Map: [product: 'workerscompensation', type: 'validation']
      * The value for a given key can also be a List which will act like a logic OR for selection.
      * Example Map: [product: 'workerscompensation', type: ['composition', 'validation']]
-     * @param categories Map
+     * @param categories Map see DecisionTable
      * @param root Object
      * @param input Map (optional)
      * @param output Map (optional)
@@ -170,37 +179,25 @@ class RulesEngine
     List<RulesError> execute(Map<String, Object> categories, Object root, Map input = [:], Map output = [:])
     {
         verifyNCubeSetup()
-        if (!ncubeCategories)
-        {
-            throw new IllegalStateException("Categories ncube not setup in app: ${appId}.")
-        }
-        List<String> ruleGroups = getRuleGroupsFromMap(categories)
-        executeGroups(ruleGroups, root, input, output)
+        List<String> ruleGroups = getRuleGroupsFromDecisionTable(categories)
+        return executeGroups(ruleGroups, root, input, output)
     }
 
     /**
      * Execute rules by defined by categories. Use the categories List to define which categories apply for rule execution.
      * Similar to executeGroups() which takes a Map, but provides an additional way to specify multiple groups.
-     * @param categories List
+     * @param categories Iterable see DecisionTable
      * @param root Object
      * @param input Map (optional)
      * @param output Map (optional)
      * @return List<RulesError>
      * @throws RulesException if any errors are recorded during execution
      */
-    List<RulesError> execute(List<Map<String, Object>> categoryList, Object root, Map input = [:], Map output = [:])
+    List<RulesError> execute(Iterable<Map<String, Object>> iterable, Object root, Map input = [:], Map output = [:])
     {
         verifyNCubeSetup()
-        if (!ncubeCategories)
-        {
-            throw new IllegalStateException("Categories ncube not setup in app: ${appId}.")
-        }
-        List ruleGroups = []
-        for (Map categories : categoryList)
-        {
-            ruleGroups.addAll(getRuleGroupsFromMap(categories))
-        }
-        executeGroups(ruleGroups, root, input, output)
+        List ruleGroups = getRuleGroupsFromDecisionTable(iterable)
+        return executeGroups(ruleGroups, root, input, output)
     }
 
     /**
@@ -210,23 +207,43 @@ class RulesEngine
      */
     Map generateDocumentationForGroups(List<String> ruleGroups)
     {
+        // if you make a change here, also make the same change in executeGroups()
         verifyNCubeSetup()
         if (ruleGroups == null)
         {
             throw new IllegalArgumentException("Rule groups for documentation must not be null.")
         }
 
+        if (ruleGroups.empty)
+        {
+            return [:]
+        }
+
+        List<String> ruleGroupsForDecision = []
+        ruleGroupsForDecision.add(_OR_)
+        ruleGroupsForDecision.addAll(ruleGroups)
+
+        Map<Comparable, ?> decision = ncubeRules.decisionTable.getDecision([(COL_RULE_GROUP): ruleGroupsForDecision])
+        Map<String, Map<String, Object>> ruleGroupIndex = [:]
+
+        for (String key : decision.keySet())
+        {
+            Map<String, Object> row = (Map<String, Object>) decision[key]
+            String ruleGroup = row[COL_RULE_GROUP]
+            ruleGroupIndex[ruleGroup] = row
+        }
+
         Map info = [:]
-        Axis ruleGroupAxis = ncubeRules.getAxis(AXIS_RULE_GROUP)
+
         for (String ruleGroup : ruleGroups)
         {
-            // if you make a change here, also make the same change in executeGroups()
-            if (!ruleGroupAxis.findColumn(ruleGroup))
+            Map ruleInfo = ruleGroupIndex[ruleGroup]
+            if (!ruleInfo)
             {
                 log.info("RulesEngine: ${name}, AppId: ${appId}, NCube: ${ncubeRules.name}, rule group ${ruleGroup} is not defined.")
                 continue
             }
-            Map ruleInfo = ncubeRules.getMap([(AXIS_RULE_GROUP): ruleGroup, (AXIS_ATTRIBUTE): [] as Set])
+
             String className = ruleInfo[COL_CLASS]
             String ncubeName = ruleInfo[COL_NCUBE]
             if (!hasContent(className) || !hasContent(ncubeName))
@@ -270,22 +287,6 @@ class RulesEngine
     }
 
     /**
-     * Generate a data structure that represents rule definitions from a Closure
-     * @param where Closure defining which rule groups to generate
-     * @return Map representing rule definitions
-     */
-    Map generateDocumentation(Closure where)
-    {
-        verifyNCubeSetup()
-        if (!ncubeCategories)
-        {
-            throw new IllegalStateException("Categories ncube not setup in app: ${appId}.")
-        }
-        List<String> ruleGroups = getRuleGroupsFromClosure(where)
-        return generateDocumentationForGroups(ruleGroups)
-    }
-
-    /**
      * Generate a data structure that represents rule definitions from a Map
      * @param categories Map defining which rule groups to generate
      * @return Map representing rule definitions
@@ -293,31 +294,19 @@ class RulesEngine
     Map generateDocumentation(Map<String, Object> categories)
     {
         verifyNCubeSetup()
-        if (!ncubeCategories)
-        {
-            throw new IllegalStateException("Categories ncube not setup in app: ${appId}.")
-        }
-        List<String> ruleGroups = getRuleGroupsFromMap(categories)
+        List<String> ruleGroups = getRuleGroupsFromDecisionTable(categories)
         return generateDocumentationForGroups(ruleGroups)
     }
 
     /**
      * Generate a data structure that represents rule definitions from a Map
-     * @param categories List defining which rule groups to generate
+     * @param categories Iterable defining which rule groups to generate
      * @return Map representing rule definitions
      */
-    Map generateDocumentation(List<Map<String, Object>> categoryList)
+    Map generateDocumentation(Iterable<Map<String, Object>> iterable)
     {
         verifyNCubeSetup()
-        if (!ncubeCategories)
-        {
-            throw new IllegalStateException("Categories ncube not setup in app: ${appId}.")
-        }
-        List ruleGroups = []
-        for (Map categories : categoryList)
-        {
-            ruleGroups.addAll(getRuleGroupsFromMap(categories))
-        }
+        List ruleGroups = getRuleGroupsFromDecisionTable(iterable)
         generateDocumentationForGroups(ruleGroups)
     }
 
@@ -331,40 +320,15 @@ class RulesEngine
     Map getInfo()
     {
         verifyNCubeSetup()
-
-        List<String> groups = []
-        List<Column> columns = ncubeRules.getAxis(AXIS_RULE_GROUP).columnsWithoutDefault
-        for (Column column : columns)
-        {
-            groups.add((String) column.value)
-        }
-
-        Map<String, Set> categories = [:]
-        if (ncubeCategories)
-        {
-            List<Column> categoryGroups = ncubeCategories.getAxis(AXIS_RULE_GROUP).columnsWithoutDefault
-            List<Column> categoryColumns = ncubeCategories.getAxis(AXIS_CATEGORY).columnsWithoutDefault
-            for (Column column : categoryColumns)
-            {
-                String categoryName = (String) column.value
-                Set values = new LinkedHashSet<>()
-                for (Column group : categoryGroups)
-                {
-                    String groupName = (String) group.value
-                    Object value = ncubeCategories.getCellNoExecute([(AXIS_RULE_GROUP): groupName, (AXIS_CATEGORY): categoryName])
-                    values.add(value)
-                }
-                categories[categoryName] = values
-            }
-        }
-
-        Map info = [groups: groups, categories: categories]
+        Set<String> groups = ncubeRules.decisionTable.definedValues[COL_RULE_GROUP]
+        Map<String, Set<String>> definedValues = ncubeRules.decisionTable.definedValues
+        definedValues.remove(COL_RULE_GROUP)
+        Map info = [groups: groups, categories: definedValues]
         return info
     }
 
     private void generateObjectDocumentation(Map map, String ruleGroup, Class rule, String ncubeName, List<String> visitedNCubes = [])
     {
-
         if (visitedNCubes.contains(ncubeName))
             return
 
@@ -513,46 +477,16 @@ class RulesEngine
         return ''
     }
 
-    private List<String> getRuleGroupsFromClosure(Closure where)
+    private List<String> getRuleGroupsFromDecisionTable(Map<String, Object> input)
     {
-        Map options = [(MAP_REDUCE_COLUMNS_TO_RETURN): [] as Set, (MAP_REDUCE_COLUMNS_TO_RETURN): columnsToReturn]
-        Map result = ncubeCategories.mapReduce(AXIS_CATEGORY, where, options)
-        List<String> ruleGroups = new ArrayList<>(result.keySet())
-        return ruleGroups
+        Map<Comparable, ?> decision = ncubeRules.decisionTable.getDecision(input)
+        return decision.values()[COL_RULE_GROUP]
     }
 
-    private List<String> getRuleGroupsFromMap(Map<String, Object> categories)
+    private List<String> getRuleGroupsFromDecisionTable(Iterable<Map<String, Object>> iterable)
     {
-        List ruleGroups = []
-        List<Column> columns = ncubeCategories.getAxis(AXIS_RULE_GROUP).columnsWithoutDefault
-        for (Column column : columns)
-        {
-            boolean matches = true
-            String ruleGroup = column.value
-            Map definedCategories = ncubeCategories.getMap([(AXIS_RULE_GROUP): ruleGroup, (AXIS_CATEGORY): [] as Set])
-            for (String tag : categories.keySet())
-            {
-                Object value = categories[tag]
-                if (value instanceof Collection)
-                {
-                    if (!value.contains(definedCategories[tag]))
-                    {
-                        matches = false
-                        break
-                    }
-                }
-                else if (definedCategories[tag] != value)
-                {
-                    matches = false
-                    break
-                }
-            }
-            if (matches)
-            {
-                ruleGroups.add(ruleGroup)
-            }
-        }
-        return ruleGroups
+        Map<Comparable, ?> decision = ncubeRules.decisionTable.getDecision(iterable)
+        return decision.values()[COL_RULE_GROUP]
     }
 
     private void verifyNCubeSetup()
@@ -566,77 +500,36 @@ class RulesEngine
         {
             throw new IllegalStateException("RulesEngine: ${name} requires an NCube named ${rules} in appId: ${this.appId}.")
         }
-        verifyRulesSetup()
-
-        if (hasContent(categories))
-        {
-            ncubeCategories = ncubeRuntime.getCube(appId, categories)
-            if (!ncubeCategories)
-            {
-                throw new IllegalStateException("RulesEngine: ${name} requires an NCube named ${categories} in appId: ${this.appId}.")
-            }
-            verifyCategoriesSetup()
-            columnsToReturn = [(String) ncubeCategories.getAxis(AXIS_CATEGORY).columns.first().value] as Set
-        }
+        String decisionAxisName = ncubeRules.decisionTable.decisionAxisName
+        Axis decisionAxis = ncubeRules.getAxis(decisionAxisName)
+        checkColumn(decisionAxis, COL_RULE_GROUP, true, true, true)
+        checkColumn(decisionAxis, COL_CLASS, true, false, true)
+        checkColumn(decisionAxis, COL_NCUBE, true, false, true)
+        checkColumn(decisionAxis, COL_EXCEPTION, false, false, true)
         verificationComplete = true
     }
 
-    private void verifyRulesSetup()
+    private void checkColumn(Axis decisionAxis, String columnName, boolean required, boolean inputValue, boolean outputValue)
     {
-        checkAxis(ncubeRules, AXIS_RULE_GROUP)
-        checkAxis(ncubeRules, AXIS_ATTRIBUTE)
-        checkColumns(ncubeRules, AXIS_ATTRIBUTE, [COL_CLASS, COL_NCUBE])
-    }
-
-    private void verifyCategoriesSetup()
-    {
-        if (ncubeCategories)
+        Column column = decisionAxis.findColumn(columnName)
+        if (required && !column)
         {
-            checkAxis(ncubeCategories, AXIS_RULE_GROUP)
-            checkAxis(ncubeCategories, AXIS_CATEGORY)
+            throw new IllegalStateException("RulesEngine: ${name}, AppId: ${appId}, NCube: ${ncubeRules.name}, Axis: ${decisionAxis.name} must have Column: ${columnName}.")
         }
-    }
 
-    /**
-     * Axis must exist with type: DISCRETE, and valueType: STRING or CISTRING.
-     * @param ncube
-     * @param axisName
-     */
-    private void checkAxis(NCube ncube, String axisName)
-    {
-        Axis axis = ncube.getAxis(axisName)
-        if (axis)
+        if (!required && !column)
         {
-            if (axis.type != DISCRETE)
-            {
-                throw new IllegalStateException("RulesEngine: ${name}, AppId: ${appId}, NCube: ${ncube.name}, Axis: ${axisName} must be type ${DISCRETE.name()}, but was ${axis.type}.")
-            }
-            if (axis.valueType != STRING && axis.valueType != CISTRING)
-            {
-                throw new IllegalStateException("RulesEngine: ${name}, AppId: ${appId}, NCube: ${ncube.name}, Axis: ${axisName} must be value type ${STRING.name()} or ${CISTRING.name()}, but was ${axis.valueType}.")
-            }
+            return
         }
-        else
-        {
-            throw new IllegalStateException("RulesEngine: ${name}, AppId: ${appId}, NCube: ${ncube.name} must have Axis: ${axisName}.")
-        }
-    }
 
-    /**
-     * All columnNames must exist on axisName in ncube.
-     * @param ncube
-     * @param axisName
-     * @param columnNames
-     */
-    private void checkColumns(NCube ncube, String axisName, List<String> columnNames)
-    {
-        Axis axis = ncube.getAxis(axisName)
-        for (String columnName : columnNames)
+        if (inputValue && !column.metaProperties[INPUT_VALUE])
         {
-            if (!axis.findColumn(columnName))
-            {
-                throw new IllegalStateException("RulesEngine: ${name}, AppId: ${appId}, NCube: ${ncube.name}, Axis: ${axis.name} must have Column: ${columnName}.")
-            }
+            throw new IllegalStateException("RulesEngine: ${name}, AppId: ${appId}, NCube: ${ncubeRules.name}, Axis: ${decisionAxis.name}, Column: ${columnName} must have meta-property: ${INPUT_VALUE} set to true.")
+        }
+
+        if (outputValue && !column.metaProperties[OUTPUT_VALUE])
+        {
+            throw new IllegalStateException("RulesEngine: ${name}, AppId: ${appId}, NCube: ${ncubeRules.name}, Axis: ${decisionAxis.name}, Column: ${columnName} must have meta-property: ${OUTPUT_VALUE} set to true.")
         }
     }
 

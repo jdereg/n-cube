@@ -1,5 +1,6 @@
 {
   "ncube":"app.rules",
+  "decision_table":true,
   "axes":[
     {
       "id":5,
@@ -7,44 +8,82 @@
       "hasDefault":false,
       "type":"DISCRETE",
       "valueType":"CISTRING",
-      "preferredOrder":0,
+      "preferredOrder":1,
       "fireAll":false,
       "columns":[
         {
+          "id":5000550194622,
+          "type":"string",
+          "input_value":true,
+          "value":"category1"
+        },
+        {
+          "id":5000273062032,
+          "type":"string",
+          "input_value":true,
+          "value":"category2"
+        },
+        {
+          "id":5001243645072,
+          "type":"string",
+          "input_value":true,
+          "value":"category3"
+        },
+        {
+          "id":5001529076077,
+          "type":"string",
+          "input_value":true,
+          "output_value":true,
+          "value":"ruleGroup"
+        },
+        {
           "id":5001514718226,
           "type":"string",
+          "output_value":true,
           "value":"className"
         },
         {
-          "id":5000290003816,
+          "id":5000850105964,
           "type":"string",
-          "value":"ncube1"
+          "default_value":false,
+          "output_value":true,
+          "value":"throwException"
         }
       ]
     },
     {
       "id":4,
-      "name":"ruleGroup",
+      "name":"row",
       "hasDefault":false,
       "type":"DISCRETE",
       "valueType":"CISTRING",
-      "preferredOrder":0,
+      "preferredOrder":1,
       "fireAll":false,
       "columns":[
         {
-          "id":4001214294742,
+          "id":4000897762340,
           "type":"string",
-          "value":"group1"
+          "value":"1"
         },
         {
-          "id":4000874029183,
+          "id":4001540452995,
           "type":"string",
-          "value":"group2"
+          "value":"2"
         },
         {
-          "id":4001177849162,
+          "id":4000242698941,
           "type":"string",
-          "value":"group3"
+          "value":"3"
+        },
+        {
+          "id":4000668425575,
+          "type":"string",
+          "value":"4"
+        },
+        {
+          "id":4000699423532,
+          "type":"string",
+          "value":"5"
         }
       ]
     }
@@ -52,51 +91,211 @@
   "cells":[
     {
       "id":[
-        5001514718226,
-        4000874029183
+        5000550194622,
+        4000242698941
       ],
       "type":"string",
-      "value":"com.gaig.services.rules.TestRule"
+      "value":"bar"
+    },
+    {
+      "id":[
+        5001529076077,
+        4001540452995
+      ],
+      "type":"string",
+      "value":"group2"
+    },
+    {
+      "id":[
+        5001243645072,
+        4001540452995
+      ],
+      "type":"string",
+      "value":"lion"
+    },
+    {
+      "id":[
+        5000550194622,
+        4000668425575
+      ],
+      "type":"string",
+      "value":"!"
+    },
+    {
+      "id":[
+        5000550194622,
+        4000699423532
+      ],
+      "type":"string",
+      "value":"!"
+    },
+    {
+      "id":[
+        5000273062032,
+        4000668425575
+      ],
+      "type":"string",
+      "value":"!"
     },
     {
       "id":[
         5001514718226,
-        4001214294742
+        4000668425575
       ],
       "type":"string",
-      "value":"com.gaig.services.rules.TestRule"
+      "value":"com.cedarsoftware.ncube.rules.TestRule"
     },
     {
       "id":[
-        5000290003816,
-        4001177849162
+        5001529076077,
+        4000699423532
       ],
       "type":"string",
-      "value":"rule.group1.type2.object1"
+      "value":"invalidGroup"
+    },
+    {
+      "id":[
+        5001243645072,
+        4000897762340
+      ],
+      "type":"string",
+      "value":"tiger"
+    },
+    {
+      "id":[
+        5001529076077,
+        4000242698941
+      ],
+      "type":"string",
+      "value":"group3"
     },
     {
       "id":[
         5001514718226,
-        4001177849162
+        4001540452995
       ],
       "type":"string",
-      "value":"com.gaig.services.rules.TestRule"
+      "value":"com.cedarsoftware.ncube.rules.TestRule"
     },
     {
       "id":[
-        5000290003816,
-        4001214294742
+        5000273062032,
+        4001540452995
       ],
       "type":"string",
-      "value":"rule.group1.type1.object1"
+      "value":"orange"
     },
     {
       "id":[
-        5000290003816,
-        4000874029183
+        5001529076077,
+        4000897762340
       ],
       "type":"string",
-      "value":"rule.group2.type1.object1"
+      "value":"group1"
+    },
+    {
+      "id":[
+        5001243645072,
+        4000242698941
+      ],
+      "type":"string",
+      "value":"tiger"
+    },
+    {
+      "id":[
+        5000550194622,
+        4000897762340
+      ],
+      "type":"string",
+      "value":"foo"
+    },
+    {
+      "id":[
+        5001243645072,
+        4000668425575
+      ],
+      "type":"string",
+      "value":"!"
+    },
+    {
+      "id":[
+        5001514718226,
+        4000699423532
+      ],
+      "type":"string",
+      "value":"com.cedarsoftware.ncube.rules.TestRule"
+    },
+    {
+      "id":[
+        5001529076077,
+        4000668425575
+      ],
+      "type":"string",
+      "value":"group4"
+    },
+    {
+      "id":[
+        5000273062032,
+        4000699423532
+      ],
+      "type":"string",
+      "value":"!"
+    },
+    {
+      "id":[
+        5001514718226,
+        4000242698941
+      ],
+      "type":"string",
+      "value":"com.cedarsoftware.ncube.rules.TestRule"
+    },
+    {
+      "id":[
+        5000273062032,
+        4000242698941
+      ],
+      "type":"string",
+      "value":"grape"
+    },
+    {
+      "id":[
+        5000850105964,
+        4000668425575
+      ],
+      "type":"boolean",
+      "value":true
+    },
+    {
+      "id":[
+        5000273062032,
+        4000897762340
+      ],
+      "type":"string",
+      "value":"apple"
+    },
+    {
+      "id":[
+        5001243645072,
+        4000699423532
+      ],
+      "type":"string",
+      "value":"!"
+    },
+    {
+      "id":[
+        5000550194622,
+        4001540452995
+      ],
+      "type":"string",
+      "value":"foo"
+    },
+    {
+      "id":[
+        5001514718226,
+        4000897762340
+      ],
+      "type":"string",
+      "value":"com.cedarsoftware.ncube.rules.TestRule"
     }
   ]
 }

@@ -4,7 +4,6 @@ import com.cedarsoftware.ncube.NCubeBaseTest
 import com.cedarsoftware.ncube.NCubeRuntime
 import com.cedarsoftware.util.DeepEquals
 import com.cedarsoftware.util.io.JsonReader
-import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
 import org.junit.After
 import org.junit.Before
@@ -14,9 +13,7 @@ import static TestApplication.createAndCacheNCube
 import static com.cedarsoftware.ncube.ApplicationID.testAppId
 import static com.cedarsoftware.ncube.AxisType.RULE
 import static com.cedarsoftware.ncube.NCubeAppContext.getNcubeRuntime
-import static com.cedarsoftware.ncube.rules.RulesEngine.AXIS_ATTRIBUTE
 import static com.cedarsoftware.ncube.rules.RulesEngine.AXIS_RULE
-import static com.cedarsoftware.ncube.rules.RulesEngine.AXIS_RULE_GROUP
 import static com.cedarsoftware.util.TestUtil.assertContainsIgnoreCase
 import static org.junit.Assert.fail
 
@@ -24,16 +21,13 @@ import static org.junit.Assert.fail
 class RulesEngineTest extends NCubeBaseTest
 {
     private static final String NCUBE_RULES = 'app.rules'
-    private static final String NCUBE_CATEGORIES = 'app.rules.categories'
-
-    RulesEngine rulesEngine = new RulesEngine('testEngine', testAppId, NCUBE_RULES, NCUBE_CATEGORIES)
+    private RulesEngine rulesEngine = new RulesEngine('testEngine', testAppId, NCUBE_RULES)
 
     @Before
     void setupNCubes()
     {
         createAndCacheNCube('rules/ncubes/lookup.something.json')
         createAndCacheNCube('rules/ncubes/app.rules.json')
-        createAndCacheNCube('rules/ncubes/app.rules.categories.json')
         createAndCacheNCube('rules/ncubes/rule.group1.type1.object1.json')
         createAndCacheNCube('rules/ncubes/rule.group1.type1.object2.json')
         createAndCacheNCube('rules/ncubes/rule.group2.type1.object1.json')
@@ -71,66 +65,6 @@ class RulesEngineTest extends NCubeBaseTest
     }
 
     @Test
-    void testVerifySetup_NoCategories()
-    {
-        ncubeRuntime.clearCache(testAppId, [NCUBE_CATEGORIES])
-        try
-        {
-            rulesEngine.generateDocumentation('')
-            fail()
-        }
-        catch (IllegalStateException e)
-        {
-            assertContainsIgnoreCase(e.message, 'rulesengine', 'requires', 'ncube', 'appid')
-        }
-    }
-
-    @Test
-    void testVerifySetup_NoRuleGroupAxis()
-    {
-        createAndCacheNCube('rules/ncubes/malformed/app.rules-no-rule-group.json')
-        try
-        {
-            rulesEngine.generateDocumentation('')
-            fail()
-        }
-        catch (IllegalStateException e)
-        {
-            assertContainsIgnoreCase(e.message, 'rulesengine', 'appid', 'ncube', 'must have', 'axis', AXIS_RULE_GROUP)
-        }
-    }
-
-    @Test
-    void testVerifySetup_RuleGroupNotDiscrete()
-    {
-        createAndCacheNCube('rules/ncubes/malformed/app.rules-rule-group-not-discrete.json')
-        try
-        {
-            rulesEngine.generateDocumentation('')
-            fail()
-        }
-        catch (IllegalStateException e)
-        {
-            assertContainsIgnoreCase(e.message, 'rulesengine', 'appid', 'ncube', 'axis', 'type', 'discrete')
-        }
-    }
-
-    @Test
-    void testVerifySetup_RuleGroupNotString()
-    {
-        createAndCacheNCube('rules/ncubes/malformed/app.rules-rule-group-not-string.json')
-        try
-        {
-            rulesEngine.generateDocumentation('')
-            fail()
-        }
-        catch (IllegalStateException e)
-        {
-            assertContainsIgnoreCase(e.message, 'rulesengine', 'appid', 'ncube', 'axis', 'value type', 'string')
-        }
-    }
-
-    @Test
     void testVerifySetup_NoClassNameColumn()
     {
         createAndCacheNCube('rules/ncubes/malformed/app.rules-no-className.json')
@@ -161,9 +95,9 @@ class RulesEngineTest extends NCubeBaseTest
     }
 
     @Test
-    void testVerifySetup_NoAttributeAxis()
+    void testVerification_NCubeNotOutput()
     {
-        createAndCacheNCube('rules/ncubes/malformed/app.rules-no-attribute.json')
+        createAndCacheNCube('rules/ncubes/malformed/app.rules-ncube-not-output.json')
         try
         {
             rulesEngine.generateDocumentation('')
@@ -171,7 +105,22 @@ class RulesEngineTest extends NCubeBaseTest
         }
         catch (IllegalStateException e)
         {
-            assertContainsIgnoreCase(e.message, 'rulesengine', 'appid', 'ncube', 'must have', 'axis', AXIS_ATTRIBUTE)
+            assertContainsIgnoreCase(e.message, 'rulesengine', 'appid', 'ncube', 'axis', 'column', 'must', 'output_value', 'true')
+        }
+    }
+
+    @Test
+    void testVerification_RuleGroupNotInput()
+    {
+        createAndCacheNCube('rules/ncubes/malformed/app.rules-rule-group-not-input.json')
+        try
+        {
+            rulesEngine.generateDocumentation('')
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'rulesengine', 'appid', 'ncube', 'axis', 'column', 'must', 'input_value', 'true')
         }
     }
 
@@ -304,7 +253,7 @@ class RulesEngineTest extends NCubeBaseTest
     void testExecute_Map_ListValue()
     {
         Map root = [:]
-        Map categories = [category2: ['apple', 'orange']] as Map
+        Map categories = [category2: [_OR_, 'apple', 'orange']] as Map
         rulesEngine.execute(categories, root)
         assert 4 == root.keySet().size()
         assert root['rule1']
@@ -321,7 +270,7 @@ class RulesEngineTest extends NCubeBaseTest
         Map output = [count: 0]
         rulesEngine.execute([[category1: 'foo'] as Map, [category2: 'apple'] as Map], root, input, output)
         assert 4 == root.keySet().size()
-        assert 2 == output['count']
+        assert 1 == output['count']
     }
 
     @Test
@@ -330,8 +279,6 @@ class RulesEngineTest extends NCubeBaseTest
         String json = NCubeRuntime.getResourceAsString('rules/group1and3.json')
         Map expected = (Map) JsonReader.jsonToJava(json)
         Map actual = rulesEngine.generateDocumentationForGroups(['group1', 'group3'])
-        println('actual json:\n'+ JsonWriter.objectToJson(actual))
-        println('\n\n\nexpected json:\n'+json)
         assert DeepEquals.deepEquals(expected, actual)
     }
 
@@ -387,24 +334,12 @@ class RulesEngineTest extends NCubeBaseTest
     }
 
     @Test
-    void testGenerateDocumentation_Closure()
-    {
-        String json = NCubeRuntime.getResourceAsString('rules/group2.json')
-        Map expected = (Map) JsonReader.jsonToJava(json)
-        Closure where = {Map input -> input['category2'] == 'orange'}
-        Map actual = rulesEngine.generateDocumentation(where)
-        assert DeepEquals.deepEquals(expected, actual)
-    }
-
-    @Test
     void testGenerateDocumentation_Map()
     {
         String json = NCubeRuntime.getResourceAsString('rules/group1and3.json')
         Map expected = (Map) JsonReader.jsonToJava(json)
         Map categories = [category3: 'tiger'] as Map
         Map actual = rulesEngine.generateDocumentation(categories)
-        println('actual json:\n'+ JsonWriter.objectToJson(actual))
-        println('\n\n\nexpected json:\n'+json)
         assert DeepEquals.deepEquals(expected, actual)
     }
 
@@ -415,8 +350,6 @@ class RulesEngineTest extends NCubeBaseTest
         Map expected = (Map) JsonReader.jsonToJava(json)
         List categories = [[category1: 'foo', category2: 'apple'] as Map, [category1: 'bar'] as Map]
         Map actual = rulesEngine.generateDocumentation(categories)
-        println('actual json:\n'+ JsonWriter.objectToJson(actual))
-        println('\n\n\nexpected json:\n'+json)
         assert DeepEquals.deepEquals(expected, actual)
     }
 
@@ -493,5 +426,4 @@ class RulesEngineTest extends NCubeBaseTest
         List<RulesError> errors = rulesEngine.execute('group3', root)
         assert 1 == errors.size()
     }
-
 }

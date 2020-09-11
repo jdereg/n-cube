@@ -28,7 +28,6 @@ ncube:
       status: <optional> NCube ApplicationID status - defaults to RELEASE
       branch: <optional> NCube ApplicationID branch - defaults to HEAD
       rules: <required> NCube name where rules are defined
-      categories: <optional> NCube name where categories are defined
 spring:
   profiles:
     active: ncube-client
@@ -53,39 +52,28 @@ Rules are defined as methods on a rule class.
 
 
 ## <a name="define-rule-groups"></a> Define rule groups and categories
-Rule groups and rule categories are defined in NCubes.  
+Rule groups and rule categories are defined in a [Decision Table](README-decision.md) NCube.
+See the decision table documentation for requirements for setting up a decision table NCube.  
 
 #### Rule Groups
 A rule group is the unique combination of a rule class and a rule orchestration.
-An NCube used to define rule groups must have the following:
-- Axis `ruleGroup`, type `DISCRETE`, data type `STRING` or `CISTRING`
-  - Columns - set to unique rule group names
-- Axis `attribute`, type `DISCRETE`, data type `STRING` or `CISTRING`
-  - Columns `className`, `ncube`, and `throwException`
+In addition to the decision table requirements, a rules engine NCube must have the following columns:
 
+The `ruleGroup` cells should contain a String of the rule group name.  
 The `className` cells should contain a String of the fully qualified class name.  
 The `ncube` cells should contain a String of the name of the NCube where the rules are orchestrated.  
 The `throwException` column is optional. Cells should be true if the rule group should throw a `RulesException` if any errors are recorded.  
 No cells should be empty.  
-
-##### Example rule groups
-![](images/rule%20groups.png)
 
 #### Rule Categories (optional)
 Rule categories are used to select rule groups based on metadata about the rule groups. For example, the category 
 `phase` might used to categorize rule groups as either `pre-rating` or `post-rating`. Other example of ways to categorize
 rules might be by product (workers compensation, commercial auto, etc.) or by mutability (mutable or immutable).
 
-An NCube used to define rule categories must have the following:
-- Axis `ruleGroup`, type `DISCRETE`, data type `STRING` or `CISTRING`
-- Axis `category`, type `DISCRETE`, data type `STRING` or `CISTRING`
+The cells should contain the value of the associated category, but it is permissible to leave cells empty.    
 
-The cells should contain the value of the associated category.  
-It is permissible to leave cells empty.  
-All rule groups need not be defined with rule categories. If they are defined with categories, the rule group names must match those in the rule group NCube.  
-
-##### Example rule categories
-![](images/rule%20categories.png)
+##### Example rule NCube
+![](images/rule%20ncube.png)
 
 ## <a name="define-orchestration"></a> Define rule orchestration 
 Rule orchestrations are defined in NCubes. 
@@ -104,20 +92,15 @@ Cells may contain code, including looping and referencing other NCubes.
 
 ![](images/rule%20orchestration%20simple.png)
 
-##### Example rule orchestration with looping
-- The first cell shows a rule execution.  
-- The second cell shows code that performs looping on a structure of the 'root' object (in this case a List of Maps.)  
-
-![](images/rule%20orchestration%20looping.png)
-
+##### Rule orchestration with looping
+- See the JavaDocs for [BusinessRule](src/main/groovy/com/cedarsoftware/ncube/rules/BusinessRule.groovy).runTargetRules().
 
 ## <a name="execute-rules"></a> Execute the rules
 Rules are executed by specifying one of the following:
 - A single rule group - `String` (does not use rule categories)
 - A list of rule groups, in list order - `List<String>` (does not use rule categories)
-- Selected categories, in NCube defined order - Groovy `Closure`
-- Selected categories, in NCube defined order - `Map<String, Object>`
-- Selected categories, in list order then NCube defined order - `List<Map<String, Object>>`
+- Selected categories - `Map<String, ?>` (see [Decision Table](README-decision.md))
+- Selected categories - `Iterable<Map<String, ?>>` (see [Decision Table](README-decision.md))
 
 ```java 
 rulesEngine.execute(<one of the above types>, root, input, ouput);

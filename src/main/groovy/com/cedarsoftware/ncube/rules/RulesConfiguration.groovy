@@ -19,7 +19,6 @@ class RulesConfiguration
 {
     static final String ENGINE_NAME = 'name'
     static final String ENGINE_RULES = 'rules'
-    static final String ENGINE_CATEGORIES = 'categories'
     static final String APP_TENANT = 'tenant'
     static final String APP_NAME = 'app'
     static final String APP_VERSION = 'version'
@@ -59,14 +58,14 @@ class RulesConfiguration
             {
                 throw new IllegalArgumentException("Rule engine config requires key '${ENGINE_RULES}'")
             }
-            RulesEngine rulesEngine = new RulesEngine(name, appId, rules, engine[ENGINE_CATEGORIES])
+            RulesEngine rulesEngine = new RulesEngine(name, appId, rules)
             rulesEngines[name] = rulesEngine
         }
     }
 
-    void addRulesEngine(String engineName, ApplicationID appId, String rules, String categories)
+    void addRulesEngine(String engineName, ApplicationID appId, String rules)
     {
-        RulesEngine rulesEngine = new RulesEngine(engineName, appId, rules, categories)
+        RulesEngine rulesEngine = new RulesEngine(engineName, appId, rules)
         rulesEngines[engineName] = rulesEngine
     }
 

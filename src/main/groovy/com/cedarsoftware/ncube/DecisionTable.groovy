@@ -431,6 +431,11 @@ class DecisionTable
                     continue   // check next decision variable
                 }
 
+                if (BANG == cellValue)
+                {
+                    return false
+                }
+
                 boolean exclude = cellValue.startsWith(BANG)
                 cellValue -= BANG
                 Iterable<String> cellValues = COMMA_SPLITTER.split(cellValue)
@@ -441,7 +446,7 @@ class DecisionTable
 
                     if (inputs.size() == 0)
                     {   // Empty [] - treat as nothing assigned to input.  Early check for 'required' already happened.
-                        continue;
+                        continue
                     }
 
                     String elem1 = inputs.first().toLowerCase()

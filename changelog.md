@@ -1,6 +1,8 @@
 ### Revision History
-* 4.8.3-SNAPSHOT
+* 4.9.0-SNAPSHOT
+  * Updated `RulesEngine` to execute category-based rules via a `DecisionTable`.
   * Added `PreCompiler` that will compile all cells in `NCubes` defined in `ncube.rules.engines` and `ncube.performance.compiledAppIds`.
+  * Updated to consume `java-util 1.61.0`
 * 4.8.2
   * Added support for `ncube.legacy.grv.exp` configuration for backwards compatibility in `NCubeGroovyExpression` - @HonorKnight
   * Fixed `NCube.getMap` - it is now copying the coordinate map before passing to `getCell()` which could have modified it. - Defect found by: @HonorKnight

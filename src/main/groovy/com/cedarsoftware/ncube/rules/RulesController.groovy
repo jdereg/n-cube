@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 import static com.cedarsoftware.ncube.NCubeAppContext.getNcubeRuntime
+import static com.cedarsoftware.ncube.NCubeConstants._OR_
 import static org.springframework.http.HttpStatus.OK
 
 @RestController
@@ -43,6 +44,13 @@ class RulesController
     {
         String engine = categories['_engine']
         categories.remove('_engine')
+        for (Object value : categories.values())
+        {
+            if (value instanceof List)
+            {
+                ((List) value).add(0, _OR_)
+            }
+        }
         Map rules = rulesConfiguration.getRulesEngine(engine).generateDocumentation(categories)
         return ResponseEntity.status(OK).body(rules)
     }

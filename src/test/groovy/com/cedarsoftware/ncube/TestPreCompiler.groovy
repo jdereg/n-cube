@@ -21,7 +21,6 @@ class TestPreCompiler extends NCubeCleanupBaseTest
         preloadCubes(testAppId,
         'rules/ncubes/lookup.something.json',
         'rules/ncubes/app.rules.json',
-        'rules/ncubes/app.rules.categories.json',
         'rules/ncubes/rule.group1.type1.object1.json',
         'rules/ncubes/rule.group1.type1.object2.json',
         'rules/ncubes/rule.group2.type1.object1.json',
@@ -39,7 +38,7 @@ class TestPreCompiler extends NCubeCleanupBaseTest
         assert null == cell.runnableCode
 
         RulesConfiguration rulesConfiguration = new RulesConfiguration()
-        rulesConfiguration.addRulesEngine('foo', testAppId, 'app.rules', 'app.rules.categories')
+        rulesConfiguration.addRulesEngine('foo', testAppId, 'app.rules')
         PreCompiler preCompiler = new PreCompiler(rulesConfiguration, [])
         preCompiler.precompile()
 

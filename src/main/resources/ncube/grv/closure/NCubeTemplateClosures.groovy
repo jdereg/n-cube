@@ -106,7 +106,7 @@ def use(Map altInput, String cubeName, def defaultValue, ApplicationID appId)
 Map mapReduce(String colAxisName, Closure where = { true }, Map options = [:], String cubeName = null, ApplicationID appId = null)
 {
     NCube target
-    if (cubeName)
+    if (cubeName != null)
     {
         appId = appId ?: applicationID
         target = ncubeClient.getCube(appId, cubeName)
@@ -122,6 +122,26 @@ Map mapReduce(String colAxisName, Closure where = { true }, Map options = [:], S
     options.input = input
     options.output = output
     return target.mapReduce(colAxisName, where, options)
+}
+
+Map<Comparable, ?> getDecision(Map<String, ?> decisionInput, String cubeName, ApplicationID appId = ncube.applicationID)
+{
+    NCube ncube = ncubeClient.getCube(appId, cubeName)
+    if (ncube == null)
+    {
+        throw new IllegalArgumentException("getDecision() attempted within cell, but n-cube: ${cubeName} not found in app: ${appId}")
+    }
+    return ncube.decisionTable.getDecision(decisionInput)
+}
+
+Map<Comparable, ?> getDecision(Iterable<Map<String, ?>> iterable, String cubeName, ApplicationID appId = ncube.applicationID)
+{
+    NCube ncube = ncubeClient.getCube(appId, cubeName)
+    if (ncube == null)
+    {
+        throw new IllegalArgumentException("getDecision() attempted within cell, but n-cube: ${cubeName} not found in app: ${appId}")
+    }
+    return ncube.decisionTable.getDecision(iterable)
 }
 
 String url(String url)

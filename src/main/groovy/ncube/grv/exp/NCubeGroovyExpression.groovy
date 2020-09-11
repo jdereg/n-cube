@@ -360,6 +360,46 @@ class NCubeGroovyExpression
     }
 
     /**
+     * Main API for querying a Decision Table with a single query input from an NCube cell.
+     * @param input Map containing key/value pairs for all the input_value columns
+     * @param cubeName String name of another cube (when the reference is to an n-cube other than 'this' n-cube).  If not
+     * specified, the getDecision() is run against the cube containing 'this' cell.
+     * @param appId ApplicationID of another n-cube application.  If not specified, the appId of the n-cube containing
+     * 'this' cell is used.
+     * @return List<Comparable, List<outputs>>
+     */
+    Map<Comparable, ?> getDecision(Map<String, ?> decisionInput, String cubeName, ApplicationID appId = ncube.applicationID)
+    {
+        NCube ncube = ncubeRuntime.getCube(appId, cubeName)
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException("getDecision() attempted within cell, but n-cube: ${cubeName} not found in app: ${appId}")
+        }
+        return ncube.decisionTable.getDecision(decisionInput)
+    }
+
+    /**
+     * Main API for querying a Decision Table with multiple inputs from an NCube cell, where the result will be OR'ed together.
+     * @param iterable Iterable<Map> containing one or more input Maps containing the key/value pairs for all the
+     * input_value columns. Each Map will perform a separate query and the results of each query will be merged into a
+     * single result.
+     * @param cubeName String name of another cube (when the reference is to an n-cube other than 'this' n-cube).  If not
+     * specified, the getDecision() is run against the cube containing 'this' cell.
+     * @param appId ApplicationID of another n-cube application.  If not specified, the appId of the n-cube containing
+     * 'this' cell is used.
+     * @return List<Comparable, List<outputs>>
+     */
+    Map<Comparable, ?> getDecision(Iterable<Map<String, ?>> iterable, String cubeName, ApplicationID appId = ncube.applicationID)
+    {
+        NCube ncube = ncubeRuntime.getCube(appId, cubeName)
+        if (ncube == null)
+        {
+            throw new IllegalArgumentException("getDecision() attempted within cell, but n-cube: ${cubeName} not found in app: ${appId}")
+        }
+        return ncube.decisionTable.getDecision(iterable)
+    }
+
+    /**
      * Restart rule execution.  The Map contains the names of rule axes to rule names.  For any rule axis
      * specified in the map, the rule step counter will be moved (jumped) to the named rule.  More than one
      * rule axis step counter can be moved by including multiple entries in the map.
