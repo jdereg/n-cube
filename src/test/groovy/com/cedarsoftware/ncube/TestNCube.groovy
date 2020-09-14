@@ -5915,12 +5915,12 @@ class TestNCube extends NCubeBaseTest
         catch(Throwable t)
         {
             assert t instanceof CommandCellException
-            assert t.cause instanceof StackOverflowError
 
             // Enforces order
             assertContainsIgnoreCase(t.message,
-                    'error occurred',
+                    'stackoverflow occurred',
                     'ncube.testcircularreference',
+                    'ncube.N_',
                     'cell:ncube.testcircularreference:[accesstype:use',
                     'cell:ncube.testcircularreference:[accesstype:null'
             )
@@ -5937,11 +5937,11 @@ class TestNCube extends NCubeBaseTest
         catch(Throwable t)
         {
             assert t instanceof CommandCellException
-            assert t.cause instanceof StackOverflowError
 
             assertContainsIgnoreCase(t.message,
-                    'error occurred',
+                    'stackoverflow occurred',
                     'ncube.testcircularreference',
+                    'ncube.N_',
                     'cell:ncube.testcircularreference:[accesstype:at',
                     'cell:ncube.testcircularreference:[accesstype:null')
         }
@@ -5956,7 +5956,11 @@ class TestNCube extends NCubeBaseTest
             fail('exception should have been thrown')
         }
         catch (CommandCellException cce) {
-            assertTrue(cce.cause instanceof StackOverflowError)
+            assertContainsIgnoreCase(cce.message,
+                    'stackoverflow occurred',
+                    'ncube.testcircularreference',
+                    'ncube.N_',
+                    'cell:ncube.testcircularreference:[accesstype:recursion')
         }
         catch (Throwable t) {
             fail('CommandCellException should have been thrown')
