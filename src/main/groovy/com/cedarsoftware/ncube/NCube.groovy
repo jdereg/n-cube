@@ -819,9 +819,7 @@ class NCube<T>
         }
         catch (StackOverflowError e)
         {
-            // allow exception to be logged because it could be useful if the cause was not cell recursion, but don't pass it along
-            log.debug("Caught StackOverlow during executeExpression", e)
-            throw new CommandCellException("StackOverflow occurred in cube: ${name} for expression: ${((GroovyBase)cmd)?.getRunnableCode()?.name}\n${stackToString()}", null);
+            throw new CommandCellException("StackOverflow occurred in cube: ${name} for expression: ${((GroovyBase)cmd)?.getRunnableCode()?.name}\n${stackToString()}", e);
         }
         catch (Throwable t)
         {
