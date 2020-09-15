@@ -14,7 +14,7 @@ version = '4.9.0'
 // Example builds
 //gradle clean build 
 //gradle clean build publishToMavenLocal
-//gradle clean build publish upload closeAndReleaseRepository -P perform-release
+//gradle clean build publish upload closeAndReleaseRepository -P performRelease
 //gradle clean build publish -x test --warning-mode all
 
 java {
@@ -100,7 +100,7 @@ publishing {
 uploadArchives {
     repositories {
         mavenDeployer {
-            if (project.hasProperty("perform-release")) {
+            if (project.hasProperty("performRelease")) {
                 beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
                 repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
