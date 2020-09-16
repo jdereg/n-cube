@@ -420,24 +420,7 @@ class NCubeGroovyExpression
             throw new IllegalArgumentException("decisionValue() attempted within cell, but n-cube: ${cubeName} not found in app: ${appId}")
         }
 
-        if (!ncube.decisionTable.outputKeys.contains(outputColumnName))
-        {
-            throw new IllegalArgumentException("decisionValue() attempted within cell, but decision table: ${cubeName} does not have output column: ${outputColumnName} for app: ${appId}.")
-        }
-
-        Map<Comparable, ?> decision = getDecision(decisionInput, cubeName, appId)
-        if (decision.isEmpty())
-        {
-            return null
-        }
-
-        if (decision.size() > 1)
-        {
-            throw new IllegalStateException("decisionValue() attempted within cell, but decision table: ${cubeName} returned more than 1 result (${decision.size()}) for output column: ${outputColumnName} for app: ${appId}, with these inputs: ${decisionInput}")
-        }
-
-        Map<String, Object> row = (Map<String, Object>) decision.values().first()
-        return convert(row[outputColumnName], type)
+        return ncube.decisionTable.getDecisionValue(type, outputColumnName, decisionInput)
     }
 
     /**

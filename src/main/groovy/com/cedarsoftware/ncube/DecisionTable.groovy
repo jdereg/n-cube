@@ -13,6 +13,7 @@ import it.unimi.dsi.fastutil.ints.IntSet
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
+import static com.cedarsoftware.util.Converter.convert
 import static com.cedarsoftware.util.Converter.convertToBigDecimal
 import static com.cedarsoftware.util.Converter.convertToBoolean
 import static com.cedarsoftware.util.Converter.convertToDate
@@ -279,6 +280,46 @@ class DecisionTable
         Map<Comparable, ?> result = decisionCube.mapReduce(fieldAxisName, decisionTableClosure, options)
         result = determinePriority(result)
         return result
+    }
+
+    /**
+     * Return a single value from a specified output column.
+     * @param type {@link Class} which indicates the targeted (final) data type.
+     * @param outputColumnName {@link String} output column name for the value to return.
+     * @param decisionInput {@link Map} containing key/value pairs for all the input_value columns.
+     * @return An instanceof targetType class, based upon the value passed in.
+     */
+    public <T> T getDecisionValue(Class<T> type, String outputColumnName, Map<String, ?> decisionInput)
+    {
+        if (!outputKeys.contains(outputColumnName))
+        {
+            throw new IllegalArgumentException("Decision table: ${decisionCube.name} does not have output column: ${outputColumnName}.")
+        }
+
+        Map<Comparable, ?> decision = getDecision(decisionInput)
+        if (decision.isEmpty())
+        {
+            return null
+        }
+
+        if (decision.size() > 1)
+        {
+            throw new IllegalStateException("Decision table: ${decisionCube.name} returned more than 1 result (${decision.size()}) for output column: ${outputColumnName} with these inputs: ${decisionInput}")
+        }
+
+        Map<String, Object> row = (Map<String, Object>) decision.values().first()
+        return convert(row[outputColumnName], type)
+    }
+
+    /**
+     * Return a String value from a specified output column.
+     * @param outputColumnName {@link String} output column name for the value to return.
+     * @param decisionInput {@link Map} containing key/value pairs for all the input_value columns.
+     * @return An instanceof targetType class, based upon the value passed in.
+     */
+    public <T> T getDecisionValue(String outputColumnName, Map<String, ?> decisionInput)
+    {
+        return (T) getDecisionValue(String.class, outputColumnName, decisionInput)
     }
 
     /**

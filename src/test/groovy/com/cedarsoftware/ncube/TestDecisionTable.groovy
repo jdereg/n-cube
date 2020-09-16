@@ -1292,12 +1292,12 @@ class TestDecisionTable extends NCubeBaseTest
         assert decision.size() == 1
         assert decision.containsKey(4L)
 
-        assert dt.getInputKeys().size() == 3
-        assert dt.getInputKeys().containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
-        assert dt.getOutputKeys().size() == 1
-        assert dt.getOutputKeys().contains('outputColEnabled')
-        assert dt.getRequiredKeys().size() == 1
-        assert dt.getRequiredKeys().contains('inputRequired')
+        assert dt.inputKeys.size() == 3
+        assert dt.inputKeys.containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
+        assert dt.outputKeys.size() == 1
+        assert dt.outputKeys.contains('outputColEnabled')
+        assert dt.requiredKeys.size() == 1
+        assert dt.requiredKeys.contains('inputRequired')
     }
 
     @Test
@@ -1307,12 +1307,12 @@ class TestDecisionTable extends NCubeBaseTest
         Set set = dt.validateDecisionTable()
         assert set.empty
 
-        assert dt.getInputKeys().size() == 3
-        assert dt.getInputKeys().containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
-        assert dt.getOutputKeys().size() == 1
-        assert dt.getOutputKeys().contains('outputColEnabled')
-        assert dt.getRequiredKeys().size() == 1
-        assert dt.getRequiredKeys().contains('inputRequired')
+        assert dt.inputKeys.size() == 3
+        assert dt.inputKeys.containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
+        assert dt.outputKeys.size() == 1
+        assert dt.outputKeys.contains('outputColEnabled')
+        assert dt.requiredKeys.size() == 1
+        assert dt.requiredKeys.contains('inputRequired')
     }
 
     @Test
@@ -1323,39 +1323,83 @@ class TestDecisionTable extends NCubeBaseTest
         assert set.empty
 
         // getInputKeys
-        Set<String> inputKeys = dt.getInputKeys()
+        Set<String> inputKeys = dt.inputKeys
         assert inputKeys.size() == 3
-        assert dt.getInputKeys().containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
+        assert dt.inputKeys.containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
 
         inputKeys.remove('inputColEnabled')
         inputKeys.remove('inputRequired')
         inputKeys.remove('inputNotRequired')
 
-        Set<String> inputKeysAfter = dt.getInputKeys()
+        Set<String> inputKeysAfter = dt.inputKeys
         assert inputKeysAfter.size() == 3
         assert inputKeysAfter.containsAll(['inputColEnabled', 'inputRequired', 'inputNotRequired'])
 
         // getOutputKeys
-        Set<String> outputKeys = dt.getOutputKeys()
+        Set<String> outputKeys = dt.outputKeys
         assert outputKeys.size() == 1
         assert outputKeys.contains('outputColEnabled')
 
         outputKeys.remove('outputColEnabled')
 
-        Set<String> outputKeysAfter = dt.getOutputKeys()
+        Set<String> outputKeysAfter = dt.outputKeys
         assert outputKeysAfter.size() == 1
         assert outputKeysAfter.contains('outputColEnabled')
 
         // getRequiredKeys
-        Set<String> requiredKeys = dt.getRequiredKeys()
+        Set<String> requiredKeys = dt.requiredKeys
         assert requiredKeys.size() == 1
         assert requiredKeys.contains('inputRequired')
 
         requiredKeys.remove('inputRequired')
 
-        Set<String> requiredKeysAfter = dt.getRequiredKeys()
+        Set<String> requiredKeysAfter = dt.requiredKeys
         assert requiredKeysAfter.size() == 1
         assert requiredKeysAfter.contains('inputRequired')
+    }
+
+    @Test
+    void testGetDecisionValue()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        assert '15' == dt.getDecisionValue('output', [state: 'OH', pet: 'dog'])
+    }
+
+    @Test
+    void testGetDecisionValue_NoResult()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        assert null == dt.getDecisionValue('output', [state: 'AZ', pet: 'dog'])
+    }
+
+    @Test
+    void testGetDecisionValue_MultipleResults()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        try
+        {
+            dt.getDecisionValue('output', [state: 'OH'])
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'decision table', 'more than 1')
+        }
+    }
+
+    @Test
+    void testGetDecisionValue_InvalidColumnName()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        try
+        {
+            dt.getDecisionValue('outputx', [state: 'OH', pet: 'dog'])
+            fail()
+        }
+        catch (IllegalArgumentException e)
+        {
+            assertContainsIgnoreCase(e.message, 'decision table', 'not', 'output')
+        }
     }
 
     private static DecisionTable getDecisionTableFromJson(String file)

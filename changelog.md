@@ -2,7 +2,7 @@
 * 4.9.0
   * Updated `RulesEngine` to execute category-based rules via a `DecisionTable`.
   * Added `PreCompiler` that will compile all cells in `NCubes` defined in `ncube.rules.engines` and `ncube.performance.compiledAppIds`.
-  * Added `NCubeGroovyExpression.decisionValue()` to return a single value from a `DecisionTable` from within an NCube cell.
+  * Added `DecisionTable.getDecisionValue()` and `NCubeGroovyExpression.decisionValue()` to return a single value from a `DecisionTable` from within an NCube cell.
   * Updated to consume `java-util 1.61.0`
   * Updated to consume `fast-util 8.4.1`
 * 4.8.2
