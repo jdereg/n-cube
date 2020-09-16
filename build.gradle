@@ -1,3 +1,5 @@
+import org.gradle.api.artifacts.maven.MavenDeployment
+
 plugins {
     id 'groovy'
     id 'java-library'
@@ -14,7 +16,7 @@ version = '4.9.0'
 // Example builds
 //gradle clean build 
 //gradle clean build publishToMavenLocal
-//gradle clean build publish upload closeAndReleaseRepository -P performRelease
+//gradle clean build publish upload closeAndReleaseRepository -Pperform-release=true
 //gradle clean build publish -x test --warning-mode all
 
 java {
@@ -88,26 +90,29 @@ publishing {
     }
 }
 
-//signing {
-//    sign configurations.archives
-//    sign publishing.publications.maven
-//}
-//
-//tasks.withType(Sign) {
-//    onlyIf { !version.endsWith("SNAPSHOT") }
-//}
+signing {
+    sign configurations.archives
+    sign publishing.publications.maven
+}
+
+tasks.withType(Sign) {
+    onlyIf { project.hasProperty("perform-release") }
+}
 
 uploadArchives {
     repositories {
         mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+            if (project.hasProperty("perform-release"))
+            {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+                
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
 
-            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
-            }
-
-            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
             }
 
             pom.project {
