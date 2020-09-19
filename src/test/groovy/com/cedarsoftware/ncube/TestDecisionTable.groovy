@@ -1359,26 +1359,41 @@ class TestDecisionTable extends NCubeBaseTest
     }
 
     @Test
-    void testGetDecisionValue()
+    void testValue()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
-        assert '15' == dt.getDecisionValue('output', [state: 'OH', pet: 'dog'])
+        assert '15' == dt.val('output', [state: 'OH', pet: 'dog'])
     }
 
     @Test
-    void testGetDecisionValue_NoResult()
-    {
-        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
-        assert null == dt.getDecisionValue('output', [state: 'AZ', pet: 'dog'])
-    }
-
-    @Test
-    void testGetDecisionValue_MultipleResults()
+    void testValue_NoResult_Strict()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
         try
         {
-            dt.getDecisionValue('output', [state: 'OH'])
+            dt.val('output', [state: 'AZ', pet: 'dog'])
+            fail()
+        }
+        catch (IllegalStateException e)
+        {
+            assertContainsIgnoreCase(e.message, 'decision table', 'no results')
+        }
+    }
+
+    @Test
+    void testValue_NoResult()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        assert null == dt.val('output', [state: 'AZ', pet: 'dog'], false)
+    }
+
+    @Test
+    void testValue_MultipleResults()
+    {
+        DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
+        try
+        {
+            dt.val('output', [state: 'OH'])
             fail()
         }
         catch (IllegalStateException e)
@@ -1388,12 +1403,12 @@ class TestDecisionTable extends NCubeBaseTest
     }
 
     @Test
-    void testGetDecisionValue_InvalidColumnName()
+    void testValue_InvalidColumnName()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
         try
         {
-            dt.getDecisionValue('outputx', [state: 'OH', pet: 'dog'])
+            dt.val('outputx', [state: 'OH', pet: 'dog'])
             fail()
         }
         catch (IllegalArgumentException e)

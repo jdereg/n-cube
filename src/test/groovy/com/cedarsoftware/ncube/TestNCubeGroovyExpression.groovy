@@ -12,11 +12,11 @@ import static com.cedarsoftware.util.TestUtil.assertContainsIgnoreCase
 class TestNCubeGroovyExpression extends NCubeBaseTest
 {
     @Test
-    void testGetDecisionValue_NoNCube()
+    void testDt_NoNCube()
     {
         NCube caller = new NCube('test')
         caller.applicationID = testAppId
-        String cmd = "decisionValue('output', [state: 'OH', pet: 'dog'], '2dv')"
+        String cmd = "dt('2dv').val('output', [state: 'OH', pet: 'dog'])"
         caller.defaultCellValue = new GroovyExpression(cmd)
 
         try
@@ -26,7 +26,7 @@ class TestNCubeGroovyExpression extends NCubeBaseTest
         catch (CommandCellException e)
         {
             Throwable t = getDeepestException(e)
-            assertContainsIgnoreCase(t.message, 'decisionvalue', 'n-cube', 'not found')
+            assertContainsIgnoreCase(t.message, 'dt()', 'n-cube', 'not found')
         }
     }
 }

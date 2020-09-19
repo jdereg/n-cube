@@ -283,13 +283,13 @@ class DecisionTable
     }
 
     /**
-     * Return a single value from a specified output column.
-     * @param type {@link Class} which indicates the targeted (final) data type.
+     * Return a single value from a specified output column. Uses a DecisionTable that returns one row only.
      * @param outputColumnName {@link String} output column name for the value to return.
      * @param decisionInput {@link Map} containing key/value pairs for all the input_value columns.
-     * @return An instanceof targetType class, based upon the value passed in.
+     * @param strict {@link boolean} set to false to return null back if no results are found.
+     * @return Object configured in the returned cell.
      */
-    public <T> T getDecisionValue(Class<T> type, String outputColumnName, Map<String, ?> decisionInput)
+    Object val(String outputColumnName, Map<String, ?> decisionInput, boolean strict = true)
     {
         if (!outputKeys.contains(outputColumnName))
         {
@@ -299,7 +299,14 @@ class DecisionTable
         Map<Comparable, ?> decision = getDecision(decisionInput)
         if (decision.isEmpty())
         {
-            return null
+            if (strict)
+            {
+                throw new IllegalStateException("Decision table: ${decisionCube.name} returned no results for output column: ${outputColumnName} with these inputs: ${decisionInput}")
+            }
+            else
+            {
+                return null
+            }
         }
 
         if (decision.size() > 1)
@@ -308,18 +315,7 @@ class DecisionTable
         }
 
         Map<String, Object> row = (Map<String, Object>) decision.values().first()
-        return convert(row[outputColumnName], type)
-    }
-
-    /**
-     * Return a String value from a specified output column.
-     * @param outputColumnName {@link String} output column name for the value to return.
-     * @param decisionInput {@link Map} containing key/value pairs for all the input_value columns.
-     * @return An instanceof targetType class, based upon the value passed in.
-     */
-    public <T> T getDecisionValue(String outputColumnName, Map<String, ?> decisionInput)
-    {
-        return (T) getDecisionValue(String.class, outputColumnName, decisionInput)
+        return row[outputColumnName]
     }
 
     /**

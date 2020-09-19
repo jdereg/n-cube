@@ -402,40 +402,21 @@ class NCubeGroovyExpression
     }
 
     /**
-     * Return a single value from a specified output column on a {@link DecisionTable}.
-     * @param type {@link Class} which indicates the targeted (final) data type.
-     * @param outputColumnName {@link String} output column name for the value to return.
-     * @param decisionInput {@link Map} containing key/value pairs for all the input_value columns.
+     * Return a {@link DecisionTable}
      * @param cubeName {@link String} name of another cube (when the reference is to an n-cube other than 'this' n-cube).  If not
      * specified, the getDecision() is run against the cube containing 'this' cell.
      * @param appId {@link ApplicationID} of another n-cube application.  If not specified, the appId of the n-cube containing
      * 'this' cell is used.
-     * @return An instanceof targetType class, based upon the value passed in.
+     * @return {@link DecisionTable}
      */
-    public <T> T decisionValue(Class<T> type, String outputColumnName, Map<String, ?> decisionInput, String cubeName, ApplicationID appId = ncube.applicationID)
+    DecisionTable dt(String cubeName, ApplicationID appId = ncube.applicationID)
     {
-        NCube ncube = ncubeRuntime.getCube(appId, cubeName)
-        if (ncube == null)
+        NCube decisionCube = ncubeRuntime.getCube(appId, cubeName)
+        if (decisionCube == null)
         {
-            throw new IllegalArgumentException("decisionValue() attempted within cell, but n-cube: ${cubeName} not found in app: ${appId}")
+            throw new IllegalArgumentException("dt() attempted within cell, but n-cube: ${cubeName} not found in app: ${appId}")
         }
-
-        return ncube.decisionTable.getDecisionValue(type, outputColumnName, decisionInput)
-    }
-
-    /**
-     * Return a String value from a specified output column on a {@link DecisionTable}.
-     * @param outputColumnName {@link String} output column name for the value to return.
-     * @param decisionInput {@link Map} containing key/value pairs for all the input_value columns.
-     * @param cubeName {@link String} name of another cube (when the reference is to an n-cube other than 'this' n-cube).  If not
-     * specified, the getDecision() is run against the cube containing 'this' cell.
-     * @param appId {@link ApplicationID} of another n-cube application.  If not specified, the appId of the n-cube containing
-     * 'this' cell is used.
-     * @return An instanceof targetType class, based upon the value passed in.
-     */
-    public <T> T decisionValue(String outputColumnName, Map<String, ?> decisionInput, String cubeName, ApplicationID appId = ncube.applicationID)
-    {
-        return (T) decisionValue(String.class, outputColumnName, decisionInput, cubeName, appId)
+        return decisionCube.decisionTable
     }
 
     /**

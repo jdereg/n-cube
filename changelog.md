@@ -1,4 +1,7 @@
 ### Revision History
+* 4.9.1
+  * Added `NCubeGroovyExpression.dt()` to return a `DecisionTable`. Removed `NCubeGroovyExpression.decisionValue()`.
+  * Changed `DecisionTable.getDecisionValue()` to `DecisionTable.val()`.
 * 4.9.0
   * Updated `RulesEngine` to execute category-based rules via a `DecisionTable`.
   * Added `PreCompiler` that will compile all cells in `NCubes` defined in `ncube.rules.engines` and `ncube.performance.compiledAppIds`.
