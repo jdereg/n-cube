@@ -7,10 +7,10 @@
   * Updated to consume `fast-util 8.4.1`
 * 4.8.2
   * Added support for `ncube.legacy.grv.exp` configuration for backwards compatibility in `NCubeGroovyExpression` - @HonorKnight
-  * Fixed `NCube.getMap` - it is now copying the coordinate map before passing to `getCell()` which could have modified it. - Defect found by: @HonorKnight
+  * Fixed `NCube.getMap()` - it is now copying the coordinate map before passing to `getCell()` which could have modified it. - Defect found by: @HonorKnight
   * Updated to consume `java-util 1.60.0`
 * 4.8.1
-  * Updated `RulesEngine` documentation to handle orchestration NCubes that end in the same string after the last`.` in the name.
+  * Updated `RulesEngine` documentation to handle orchestration `NCubes` that end in the same string after the last`.` in the name.
 * 4.8.0
   * Added support for `AND`, `OR`, `NOT`, `NAND`, `NOR` to `DecisionTable`.  Can be used with both regular input columns and range input columns.  Also, multiple values can be used with `AND`, `OR`, `NAND`, and `NOR`.  `NOT` can only have one value.  See the [Decision Table Developer Guide](README-decision.md) for more information. 
   * Added `BusinessRule.runTargetRules()` that traverses the data model running the rules for a target on a given source.
@@ -26,9 +26,9 @@
     * UI changes:
         * Added a `rules.css` to define display styles for each piece of rule info.
         * The name of a ruleGroup will now display in a dark blue.  The `BusinessRule` class name will appear next to it in a monospace font.
-        * Each NCube rule orchestration name will be displayed in bold.
+        * Each `NCube` rule orchestration name will be displayed in bold.
         * Each rule in a ruleGroup will now display the rule column name followed by the rule condition followed by the `@Documentation` value.  
-        * If a rule condition is a primitive boolean, it will display the boolean.  Otherwise, it will display "*Condition*", with a hover tooltip that shows the condition expression as code. 
+        * If a rule condition is a primitive `boolean`, it will display the value.  Otherwise, it will display "*Condition*", with a hover tooltip that shows the condition expression as code. 
         * If a rule expression references another ruleGroup, provide the name of the rule column and a "Code" blob with a tooltip to see the code.
         * If a rule expression is not simply a reference to a method on the `BusinessRule` (ie: `input.rule.someMethod()`, the UI will also display the "Code" blob with tooltip.
         * If a rule expression is empty, it will display `[Rule has no content]`.
@@ -39,7 +39,7 @@
     * Made `DecisionTable.getOutputKeys()` return a copy to prevent accidental modification.
   * Updated to consume `java-util 1.52.0`
 * 4.7.7
-  * Updated `RulesEngine` to throw an IllegalArgumentException if it encounters a cell expected to contain an `NCube` name, but for which there is no `NCube`.  Avoids `NullPointerException` when you make a typo.
+  * Updated `RulesEngine` to throw an `IllegalArgumentException` if it encounters a cell expected to contain an `NCube` name, but for which there is no `NCube`.  Avoids `NullPointerException` when you make a typo.
   * Updated `JsonHttpProxy.requestToken()` to throw a `RuntimeException` if it fails to get a token.
   * Updated `DecisionTable` to allow getting the names of the required columns, input columns, and output columns.
   * Updated `DecisionTable` to more specifically check the metaProperties `required`, `output_value`, and `input_value` for a value of `true` before treating them as "enabled".
@@ -47,9 +47,9 @@
   * Updated to consume `Spring 5.2.6`
   * Updated to consume `Spring boot 2.2.7` 
 * 4.7.6
-  * `DecisionTable` updated with a new interface allowing you to pass in an Iterable<Map> to `getDecision()`.  Results of each inputMap are merged and returned.  The 'OR' case.
+  * `DecisionTable` updated with a new interface allowing you to pass in an `Iterable<Map>` to `getDecision()`.  Results of each inputMap are merged and returned.  The 'OR' case.
   * `DecisionTable` updated so that if an input_value is not provided for an optional key, it will no longer prevent rows where that column has a value from being included in the results.
-  * If you define your `input_value` metaProperty with a `false` value, the `DecisionTable` will ignore it.  Allows you to temporarily disable an input_value for testing.
+  * If you define your `input_value` metaProperty with a `false` value, the `DecisionTable` will ignore it.  Allows you to temporarily disable an `input_value` for testing.
   * Updated to consume `java-util 1.50.0`
   * Almost all `CaseInsenstiveMaps` converted to use the new `CompactCILinkedMap` or `CompactCIHashMap` from `java-util`.   
 * 4.7.5
@@ -86,7 +86,7 @@
   * `DecisionTable.getInputKeys()` API added that returns all input keys (columns) to access the `DecisionTable`. 
 * 4.6.12
   * Added `DecisionTable` class.  See [Decision Table Developer Guide.](README-decision.md)
-  * Test are still being added for DecisionTable, so it is considered 'beta' at this point. 
+  * Test are still being added for `DecisionTable`, so it is considered 'beta' at this point. 
 * 4.6.11
   * Updated `JsonHttpProxy` to add OAuth2 capability
 * 4.6.10
@@ -103,8 +103,8 @@
   * Added Spring OAuth2 authentication support.
   * Updated `RulesEngine` to use `ReflectionUtils.getMethod()` from `java-util`
 * 4.6.7
-  * Configured NCube's spring beans to only make `NCubePersister` available to profiles that use it: `storage-server`, `combined-server`, `combined-client`.
-  * Configured NCube's spring beans to remove `NCubeCacheManager` from `storage-server` profile.
+  * Configured `NCube`'s spring beans to only make `NCubePersister` available to profiles that use it: `storage-server`, `combined-server`, `combined-client`.
+  * Configured `NCube`'s spring beans to remove `NCubeCacheManager` from `storage-server` profile.
   * Updated to consume `json-command-servlet 1.9.0` (Gradle build version).
   * Added missing `implementation 'org.springframework:spring-web:5.2.2.RELEASE'` which transitively being included from `json-command-servlet`.
   * Updated to consume `Spring Framework 5.2.2`
