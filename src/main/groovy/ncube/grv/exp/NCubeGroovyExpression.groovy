@@ -17,7 +17,6 @@ import com.cedarsoftware.util.TrackingMap
 import groovy.transform.CompileStatic
 
 import static com.cedarsoftware.ncube.NCubeConstants.SEARCH_ACTIVE_RECORDS_ONLY
-import static com.cedarsoftware.util.Converter.convert
 import static com.cedarsoftware.util.StringUtilities.createUTF8String
 import static com.cedarsoftware.util.StringUtilities.equalsIgnoreCase
 import static com.cedarsoftware.util.UrlUtilities.getContentFromUrl

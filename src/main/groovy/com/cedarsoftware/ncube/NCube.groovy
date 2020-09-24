@@ -633,8 +633,7 @@ class NCube<T>
      * name can have its own orchestration (rule list) to select the rules on the given axis.
      * </pre>
      * @param coordinate Map of String keys to values meant to bind to each axis of the n-cube.
-     * @param output Map that can be written to by the code within the the n-cubes (for example,
-     *               GroovyExpressions.
+     * @param output Map that can be written to by the code within the the n-cubes (for example GroovyExpressions.)
      * @param defaultValue Object placed here will be returned if there is no cell at the location
      *                     pinpointed by the input coordinate.  Normally, the defaulValue of the
      *                     n-cube is returned, but if this parameter is passed a non-null value,

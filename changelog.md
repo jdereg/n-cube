@@ -1,4 +1,6 @@
 ### Revision History
+* 4.9.2
+  * Updated `DecisionTable.getDecision()` to have an optional output `Map` parameter.
 * 4.9.1
   * Added `NCubeGroovyExpression.dt()` to return a `DecisionTable`. Removed `NCubeGroovyExpression.decisionValue()`.
   * Changed `DecisionTable.getDecisionValue()` to `DecisionTable.val()`.

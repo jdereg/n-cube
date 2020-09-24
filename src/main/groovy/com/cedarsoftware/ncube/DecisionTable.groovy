@@ -135,9 +135,10 @@ class DecisionTable
      * @param iterable Iterable<Map> containing one or more input Maps containing the key/value pairs for all the
      * input_value columns. Each Map will perform a separate query and the results of each query will be merged into a
      * single result.
+     * @param output {@link Map} optional output to allow DecisionTables to write to or pick up {@link RuleInfo}
      * @return List<Comparable, List<outputs>>
      */
-    Map<Comparable, ?> getDecision(Iterable<Map<String, ?>> iterable)
+    Map<Comparable, ?> getDecision(Iterable<Map<String, ?>> iterable, Map output = null)
     {
         Map<Comparable, ?> results = new TreeMap<>()
         if (iterable.size() == 0)
@@ -148,7 +149,7 @@ class DecisionTable
         {
             for (Map<String, ?> item : iterable)
             {
-                Map<Comparable, ?> result = getDecision(item)
+                Map<Comparable, ?> result = getDecision(item, output)
                 results.putAll(result)
             }
         }
@@ -158,9 +159,10 @@ class DecisionTable
     /**
      * Main API for querying a Decision Table with a single query input.
      * @param input Map containing key/value pairs for all the input_value columns
+     * @param output {@link Map} optional output to allow DecisionTables to write to or pick up {@link RuleInfo}
      * @return List<Comparable, List<outputs>>
      */
-    Map<Comparable, ?> getDecision(Map<String, ?> input)
+    Map<Comparable, ?> getDecision(Map<String, ?> input, Map output = null)
     {
         Map<String, Map<String, ?>> ranges = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>())
         Map<String, ?> copyInput = new CaseInsensitiveMap<>(input, new HashMap<>(input.size()))
@@ -277,6 +279,12 @@ class DecisionTable
                 input: closureInput
         ]
 
+        if (output != null)
+        {
+            RuleInfo ruleInfo = NCube.getRuleInfo(output)
+            ruleInfo.getInputKeysUsed().addAll(inputKeys)
+        }
+
         Map<Comparable, ?> result = decisionCube.mapReduce(fieldAxisName, decisionTableClosure, options)
         result = determinePriority(result)
         return result
@@ -286,17 +294,18 @@ class DecisionTable
      * Return a single value from a specified output column. Uses a DecisionTable that returns one row only.
      * @param outputColumnName {@link String} output column name for the value to return.
      * @param decisionInput {@link Map} containing key/value pairs for all the input_value columns.
-     * @param strict {@link boolean} set to false to return null back if no results are found.
+     * @param output {@link Map} optional output to allow DecisionTables to write to or pick up {@link RuleInfo}
+     * @param strict boolean set to false to return null back if no results are found.
      * @return Object configured in the returned cell.
      */
-    Object val(String outputColumnName, Map<String, ?> decisionInput, boolean strict = true)
+    Object val(String outputColumnName, Map<String, ?> decisionInput, Map output = null, boolean strict = true)
     {
         if (!outputKeys.contains(outputColumnName))
         {
             throw new IllegalArgumentException("Decision table: ${decisionCube.name} does not have output column: ${outputColumnName}.")
         }
 
-        Map<Comparable, ?> decision = getDecision(decisionInput)
+        Map<Comparable, ?> decision = getDecision(decisionInput, output)
         if (decision.isEmpty())
         {
             if (strict)

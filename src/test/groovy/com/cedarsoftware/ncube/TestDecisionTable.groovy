@@ -1362,7 +1362,11 @@ class TestDecisionTable extends NCubeBaseTest
     void testValue()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
-        assert '15' == dt.val('output', [state: 'OH', pet: 'dog'])
+        Map<String, Object> output = [:]
+        assert '15' == dt.val('output', [state: 'OH', pet: 'dog'], output)
+        RuleInfo ruleInfo = (RuleInfo) output['_rule']
+        Set<String> keys = ruleInfo.getInputKeysUsed()
+        assert keys == dt.inputKeys
     }
 
     @Test
@@ -1384,7 +1388,7 @@ class TestDecisionTable extends NCubeBaseTest
     void testValue_NoResult()
     {
         DecisionTable dt = getDecisionTableFromJson('decision-tables/2dv.json')
-        assert null == dt.val('output', [state: 'AZ', pet: 'dog'], false)
+        assert null == dt.val('output', [state: 'AZ', pet: 'dog'],null,false)
     }
 
     @Test
