@@ -1,4 +1,7 @@
 ### Revision History
+* 4.9.3
+  * Changed `guava` dependency from `implementation` to `api`. 
+  * Changed `fastutil` dependency from `api` to `implementation`. 
 * 4.9.2
   * Updated `DecisionTable.getDecision()` to have an optional output `Map` parameter.
 * 4.9.1

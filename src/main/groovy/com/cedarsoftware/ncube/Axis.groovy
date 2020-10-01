@@ -82,7 +82,7 @@ class Axis
     private final transient Map<String, Column> colNameToCol = new CompactCIHashMap<>()
     private final transient SortedMap<Integer, Column> displayOrder = new Int2ObjectRBTreeMap<>()
     private transient SortedMap<Comparable, Column> valueToCol
-    protected transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()
+    private transient RangeMap<Comparable, Column> rangeToCol = TreeRangeMap.create()
 
     private static final ThreadLocal<Random> LOCAL_RANDOM = new ThreadLocal<Random>() {
         Random initialValue()
@@ -1960,5 +1960,14 @@ class Axis
         {
             return findColumn(source.value)
         }
+    }
+
+    /**
+     * This method is only for testing purposes
+     * @return the size of the rangeToCol Map
+     */
+    protected int getRangeToColSize()
+    {
+        return rangeToCol.asMapOfRanges().size()
     }
 }

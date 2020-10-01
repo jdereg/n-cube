@@ -1210,9 +1210,9 @@ class TestAxis extends NCubeBaseTest
         rs.add(new Range(50, 60))
         axis.addColumn(rs)
         assert 2 == axis.columns.size()
-        assert 3 == axis.rangeToCol.asMapOfRanges().size()
+        assert 3 == axis.rangeToColSize
         axis.deleteColumn(15)
-        assert 1 == axis.rangeToCol.asMapOfRanges().size()
+        assert 1 == axis.rangeToColSize
         assert 1 == axis.columns.size()
     }
 
