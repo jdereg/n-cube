@@ -1,4 +1,6 @@
 ### Revision History
+* 4.9.4
+  * Changed `fastutil` back to `api`. This is needed to get a `DecisionTable` to load. (Thanks gradle.)
 * 4.9.3
   * Changed `guava` dependency from `implementation` to `api`. 
   * Changed `fastutil` dependency from `api` to `implementation`. 
