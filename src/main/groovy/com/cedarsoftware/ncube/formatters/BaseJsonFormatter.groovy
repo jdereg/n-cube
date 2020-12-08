@@ -39,7 +39,7 @@ class BaseJsonFormatter
 
     BaseJsonFormatter(OutputStream stream)
     {
-        builder = new OutputStreamWriter(stream)
+        builder = new OutputStreamWriter(stream, "UTF-8")
     }
 
     void startArray()

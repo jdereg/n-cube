@@ -1,6 +1,6 @@
 package com.cedarsoftware.ncube
 
-
+import com.cedarsoftware.config.NCubeConfiguration
 import com.cedarsoftware.ncube.exception.AxisOverlapException
 import com.cedarsoftware.ncube.exception.CommandCellException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
@@ -15,6 +15,10 @@ import groovy.transform.TypeChecked
 import groovy.transform.TypeCheckingMode
 import ncube.grv.exp.NCubeGroovyExpression
 import org.junit.Test
+import org.springframework.context.ApplicationContext
+
+import java.lang.reflect.Field
+import java.util.regex.Pattern
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.util.TestUtil.assertContainsIgnoreCase
@@ -2275,6 +2279,197 @@ class TestNCube extends NCubeBaseTest
         catch (RuntimeException e)
         {
             assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a]")
+        }
+    }
+
+    @Test
+    void testStackEntryCoordinateKeyNoExclusions()
+    {
+        String failMessage = "should throw exception"
+        String cmdString = "throw new Exception('cell error')"
+
+        NCube<CommandCell> cube = new NCube<CommandCell>("StackEntryExclusionTest")
+        Axis axis1 = new Axis("axis1", AxisType.DISCRETE, AxisValueType.STRING, true, Axis.DISPLAY)
+        cube.addAxis(axis1)
+        axis1.addColumn("a")
+        cube.setDefaultCellValue(new GroovyExpression("throw new RuntimeException('test failed')"))
+
+        Map coords = [ one: "one", two: "two"]
+        String origExclusions = ((NCubeConfiguration)NCubeAppContext.getBean("NCubeConfiguration")).stackEntryInputKeyExclude
+        try {
+            NCube.stackEntryInputKeyExclude = null
+            cube.getCell(coords, [:])
+            fail("exception was expected")
+        }
+        catch(Exception e) {
+            assertTrue(e instanceof CommandCellException)
+            String msg = e.getMessage()
+            coords.keySet().each {key ->
+                assertTrue("[${key}] should be included in message:\n${msg}",msg.contains("${key}:"))
+            }
+        }
+        finally {
+            NCube.stackEntryInputKeyExclude = origExclusions
+        }
+    }
+
+    @Test
+    void testStackEntryCoordinateKeySingleExclusion()
+    {
+        String failMessage = "should throw exception"
+        String cmdString = "throw new Exception('cell error')"
+
+        NCube<CommandCell> cube = new NCube<CommandCell>("StackEntryExclusionTest")
+        Axis axis1 = new Axis("axis1", AxisType.DISCRETE, AxisValueType.STRING, true, Axis.DISPLAY)
+        cube.addAxis(axis1)
+        axis1.addColumn("a")
+        cube.setDefaultCellValue(new GroovyExpression("throw new RuntimeException('test failed')"))
+
+        Map coordsToInclude = [ one: "one", two: "two"]
+        Map coordsToExclude = [ oneService: "one", twoService: "two"]
+        String origExclusions = ((NCubeConfiguration)NCubeAppContext.getBean("NCubeConfiguration")).stackEntryInputKeyExclude
+        try {
+            NCube.stackEntryInputKeyExclude = "*Service"
+            cube.getCell(coordsToInclude + coordsToExclude, [:])
+            fail("exception was expected")
+        }
+        catch(Exception e) {
+            assertTrue(e instanceof CommandCellException)
+            String msg = e.getMessage()
+            coordsToInclude.keySet().each {key ->
+                assertTrue("[${key}] should be included in message:\n${msg}",msg.contains("${key}:"))
+            }
+            coordsToExclude.keySet().each {key ->
+                assertFalse("[${key}] should not be included in message:\n${msg}",msg.contains("${key}:"))
+            }
+        }
+        finally {
+            NCube.stackEntryInputKeyExclude = origExclusions
+        }
+    }
+
+    /**
+     * This test ensures that the list of StackEntry coordinates in the error message
+     * accounts for entries being excluded (ie. no extra commas)
+     */
+    @Test
+    void testStackEntryCoordinateKeyExclusionMessage()
+    {
+        String failMessage = "should throw exception"
+        String cmdString = "throw new Exception('cell error')"
+
+        NCube<CommandCell> cube = new NCube<CommandCell>("StackEntryExclusionTest")
+        Axis axis1 = new Axis("axis1", AxisType.DISCRETE, AxisValueType.STRING, true, Axis.DISPLAY)
+        cube.addAxis(axis1)
+        axis1.addColumn("a")
+        cube.setDefaultCellValue(new GroovyExpression("throw new RuntimeException('test failed')"))
+
+        // exclusions at the end
+        testOutputMessage(cube, [ one: "one", two: "two", oneService: "oneSvc", twoService: "twoSvc"], '[one:one,two:two]')
+
+        // exclusions in the front
+        testOutputMessage(cube, [ oneService: "oneSvc", twoService: "twoSvc", one: "one", two: "two"], '[one:one,two:two]')
+
+        // exclusions in the middle
+        testOutputMessage(cube, [ one: "one", oneService: "oneSvc", twoService: "twoSvc", two: "two"], '[one:one,two:two]')
+
+        // single include, exclusions at end
+        testOutputMessage(cube, [ one: "one", oneService: "oneSvc", twoService: "twoSvc"], '[one:one]')
+
+        // single include, exclusions at front
+        testOutputMessage(cube, [ one: "one", oneService: "oneSvc", twoService: "twoSvc"], '[one:one]')
+
+        // single include, exclusions around it
+        testOutputMessage(cube, [ oneService: "oneSvc", one: "one", twoService: "twoSvc"], '[one:one]')
+    }
+
+    private void testOutputMessage(final NCube cube, final Map coords, final String expectedMessage) {
+        String origExclusions = ((NCubeConfiguration)NCubeAppContext.getBean("NCubeConfiguration")).stackEntryInputKeyExclude
+        try {
+            NCube.stackEntryInputKeyExclude = "*Service"
+            cube.getCell(coords)
+            fail("exception was expected")
+        }
+        catch(Exception e) {
+            assertTrue(e instanceof CommandCellException)
+            assertTrue("${e.getMessage()} should contain [${expectedMessage}]", e.getMessage().contains(expectedMessage))
+        }
+        finally {
+            NCube.stackEntryInputKeyExclude = origExclusions
+        }
+    }
+
+    @Test
+    void testStackEntryCoordinateKeyMultipleExclusions()
+    {
+        String failMessage = "should throw exception"
+        String cmdString = "throw new Exception('cell error')"
+
+        NCube<CommandCell> cube = new NCube<CommandCell>("StackEntryExclusionTest")
+        Axis axis1 = new Axis("axis1", AxisType.DISCRETE, AxisValueType.STRING, true, Axis.DISPLAY)
+        cube.addAxis(axis1)
+        axis1.addColumn("a")
+        cube.setDefaultCellValue(new GroovyExpression("throw new RuntimeException('test failed')"))
+
+        Map coordsToInclude = [ one: "one", two: "two"]
+        Map coordsToExclude = [ oneService: "one", twoService: "two", oneComponent: "one", twoComponent: "two"]
+        String origExclusions = ((NCubeConfiguration)NCubeAppContext.getBean("NCubeConfiguration")).stackEntryInputKeyExclude
+        try {
+            NCube.stackEntryInputKeyExclude = "*Service,*Component"
+            cube.getCell(coordsToInclude + coordsToExclude, [:])
+            fail("exception was expected")
+        }
+        catch(Exception e) {
+            assertTrue(e instanceof CommandCellException)
+            String msg = e.getMessage()
+            coordsToInclude.keySet().each {key ->
+                assertTrue("[${key}] should be included in message:\n${msg}",msg.contains("${key}:"))
+            }
+            coordsToExclude.keySet().each {key ->
+                assertFalse("[${key}] should not be included in message:\n${msg}",msg.contains("${key}:"))
+            }
+        }
+        finally {
+            NCube.stackEntryInputKeyExclude = origExclusions
+        }
+    }
+
+    @Test
+    void testStackEntryCoordinateKeyExclusionsParsing()
+    {
+        String origExclusions = ((NCubeConfiguration)NCubeAppContext.getBean("NCubeConfiguration")).stackEntryInputKeyExclude
+        try {
+            Field exclusionsField = NCube.getDeclaredField('stackEntryInputKeyExclusions')
+            exclusionsField.setAccessible(true)
+
+            NCube.stackEntryInputKeyExclude = "oneService,*Component,???Controller"
+            List<Pattern> exclusions = (List<Pattern>) exclusionsField.get(null)
+            assertEquals(3, exclusions.size())
+            assertEquals('^oneService$',exclusions[0].toString())
+            assertEquals('^.*Component$',exclusions[1].toString())
+            assertEquals('^...Controller$',exclusions[2].toString())
+
+            NCube.stackEntryInputKeyExclude = "one , ,,  two , three     "
+            exclusions = (List<Pattern>) exclusionsField.get(null)
+            assertEquals(3, exclusions.size())
+            assertEquals('^one$',exclusions[0].toString())
+            assertEquals('^two$',exclusions[1].toString())
+            assertEquals('^three$',exclusions[2].toString())
+
+            NCube.stackEntryInputKeyExclude = "     "
+            exclusions = (List<Pattern>) exclusionsField.get(null)
+            assertNull(exclusions)
+
+            NCube.stackEntryInputKeyExclude = "  ,   "
+            exclusions = (List<Pattern>) exclusionsField.get(null)
+            assertNull(exclusions)
+
+            NCube.stackEntryInputKeyExclude = null
+            exclusions = (List<Pattern>) exclusionsField.get(null)
+            assertNull(exclusions)
+        }
+        finally {
+            NCube.stackEntryInputKeyExclude = origExclusions
         }
     }
 

@@ -701,6 +701,24 @@ class TestNCubeRuntimeFileCaching extends NCubeBaseTest
         verifyMockLoad(appId, cubeName, 1)
     }
 
+    @Test
+    void testWriteUTF8()
+    {
+        setSnapshotMode(RELEASE_ONLY)
+        String cubeName = 'TestBranch'
+        cubeFileNameMap[cubeName] = 'test.branch.utf8'
+        NCube cube = getCubeFromRuntime(releaseId, cubeName)
+
+        // assert string which contains 'em dash' instead of dash character
+        assertEquals("—ABC—",cube.getCell([Code:-10]))
+
+        // clear cache and check ncube loaded from cached file still contains UTF-8 character
+        cacheClient.clearCache(releaseId,[cubeName])
+        cube = getCubeFromRuntime(releaseId, cubeName)
+        verifyMockLoad(releaseId, cubeName, 1)
+        assertEquals("—ABC—",cube.getCell([Code:-10]))
+    }
+
     private NCube getCubeFromRuntime(ApplicationID appId, String cubeName)
     {
         NCube cube = cacheClient.getCube(appId,cubeName)

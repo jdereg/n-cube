@@ -11,7 +11,7 @@ plugins {
 
 group = 'com.cedarsoftware'
 description = 'n-cube'
-version = '4.9.4'
+version = '4.10.0-SNAPSHOT'
 
 // Example builds
 //gradle clean build 
@@ -34,6 +34,19 @@ wrapper {
 
 jar {
     enabled = true
+    manifest {
+        attributes(
+                'Implementation-Title'      : 'n-cube',
+                'Implementation-Version'    : getArchiveVersion(),
+                'Implementation-Vendor-Id'  : 'com.cedarsoftware',
+                'Implementation-URL'        : 'https://github.com/jdereg/n-cube',
+                'Built-By'                  : System.properties['user.name'],
+                'Build-Timestamp'           : new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
+                'Created-By'                : "Gradle ${gradle.gradleVersion}",
+                'Build-Jdk'                 : "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
+                'Build-OS'                  : "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}"
+        )
+    }
 }
 
 repositories {

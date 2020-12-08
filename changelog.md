@@ -1,4 +1,7 @@
 ### Revision History
+* 4.10.0
+  * Added support for filtering of StackEntry coordinates based on key name, controlled by `ncube.stackEntry.input.key.exclude`
+  * Forced JsonFormatter to use `UTF-8` encoding when writing to files
 * 4.9.4
   * Changed `fastutil` back to `api`. This is needed to get a `DecisionTable` to load. (Thanks gradle.)
 * 4.9.3

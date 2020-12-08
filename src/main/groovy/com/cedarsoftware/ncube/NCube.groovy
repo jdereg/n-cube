@@ -37,6 +37,7 @@ import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.regex.Matcher
+import java.util.regex.Pattern
 import java.util.zip.Deflater
 import java.util.zip.GZIPInputStream
 
@@ -52,6 +53,7 @@ import static com.cedarsoftware.util.ReflectionUtils.getDeepDeclaredFields
 import static com.cedarsoftware.util.StringUtilities.encode
 import static com.cedarsoftware.util.StringUtilities.hasContent
 import static com.cedarsoftware.util.StringUtilities.isEmpty
+import static com.cedarsoftware.util.StringUtilities.wildcardToRegexString
 import static com.cedarsoftware.util.io.MetaUtils.isLogicalPrimitive
 
 /**
@@ -123,7 +125,8 @@ class NCube<T>
         }
     }
     private static int stackEntryCoordinateValueMaxSize
-    
+    private static List<Pattern> stackEntryInputKeyExclusions
+
     /**
      * Creata a new NCube instance with the passed in name
      * @param name String name to use for the NCube.
@@ -295,19 +298,23 @@ class NCube<T>
             s.append("${cubeName}:[")
             Iterator<Map.Entry> i = coord.entrySet().iterator()
             
+            int count=0
             while (i.hasNext())
             {
                 Map.Entry<String, Object> coordinate = i.next()
+                String key = coordinate.key
+                if (stackEntryInputKeyExclusions!=null && shouldExcludeKey(key)) {
+                    continue
+                }
                 String value = coordinate.value.toString()
                 if (value.size() > stackEntryCoordinateValueMaxSize)
                 {
                     value = "${value[0..(stackEntryCoordinateValueMaxSize - 1)]}..."
                 }
-                s.append("${coordinate.key}:${value}")
-                if (i.hasNext())
-                {
+                if (count++>0) {
                     s.append(',')
                 }
+                s.append("${key}:${value}")
             }
             s.append(']')
             return s.toString()
@@ -4649,12 +4656,53 @@ class NCube<T>
     }
 
     /**
+     * Compares the supplied coordinate key against the list of exclusion patterns.
+     * @param value Coordinate Key
+     * @return boolean true, if coordinate key should be excluded; otherwise, false
+     */
+    private static boolean shouldExcludeKey(final String key)
+    {
+        if (stackEntryInputKeyExclusions==null) {
+            return false
+        }
+
+        boolean excludeKey = false
+        for(Pattern p:stackEntryInputKeyExclusions) {
+            if (p.matcher(key).matches()) {
+                excludeKey = true
+                break
+            }
+        }
+        return excludeKey
+    }
+
+    /**
      * Sets the max size for coordinate value strings in StackEntry.
      * @param maxSize int
      */
     static void setStackEntryCoordinateValueMaxSize(int maxSize)
     {
         stackEntryCoordinateValueMaxSize = maxSize
+    }
+
+    /**
+     * Sets the patterns used to exclude coordinates from StackEntry output.
+     * @param exclusions String of comma-delimited wildcard patterns to match against coordinate keys
+     */
+    static void setStackEntryInputKeyExclude(String exclusions)
+    {
+        if (hasContent(exclusions)) {
+            List<Pattern> exclusionPatterns = []
+            exclusions.trim().split(/[\s,]*,[\s,]*/).each { String wildcard ->
+                if (hasContent(wildcard)) {
+                    exclusionPatterns.add(Pattern.compile(wildcardToRegexString(wildcard.trim())))
+                }
+            }
+            stackEntryInputKeyExclusions = exclusionPatterns.empty ? null : exclusionPatterns
+        }
+        else {
+            stackEntryInputKeyExclusions = null;
+        }
     }
 
     /**

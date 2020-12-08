@@ -123,6 +123,9 @@ class NCubeConfiguration
     // Limit size of coordinate displayed in each CommandCell exception list (--> [coordinate])
     @Value('${ncube.stackEntry.coordinate.value.max:1000}') int stackEntryCoordinateValueMaxSize
 
+    // Limit coordinates displayed in each CommandCell exception list by key name (--> [coordinate])
+    @Value('${ncube.stackEntry.input.key.exclude:#{null}}') String stackEntryInputKeyExclude
+
     // If true, "at" type methods on NCubeGroovyExpression will add their coords to their input map.
     // This is legacy behavior that is probably not desirable going forward. We're allowing it for backwards compatibility.
     @Value('${ncube.legacy.grv.exp:false}') boolean legacyNCubeGroovyExpression
@@ -299,6 +302,7 @@ class NCubeConfiguration
         CdnClassLoader.generatedClassesDirectory = classesDirectory
         GroovyBase.generatedSourcesDirectory = sourcesDirectory
         NCube.stackEntryCoordinateValueMaxSize = stackEntryCoordinateValueMaxSize
+        NCube.stackEntryInputKeyExclude = stackEntryInputKeyExclude
         NCubeGroovyExpression.legacyNCubeGroovyExpression = legacyNCubeGroovyExpression
     }
 

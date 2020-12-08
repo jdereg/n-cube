@@ -67,6 +67,12 @@
       "defaultValue": "1000"
     },
     {
+      "name": "ncube.stackEntry.input.key.exclude",
+      "type": "java.lang.String",
+      "description": "Comma-delimited list of wildcard patterns used to control which coordinate keys are excluded from StackEntry output.",
+      "defaultValue": ""
+    },
+    {
       "name": "ncube.target.scheme",
       "type": "java.lang.String",
       "description": "Scheme for JsonHttpProxy connection (http or https).",
