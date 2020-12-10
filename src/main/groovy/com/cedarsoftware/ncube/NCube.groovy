@@ -1333,19 +1333,19 @@ class NCube<T>
                 }
 
                 String axisName = colAxis.name
-                Map result = isColCISTRING ? new CompactCILinkedMap<>() : new CompactLinkedMap<>()
+                Map<Object, Object> result = isColCISTRING ? new CompactCILinkedMap<Object, Object>() : new CompactLinkedMap<Object, Object>()
                 for (Column column : selectList)
                 {
-                    def colValue = isColDiscrete ? column.value : column.columnName
+                    Object colValue = isColDiscrete ? column.value : column.columnName
                     if (whereVars.containsKey(colValue))
                     {
-                        result.put(colValue, whereVars.get(colValue))
+                        result.put(colValue, (Object) whereVars.get(colValue))
                         continue
                     }
                     commandInput.put(axisName, column.valueThatMatches)
                     long colId = column.id
                     ids.add(colId)
-                    result.put(colValue, getCellById(ids, commandInput, output, defaultValue, shouldExecute))
+                    result.put(colValue, (Object)getCellById(ids, commandInput, output, defaultValue, shouldExecute))
                     ids.remove(colId)
                 }
                 matchingRows.put(key, result)
@@ -1459,8 +1459,8 @@ class NCube<T>
                 result = internalMapReduce(rowAxisName, colAxisName, where, options)
                 for (Map.Entry resultEntry : result)
                 {
-                    Map inputVal = new LinkedHashMap(input)
-                    inputVal.put(rowAxisName, resultEntry.key)
+                    Map<String, Object> inputVal = new LinkedHashMap<>(input)
+                    inputVal.put(rowAxisName, (Object) resultEntry.key)
                     ret.put(inputVal, resultEntry.value)
                 }
             }

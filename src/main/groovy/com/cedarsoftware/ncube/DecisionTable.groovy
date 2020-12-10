@@ -183,7 +183,7 @@ class DecisionTable
                     {
                         // Allow ranges to be processed in ANY order (even intermixed with other ranges)
                         String inputVarName = colMetaProps.get(highLow)
-                        Map<String, ?> spec = getRangeSpec(ranges, inputVarName)
+                        Map<String, Object> spec = getRangeSpec(ranges, inputVarName)
                         spec.put(highLow, column.value)
 
                         if (!spec.containsKey(INPUT_VALUE))
@@ -1477,12 +1477,12 @@ class DecisionTable
      * Get the range spec Map out of the 'ranges' map by input variable name.  If not there, create a new
      * empty range spec Map and place it there.
      */
-    private static Map<String, ?> getRangeSpec(Map<String, Map<String, ?>> ranges, String inputVarName)
+    private static Map<String, Object> getRangeSpec(Map<String, Map<String, ?>> ranges, String inputVarName)
     {
-        Map<String, ?> spec
+        Map<String, Object> spec
         if (ranges.containsKey(inputVarName))
         {
-            spec = (Map<String, ?>) ranges.get(inputVarName)
+            spec = (Map<String, Object>) ranges.get(inputVarName)
         }
         else
         {

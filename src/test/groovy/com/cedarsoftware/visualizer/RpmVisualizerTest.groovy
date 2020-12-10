@@ -774,7 +774,9 @@ class RpmVisualizerTest extends VisualizerBaseTest implements RpmVisualizerConst
                              product          : 'AProduct'] as CaseInsensitiveMap
         Map availableScope = getAvailableScope(utilizedScope)
 
-        String tomorrow = RpmVisualizerRelInfo.DATE_TIME_FORMAT.format(new Date() + 1)
+        Calendar cal = Calendar.getInstance()
+        cal.add(Calendar.DATE, 1)
+        String tomorrow = RpmVisualizerRelInfo.DATE_TIME_FORMAT.format(cal.getTime())
 
         //Load graph
         String startCubeName = 'rpm.class.Product'
@@ -807,7 +809,9 @@ class RpmVisualizerTest extends VisualizerBaseTest implements RpmVisualizerConst
                              product          : 'AProduct'] as CaseInsensitiveMap
         Map availableScope = getAvailableScope(utilizedScope)
 
-        String tomorrow = RpmVisualizerRelInfo.DATE_TIME_FORMAT.format(new Date() + 1)
+        Calendar cal = Calendar.getInstance()
+        cal.add(Calendar.DATE, 1)
+        String tomorrow = RpmVisualizerRelInfo.DATE_TIME_FORMAT.format(cal.getTime())
 
         //Load graph
         String startCubeName = 'rpm.class.Product'

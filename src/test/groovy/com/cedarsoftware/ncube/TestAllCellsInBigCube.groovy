@@ -221,7 +221,7 @@ class TestAllCellsInBigCube
         println 'adding columns...'
         for (Integer j = 0; j < max; j++)
         {
-            ncube.addColumn("axis", j)
+            ncube.addColumn("axis", (Comparable)j)
             if (j % 1000000 == 0)
             {
                 println j

@@ -8,6 +8,7 @@ import com.cedarsoftware.ncube.util.VersionComparator
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.CompactCILinkedMap
+import com.cedarsoftware.util.SafeSimpleDateFormat
 import com.cedarsoftware.util.io.JsonReader
 import com.cedarsoftware.util.io.JsonWriter
 import groovy.transform.CompileStatic
@@ -73,6 +74,7 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     private final ConcurrentMap<String, Pattern> wildcards = new ConcurrentHashMap<>()
     private NCubePersister nCubePersister
     private final CacheManager permCacheManager
+    SafeSimpleDateFormat safeDateFormat = new SafeSimpleDateFormat('M/d/yyyy HH:mm:ss')
 
     private final ThreadLocal<String> userId = new ThreadLocal<String>() {
         String initialValue()
@@ -797,7 +799,9 @@ class NCubeManager implements NCubeMutableClient, NCubeTestServer
     {
         Map prAppIdCoord = [(PR_PROP):PR_APP]
         Map prStatusCoord = [(PR_PROP):PR_STATUS]
-        Date startDate = new Date() - 60
+        Calendar cal = Calendar.getInstance()
+        cal.add(Calendar.DATE, -60)
+        Date startDate = cal.getTime()
         List<NCube> prCubes = getPullRequestCubes(startDate, null)
         runSystemRequest {
             for (NCube prCube : prCubes)
@@ -2550,7 +2554,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
         prCube.setCell(appId.toString(), [(PR_PROP):PR_APP])
         prCube.setCell(prInfoJson, [(PR_PROP):PR_CUBES])
         prCube.setCell(getUserId(), [(PR_PROP):PR_REQUESTER])
-        prCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_REQUEST_TIME])
+        prCube.setCell(safeDateFormat.format(new Date()), [(PR_PROP):PR_REQUEST_TIME])
         prCube.setCell(notes, [(PR_PROP):PR_ID])
 
         runSystemRequest { createCube(prCube) }
@@ -2712,7 +2716,7 @@ target axis: ${transformApp} / ${transformVersion} / ${transformCubeName}, user:
     {
         prCube.setCell(status, [(PR_PROP):PR_STATUS])
         prCube.setCell(getUserId(), [(PR_PROP):PR_MERGER])
-        prCube.setCell(new Date().format('M/d/yyyy HH:mm:ss'), [(PR_PROP):PR_MERGE_TIME])
+        prCube.setCell(safeDateFormat.format(new Date()), [(PR_PROP):PR_MERGE_TIME])
     }
 
     private NCube updatePullRequest(String prId, Closure exceptionTest, String exceptionText, String newStatus, boolean bumpVersion = false)

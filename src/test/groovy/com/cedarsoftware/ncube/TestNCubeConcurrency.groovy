@@ -128,7 +128,7 @@ class TestNCubeConcurrency extends NCubeBaseTest
     @Test
     void testCacheFlag() throws IOException
     {
-        NCube n1 = createRuntimeCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
+        NCube<Object> n1 = createRuntimeCubeFromResource(ApplicationID.testAppId, 'urlContent.json')
         def items = new IdentityHashMap()
         def set = new LinkedHashSet()
 
