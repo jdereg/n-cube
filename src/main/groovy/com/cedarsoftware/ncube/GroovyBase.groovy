@@ -191,7 +191,7 @@ abstract class GroovyBase extends UrlCommandCell
                 if (ret.gclass instanceof Class)
                 {   // Found class matching URL fileName.groovy already in JVM
                     runner = (Class)ret.gclass
-                    L2Cache.put(L2CacheKey, runnableCode)
+                    L2Cache.put(L2CacheKey, runner)
                     runnableCode = runner
                     return runner
                 }
@@ -204,10 +204,9 @@ abstract class GroovyBase extends UrlCommandCell
                 originalClassLoader = Thread.currentThread().contextClassLoader
                 Thread.currentThread().contextClassLoader = gcLoader
                 Class root = compile(gcLoader, groovySource, ctx)
-                runner = root
-                runnableCode = runner
+                runnableCode = root
                 L2Cache.put(L2CacheKey, root)
-                return runner
+                return root
             }
         }
         finally
