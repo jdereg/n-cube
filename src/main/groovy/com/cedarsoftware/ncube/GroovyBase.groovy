@@ -99,11 +99,12 @@ abstract class GroovyBase extends UrlCommandCell
 
     protected Object fetchResult(final Map<String, Object> ctx)
     {
-        if (runnableCode == null)
+        Class<NCubeGroovyExpression> runner = runnableCode;
+        if (runner == null)
         {
-            prepare(cmd ?: url, ctx)
+            runner = prepare(cmd ?: url, ctx)
         }
-        return executeInternal(ctx)
+        return executeInternal(ctx, runner)
     }
 
     protected abstract String buildGroovy(Map<String, Object> ctx, String className, String theirGroovy)
@@ -130,10 +131,9 @@ abstract class GroovyBase extends UrlCommandCell
         return map
     }
 
-    Object executeInternal(final Map<String, Object> ctx)
+    Object executeInternal(final Map<String, Object> ctx, Class<NCubeGroovyExpression> code)
     {
         NCube ncube = getNCube(ctx)
-        Class<NCubeGroovyExpression> code = runnableCode
         if (code == null)
         {
             throw new IllegalStateException("Code cleared while cell was executing, n-cube: ${ncube.name}, app: ${ncube.applicationID}, input: ${getInput(ctx).toString()}")
@@ -155,7 +155,7 @@ abstract class GroovyBase extends UrlCommandCell
      * Conditionally compile the passed in command.  If it is already compiled, this method
      * immediately returns.  Insta-check because it is just a reference check.
      */
-    void prepare(Object data, Map<String, Object> ctx)
+    Class<NCubeGroovyExpression> prepare(Object data, Map<String, Object> ctx)
     {
         TimedSynchronize.synchronize(compileLock, 250, TimeUnit.MILLISECONDS, 'Dead lock detected attempting to compile cell', 240)
         ClassLoader originalClassLoader = null
@@ -163,9 +163,10 @@ abstract class GroovyBase extends UrlCommandCell
         try
         {
             // Double-check after lock obtained
-            if (runnableCode != null)
+            Class<NCubeGroovyExpression> runner = runnableCode
+            if (runner != null)
             {   // Found in L1 (the member variable 'runnable')
-                return
+                return runner
             }
 
             if (!L2CacheKey)
@@ -180,17 +181,19 @@ abstract class GroovyBase extends UrlCommandCell
                 if (L2Cache.containsKey(L2CacheKey))
                 {
                     // Already been compiled, re-use class (different cell, but has identical source or URL as other expression).
-                    runnableCode = L2Cache.get(L2CacheKey)
-                    return
+                    runner = L2Cache.get(L2CacheKey)
+                    runnableCode = runner
+                    return runner
                 }
 
                 // Pre-compiled check (e.g. source code was pre-compiled and instrumented for coverage)
                 Map ret = getClassLoaderAndSource(ctx)
                 if (ret.gclass instanceof Class)
                 {   // Found class matching URL fileName.groovy already in JVM
-                    runnableCode = (Class)ret.gclass
+                    runner = (Class)ret.gclass
                     L2Cache.put(L2CacheKey, runnableCode)
-                    return
+                    runnableCode = runner
+                    return runner
                 }
                 
                 GroovyClassLoader gcLoader = ret.loader as GroovyClassLoader
@@ -201,8 +204,10 @@ abstract class GroovyBase extends UrlCommandCell
                 originalClassLoader = Thread.currentThread().contextClassLoader
                 Thread.currentThread().contextClassLoader = gcLoader
                 Class root = compile(gcLoader, groovySource, ctx)
-                runnableCode = root
+                runner = root
+                runnableCode = runner
                 L2Cache.put(L2CacheKey, root)
+                return runner
             }
         }
         finally
