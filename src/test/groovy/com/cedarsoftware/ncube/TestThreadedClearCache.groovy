@@ -33,7 +33,6 @@ import static org.junit.Assert.assertEquals
 @CompileStatic
 class TestThreadedClearCache extends NCubeCleanupBaseTest
 {
-    public static ApplicationID appId = new ApplicationID(ApplicationID.DEFAULT_TENANT, "clearCacheTest", ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
     public static ApplicationID usedId = new ApplicationID(ApplicationID.DEFAULT_TENANT, "usedInvalidId", ApplicationID.DEFAULT_VERSION, ApplicationID.DEFAULT_STATUS, ApplicationID.TEST_BRANCH)
 
     @Test
@@ -51,60 +50,74 @@ class TestThreadedClearCache extends NCubeCleanupBaseTest
 
     private void concurrencyTest()
     {
-        int numThreads = 8
+        int numThreads = 12
         final CountDownLatch startLatch = new CountDownLatch(1)
         final CountDownLatch finishedLatch = new CountDownLatch(numThreads)
         final AtomicBoolean failed = new AtomicBoolean(false)
         ExecutorService executor = Executors.newFixedThreadPool(numThreads)
         Random random = new SecureRandom()
+        int count = 0
+
+        Thread t = new Thread(new Runnable() {
+            void run()
+            {
+                while (true)
+                {
+                    Thread.sleep(random.nextInt(4))
+                    ncubeRuntime.clearCache(usedId, ["MathController"])
+                }
+            }
+        })
+        t.setName("PullTheRugOut")
+        t.setDaemon(true)
+        t.start()
 
         for (int taskCount = 0; taskCount < numThreads; taskCount++)
         {
             executor.execute(new Runnable() {
                 void run() {
+                    startLatch.await()
                     try
                     {
-                        startLatch.await()
-                        NCube cube = mutableClient.getCube(usedId, "MathController")
-
-                        for (int i = 0; i < 1000; i++)
+                        for (int wave = 0; wave < 100; wave++)
                         {
-                            if (random.nextInt(100) == 42)
-                            {   // 1/100th of the time, clear the cache
-                                ncubeRuntime.clearCache(usedId)
+                            println "wave ${wave} ${Thread.currentThread().name}"
+
+                            try
+                            {
+                                NCube cube = mutableClient.getCube(usedId, "MathController")
+
+                                for (int i = 0; i < 100; i++)
+                                {
+                                    Thread.sleep(random.nextInt(3))
+                                    for (int x=0; x < 20; x++)
+                                    {
+                                        def input = [:]
+                                        input.env = "a"
+                                        input.x = 5
+                                        input.method = 'square'
+
+                                        assertEquals(25, cube.getCell(input))
+
+                                        input.method = 'factorial'
+                                        assertEquals(120, cube.getCell(input))
+
+                                        input.env = "b"
+                                        input.x = 6
+                                        input.method = 'square'
+                                        assertEquals(6, cube.getCell(input))
+
+                                        input.method = 'factorial'
+                                        assertEquals(6, cube.getCell(input))
+                                    }
+                                }
                             }
-                            else
-                            {   // 99/100ths of the time, execute cells
-                                def input = [:]
-                                input.env = "a"
-                                input.x = 5
-                                input.method = 'square'
-
-                                assertEquals(25, cube.getCell(input))
-
-                                input.method = 'factorial'
-                                assertEquals(120, cube.getCell(input))
-
-                                input.env = "b"
-                                input.x = 6
-                                input.method = 'square'
-                                assertEquals(6, cube.getCell(input))
-                                input.method = 'factorial'
-                                assertEquals(6, cube.getCell(input))
+                            catch (Exception e)
+                            {
+                                e.printStackTrace()
+                                failed.set(true)
+                                throw e
                             }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Throwable t = getDeepestException(e)
-                        if (!(t.message?.contains('cleared while cell was executing')))
-                        {
-                            failed.set(true)
-                            throw e
-                        }
-                        else
-                        {
-                            println 'benign - code cleared while cell was executing'
                         }
                     }
                     finally
