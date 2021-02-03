@@ -16,7 +16,6 @@ import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.CompactCIHashMap
 import com.cedarsoftware.util.CompactCILinkedMap
-import com.cedarsoftware.util.CompactLinkedMap
 import com.cedarsoftware.util.LongHashSet
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.MathUtil
@@ -335,11 +334,11 @@ class NCube<T>
      */
     List<Advice> getAdvices(String method)
     {
-        List<Advice> result = []
         if (advices.isEmpty())
         {
-            return result
+            return Collections.emptyList()
         }
+        List<Advice> result = new ArrayList<>()
         method = "/${method}"
         for (entry in advices.entrySet())
         {
@@ -1238,7 +1237,7 @@ class NCube<T>
         Object defaultValue = options.get(MAP_REDUCE_DEFAULT_VALUE)
         Collection<Column> selectList = (Collection<Column>) options.selectList
         Collection<Column> whereColumns = (Collection<Column>) options.whereColumns
-        final TrackingMap commandInput = new TrackingMap<>(new CompactLinkedMap<>(input))
+        final TrackingMap commandInput = new TrackingMap<>(new CaseInsensitiveMap<>(input, new LinkedHashMap<>(input.size())))
         Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
         boolean shouldExecute = options.get(MAP_REDUCE_SHOULD_EXECUTE)
 
@@ -1260,8 +1259,8 @@ class NCube<T>
         trackInputKeysUsed(commandInput, output)
 
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
-        final Map matchingRows = isRowCISTRING ? new CompactCILinkedMap<>() : new CompactLinkedMap<>()
-        final Map whereVars = isColCISTRING ? new CompactCILinkedMap<>(input) : new CompactLinkedMap<>(input)
+        final Map matchingRows = isRowCISTRING ? new CaseInsensitiveMap<>() : new LinkedHashMap<>()
+        final Map whereVars = isColCISTRING ? new CaseInsensitiveMap<>(input, new LinkedHashMap<>(input.size())) : new LinkedHashMap<>(input)
 
         Collection<Column> rowColumns
         Object rowAxisValue = input.get(rowAxisName)
@@ -1333,7 +1332,7 @@ class NCube<T>
                 }
 
                 String axisName = colAxis.name
-                Map<Object, Object> result = isColCISTRING ? new CompactCILinkedMap<Object, Object>() : new CompactLinkedMap<Object, Object>()
+                Map<Object, Object> result = isColCISTRING ? new CaseInsensitiveMap<>() : new LinkedHashMap<>()
                 for (Column column : selectList)
                 {
                     Object colValue = isColDiscrete ? column.value : column.columnName
@@ -1674,7 +1673,7 @@ class NCube<T>
      */
     private Map<String, List<Column>> selectColumns(Map<String, Object> input, Map output, boolean multiRule = true)
     {
-        Map<String, List<Column>> bindings = new CompactCIHashMap<>()
+        Map<String, List<Column>> bindings = new HashMap<>()
         for (entry in axisList.entrySet())
         {
             final String axisName = entry.key
@@ -2081,13 +2080,13 @@ class NCube<T>
     {
         Map safeCoord
 
-        if (coordinate instanceof TrackingMap || coordinate instanceof CompactCILinkedMap || coordinate instanceof CompactCIHashMap || coordinate instanceof CaseInsensitiveMap)
+        if (coordinate instanceof TrackingMap || coordinate instanceof CaseInsensitiveMap || coordinate instanceof CompactCILinkedMap || coordinate instanceof CompactCIHashMap)
         {
             safeCoord = coordinate
         }
         else
         {
-            safeCoord = (coordinate == null) ? new CompactCILinkedMap<>() : new CompactCILinkedMap<>(coordinate)
+            safeCoord = (coordinate == null) ? new CaseInsensitiveMap<>() : new CaseInsensitiveMap<>(coordinate, new LinkedHashMap<>(coordinate.size()))
         }
 
         Map<String, List<Column>> bindings = selectColumns(safeCoord, output, false)
@@ -2152,22 +2151,22 @@ class NCube<T>
      * @param coordinate Map input coordinate
      * @return Map new input coordinate (if needed) or the original Map passed in.
      */
-    private Map wrapCoordinate(final Map coordinate)
+    private static Map wrapCoordinate(final Map coordinate)
     {
         if (coordinate instanceof TrackingMap)
         {
             TrackingMap trackingMap = (TrackingMap) coordinate
             Map wrapped = trackingMap.getWrappedMap()
-            if (wrapped instanceof CompactCIHashMap || wrapped instanceof CompactCILinkedMap || wrapped instanceof CaseInsensitiveMap)
+            if (wrapped instanceof CaseInsensitiveMap || wrapped instanceof CompactCIHashMap || wrapped instanceof CompactCILinkedMap)
             {   // Already wrapped (called from 'inside' - a GroovyExpression or GroovyTemplate using at() ,go(), or use()
                 return coordinate
             }
-            return new TrackingMap(new CompactCILinkedMap<>(trackingMap.getWrappedMap()))
+            return new TrackingMap(new CaseInsensitiveMap<>(wrapped, new LinkedHashMap<>(wrapped.size())))
         }
 
         // 1. Ensure the input coordinate Map is protected from overwrites.
         // 2. Ensure the input coordinate Map is case-insensitive.
-        return new TrackingMap(new CompactCILinkedMap<>(coordinate))
+        return new TrackingMap(new CaseInsensitiveMap<>(coordinate, new LinkedHashMap<>(coordinate.size())))
     }
 
     /**

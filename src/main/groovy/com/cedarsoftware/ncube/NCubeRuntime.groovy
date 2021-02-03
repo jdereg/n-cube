@@ -6,6 +6,7 @@ import com.cedarsoftware.ncube.util.GCacheManager
 import com.cedarsoftware.ncube.util.LocalFileCache
 import com.cedarsoftware.util.ArrayUtilities
 import com.cedarsoftware.util.CallableBean
+import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.GuavaCache
@@ -818,7 +819,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
             throw new IllegalStateException("Missing ${SYS_BOOTSTRAP} cube in the 0.0.0 version for the app: ${app}")
         }
 
-        Map copy = new CompactCILinkedMap(coord)
+        Map copy = new CaseInsensitiveMap(coord, new LinkedHashMap<>(coord.size()))
         ApplicationID bootAppId = (ApplicationID) bootCube.getCell(copy, [:])
         String version = bootAppId.version
         String status = bootAppId.status

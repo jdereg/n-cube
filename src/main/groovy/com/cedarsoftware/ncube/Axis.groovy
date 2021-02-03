@@ -4,6 +4,7 @@ import com.cedarsoftware.ncube.exception.AxisOverlapException
 import com.cedarsoftware.ncube.exception.CoordinateNotFoundException
 import com.cedarsoftware.ncube.proximity.LatLon
 import com.cedarsoftware.ncube.proximity.Point3D
+import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CompactCIHashMap
 import com.cedarsoftware.util.CompactCILinkedMap
 import com.cedarsoftware.util.MapUtilities
@@ -213,7 +214,7 @@ class Axis
     protected updateMetaProperties(Map<String, Object> newMetaProperties, String cubeName, Closure dropOrphans)
     {
         // Backup meta-properties
-        Map<Long, Map> metaMap = new CompactCILinkedMap<>()
+        Map<Long, Map> metaMap = new CaseInsensitiveMap<>(columns.size())
         columns.each { Column column ->
             metaMap.put(column.id, column.metaProperties)
         }
@@ -225,7 +226,7 @@ class Axis
             reloadReferenceAxis(cubeName, newMetaProperties)
         }
 
-        Set<Long> colIds = new LinkedHashSet()
+        Set<Long> colIds = new LinkedHashSet(columns.size())
         columns.each { Column column ->
             colIds.add(column.id)
         }

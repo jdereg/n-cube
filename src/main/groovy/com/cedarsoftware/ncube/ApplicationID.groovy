@@ -1,6 +1,5 @@
 package com.cedarsoftware.ncube
 
-
 import groovy.transform.CompileStatic
 
 import java.util.regex.Matcher
@@ -96,7 +95,7 @@ class ApplicationID
     String cacheKey(String name = '')
     {
         name = name ?: ''
-        return "${toString()}${name}".toLowerCase()
+        return toString().concat(name).toLowerCase()
     }
 
     /**
@@ -151,7 +150,17 @@ class ApplicationID
 
     String toString()
     {
-        return "${tenant}/${app}/${version}/${status}/${branch}/"
+        StringBuilder builder = new StringBuilder(tenant)
+        builder.append('/')
+        builder.append(app)
+        builder.append('/')
+        builder.append(version)
+        builder.append('/')
+        builder.append(status)
+        builder.append('/')
+        builder.append(branch)
+        builder.append('/')
+        return builder.toString()
     }
 
     boolean isSnapshot()
