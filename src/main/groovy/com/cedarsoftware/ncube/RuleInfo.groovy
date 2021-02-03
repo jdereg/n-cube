@@ -204,18 +204,18 @@ class RuleInfo extends CompactCILinkedMap<String, Object>
             MapEntry axisBinding = entry.value as MapEntry
             String axisName = axisBinding.key
             
-            Map<String, Set<Object>> axisMap = unBoundAxesMap[cubeName]
+            Map<String, Set<Object>> axisMap = unBoundAxesMap.get(cubeName)
             if (axisMap == null)
             {
                 axisMap = new CompactCILinkedMap<>()
-                unBoundAxesMap[cubeName] = axisMap
+                unBoundAxesMap.put(cubeName, axisMap)
             }
 
-            Set<Object> values = axisMap[axisName]
+            Set<Object> values = axisMap.get(axisName)
             if (values == null)
             {
                 values = new LinkedHashSet<>()
-                axisMap[axisName] = values
+                axisMap.put(axisName, values)
             }
             values << axisBinding.value
         }

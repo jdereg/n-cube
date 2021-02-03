@@ -194,7 +194,7 @@ class DecisionTable
                             {
                                 // Multiple values supplied to range input (operator case)
                                 Iterable i = (Iterable) copyInput.get(inputVarName)
-                                Iterable<Comparable> inputs = new LinkedHashSet<>()
+                                Iterable<Comparable> inputs = new LinkedHashSet<>(i.size())
                                 if (i.size() > 0)
                                 {
                                     String op = _OR_
@@ -241,7 +241,7 @@ class DecisionTable
                     if (val instanceof Iterable)
                     {
                         Iterable i = (Iterable) val
-                        Iterable<Comparable> inputs = new LinkedHashSet<>()
+                        Iterable<Comparable> inputs = new LinkedHashSet<>(i.size())
                         for (Object value : i)
                         {
                             inputs.add(convertToString(value))
@@ -1204,7 +1204,7 @@ class DecisionTable
             Map<String, Range> rowRanges = getRowRanges(coord, rowId, priority, internedRanges, primitives)
             boolean done = false
             Set<Long> ids = new HashSet<>()
-            Map<String, ?> coordinate = new HashMap<>()
+            Map<String, ?> coordinate = new HashMap<>(axisNames.length)
 
             // Loop written this way because do-while loops are not in Groovy until version 3
             while (!done)

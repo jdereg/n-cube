@@ -1,4 +1,7 @@
 ### Revision History
+* 4.11.0
+  * Minor performance enhancements.
+  * Bug fix: In rare cases, when the internal `NCube` cache (within `NCubeRuntime`) was cleared and code was executing within a cell, an exception could occur. 
 * 4.10.0
   * Added support for filtering of `StackEntry` coordinates based on key name, controlled by `ncube.stackEntry.input.key.exclude`
   * Forced `JsonFormatter` to use `UTF-8` encoding when writing to files

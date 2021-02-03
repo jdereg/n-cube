@@ -80,7 +80,7 @@ class TestThreadedClearCache extends NCubeCleanupBaseTest
                     try
                     {
                         // NOTE: Change the wave count to 100 to ensure that now "cell cleared while code executing" errors occur.
-                        for (int wave = 0; wave < 1; wave++)
+                        for (int wave = 0; wave < 3; wave++)
                         {
                             println "wave ${wave} ${Thread.currentThread().name}"
 

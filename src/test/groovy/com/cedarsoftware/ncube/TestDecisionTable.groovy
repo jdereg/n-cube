@@ -31,7 +31,7 @@ import static org.junit.Assert.fail
 @CompileStatic
 class TestDecisionTable extends NCubeBaseTest
 {
-    @Ignore
+//    @Ignore
     @Test
     void testGetDecision()
     {
@@ -51,7 +51,7 @@ class TestDecisionTable extends NCubeBaseTest
         }
     }
 
-    @Ignore
+//    @Ignore
     @Test
     void testStuff()
     {

@@ -16,6 +16,7 @@ import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.CompactCIHashMap
 import com.cedarsoftware.util.CompactCILinkedMap
+import com.cedarsoftware.util.CompactMap
 import com.cedarsoftware.util.LongHashSet
 import com.cedarsoftware.util.MapUtilities
 import com.cedarsoftware.util.MathUtil
@@ -111,7 +112,7 @@ class NCube<T>
     private final Map<Long, Axis> idToAxis = new Long2ObjectOpenHashMap<>()
     protected final Map<Set<Long>, T> cells = new CellMap<T>()
     private T defaultCellValue
-    private final Map<String, Advice> advices = [:]
+    private final Map<String, Advice> advices = new CompactMap<>()
     private Map<String, Object> metaProps = new CompactCILinkedMap<>()
     private static ConcurrentMap primitives = new ConcurrentHashMap()
     //  Sets up the defaultApplicationId for cubes loaded in from disk.
@@ -1273,7 +1274,7 @@ class NCube<T>
             }
             else
             {
-                set = new HashSet()
+                set = new HashSet(4)
                 set.add(rowAxisValue)
             }
             rowColumns = selectColumns(rowAxis, set)
@@ -2086,7 +2087,7 @@ class NCube<T>
         }
         else
         {
-            safeCoord = (coordinate == null) ? new CaseInsensitiveMap<>() : new CaseInsensitiveMap<>(coordinate, new LinkedHashMap<>(coordinate.size()))
+            safeCoord = (coordinate == null) ? new CaseInsensitiveMap<>(axisList.size()) : new CaseInsensitiveMap<>(coordinate, new LinkedHashMap<>(coordinate.size()))
         }
 
         Map<String, List<Column>> bindings = selectColumns(safeCoord, output, false)
