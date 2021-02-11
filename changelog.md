@@ -1,4 +1,6 @@
 ### Revision History
+* 4.12.0
+  * Minor performance enhancements. NCube.mapReduce() no longer tracks input keys on each row iteration.
 * 4.11.0
   * Minor performance enhancements.
   * Bug fix: In rare cases, when the internal `NCube` cache (within `NCubeRuntime`) was cleared and code was executing within a cell, an exception could occur. 
