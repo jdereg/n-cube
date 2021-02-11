@@ -12,7 +12,7 @@ plugins {
 
 group = 'com.cedarsoftware'
 description = 'n-cube'
-version = '4.11.0'
+version = '4.12.0-SNAPSHOT'
 
 // Example builds
 //gradle clean build 
@@ -65,7 +65,7 @@ repositories {
 
 dependencies {
     api 'org.codehaus.groovy:groovy-all:2.4.21'
-    api 'com.cedarsoftware:java-util:1.63.0'
+    api 'com.cedarsoftware:java-util:1.64.0'
     api 'com.cedarsoftware:json-io:4.12.0'
     api 'com.google.guava:guava:30.1-jre'
     api 'it.unimi.dsi:fastutil:8.4.4'

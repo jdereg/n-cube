@@ -1,5 +1,6 @@
 package com.cedarsoftware.ncube
 
+import com.cedarsoftware.util.CaseInsensitiveMap
 import com.cedarsoftware.util.CaseInsensitiveSet
 import com.cedarsoftware.util.CompactCILinkedMap
 import groovy.transform.CompileStatic
@@ -24,7 +25,7 @@ import groovy.transform.CompileStatic
  *         limitations under the License.
  */
 @CompileStatic
-class RuleInfo extends CompactCILinkedMap<String, Object>
+class RuleInfo extends CaseInsensitiveMap<String, Object>
 {
     // Convert Enums to String constants for performance gain
     public static final String RULES_EXECUTED = 'RULES_EXECUTED'
@@ -164,7 +165,7 @@ class RuleInfo extends CompactCILinkedMap<String, Object>
         Set keysUsed = (Set)get(INPUT_KEYS_USED)
         if (keysUsed == null)
         {
-            keysUsed = new CaseInsensitiveSet()
+            keysUsed = new CaseInsensitiveSet(Collections.emptyList(), new CaseInsensitiveMap(Collections.emptyMap(), new HashMap<>()))
             put(INPUT_KEYS_USED, keysUsed)
         }
         return keysUsed

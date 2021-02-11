@@ -43,6 +43,8 @@ import java.util.zip.GZIPInputStream
 
 import static com.cedarsoftware.ncube.NCubeAppContext.ncubeRuntime
 import static com.cedarsoftware.ncube.NCubeConstants.DECISION_TABLE
+import static com.cedarsoftware.ncube.NCubeConstants.DONT_TRACK_INPUT_KEYS_USED
+import static com.cedarsoftware.ncube.NCubeConstants.NO_STACKFRAME
 import static com.cedarsoftware.util.Converter.convertToInteger
 import static com.cedarsoftware.util.Converter.convertToLong
 import static com.cedarsoftware.util.EncryptionUtilities.SHA1Digest
@@ -954,18 +956,21 @@ class NCube<T>
      * coordinate has at least an entry for each axis (entry not needed for axes with
      * default column or rule axes).
      */
-    T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, boolean shouldExecute = true)
+    T getCellById(final Set<Long> colIds, final Map coordinate, final Map output, Object defaultValue = null, boolean shouldExecute = true, Map<String, Object> options = null)
     {
-        // First, get a ThreadLocal copy of an NCube execution stack
-        Deque<StackEntry> stackFrame = (Deque<StackEntry>) executionStack.get()
         boolean pushed = false
+        Deque<StackEntry> stackFrame = null
         try
         {
-            // Form fully qualified cell lookup (NCube name + coordinate)
-            // Add fully qualified coordinate to ThreadLocal execution stack
-            final StackEntry entry = new StackEntry(name, coordinate)
-            stackFrame.addFirst(entry)
-            pushed = true
+            if (options == null || !options.get(NO_STACKFRAME))
+            {
+                stackFrame = (Deque<StackEntry>) executionStack.get()
+                // Form fully qualified cell lookup (NCube name + coordinate)
+                // Add fully qualified coordinate to ThreadLocal execution stack
+                final StackEntry entry = new StackEntry(name, coordinate)
+                stackFrame.addFirst(entry)
+                pushed = true
+            }
             T cellValue
 
 // Handy trick for debugging a failed binding (like space after an input)
@@ -1021,7 +1026,10 @@ class NCube<T>
             }
             else
             {
-                trackInputKeysUsed(coordinate, output)
+                if (options == null || !options.get(NCubeConstants.DONT_TRACK_INPUT_KEYS_USED))
+                {
+                    trackInputKeysUsed(coordinate, output)
+                }
             }
             return cellValue
         }
@@ -1029,7 +1037,7 @@ class NCube<T>
         {	// Unwind stack: always remove if stacked pushed, even if Exception has been thrown
             if (pushed)
             {
-                stackFrame.removeFirst()
+                stackFrame?.removeFirst()
             }
         }
     }
@@ -1238,9 +1246,10 @@ class NCube<T>
         Object defaultValue = options.get(MAP_REDUCE_DEFAULT_VALUE)
         Collection<Column> selectList = (Collection<Column>) options.selectList
         Collection<Column> whereColumns = (Collection<Column>) options.whereColumns
-        final TrackingMap commandInput = new TrackingMap<>(new CaseInsensitiveMap<>(input, new LinkedHashMap<>(input.size())))
+        final TrackingMap<String, Object> commandInput = new TrackingMap<>(new CaseInsensitiveMap<>(input, new LinkedHashMap<>(input.size())))
         Set<Long> boundColumns = bindAdditionalColumns(rowAxisName, colAxisName, commandInput)
         boolean shouldExecute = options.get(MAP_REDUCE_SHOULD_EXECUTE)
+        boolean isDecisionTable = metaProps.get(DECISION_TABLE)
 
         Axis rowAxis = getAxis(rowAxisName)
         Axis colAxis = getAxis(colAxisName)
@@ -1249,15 +1258,23 @@ class NCube<T>
         boolean isRowCISTRING = rowAxis.valueType == AxisValueType.CISTRING
         boolean isColCISTRING = colAxis.valueType == AxisValueType.CISTRING
 
-        if (rowAxis.type != AxisType.RULE)
+        if (rowAxis.type != AxisType.RULE && !isDecisionTable)
         {
             commandInput.informAdditionalUsage(Arrays.asList(rowAxisName))
         }
-        if (colAxis.type != AxisType.RULE)
+        if (colAxis.type != AxisType.RULE && !isDecisionTable)
         {
             commandInput.informAdditionalUsage(Arrays.asList(colAxisName))
         }
         trackInputKeysUsed(commandInput, output)
+
+        if (isDecisionTable)
+        {   // Only add input keys from Decision Table input columns [that are within the input keySet()]
+            Set<String> track = new HashSet<>()
+            track.addAll(whereColumns.collect { it.columnName })
+            track.retainAll(commandInput.keySet())
+            getRuleInfo(output).addInputKeysUsed(track)
+        }
 
         final Set<Long> ids = new LinkedHashSet<>(boundColumns)
         final Map matchingRows = isRowCISTRING ? new CaseInsensitiveMap<>() : new LinkedHashMap<>()
@@ -1288,6 +1305,9 @@ class NCube<T>
             rowColumns = rowAxis.columns
         }
 
+        Map<String, Object> cellOptions = new HashMap<>()
+        cellOptions.put(DONT_TRACK_INPUT_KEYS_USED, true)
+        cellOptions.put(NO_STACKFRAME, true)
         boolean isOneParamWhere = where.maximumNumberOfParameters == 1
         for (Column row : rowColumns)
         {
@@ -1304,7 +1324,7 @@ class NCube<T>
                 def val
                 try
                 {
-                    val = getCellById(ids, commandInput, output, defaultValue, shouldExecute)
+                    val = getCellById(ids, commandInput, output, defaultValue, shouldExecute, cellOptions)
                 }
                 catch (Exception e)
                 {
@@ -1475,9 +1495,6 @@ class NCube<T>
 
     private Collection<Column> selectColumns(Axis axis, Set<String> valuesMatchingColumns)
     {
-        Collection<Column> columns = []
-        Set<String> missingColumnNames = []
-
         boolean isDiscrete = axis.type == AxisType.DISCRETE
 
         if (valuesMatchingColumns == null || valuesMatchingColumns.empty)
@@ -1488,18 +1505,19 @@ class NCube<T>
             }
             else
             {
-                for (Column column : axis.columns)
+                List<Column> cols = axis.columns
+                for (Column column : cols)
                 {
                     if (isEmpty(column.columnName))
                     {
                         throw new IllegalStateException("Non-discrete axis columns must have a meta-property 'name' set in order to use them for mapReduce().  Cube: ${name}, Axis: ${axis.name}")
                     }
-                    columns.add(column)
                 }
-                return columns
+                return cols
             }
         }
 
+        Collection<Column> columns = new ArrayList<>(axis.size())
         if (isDiscrete)
         {
             for (String value : valuesMatchingColumns)
@@ -1508,10 +1526,6 @@ class NCube<T>
                 if (col)
                 {
                     columns.add(col)
-                }
-                else
-                {
-                    missingColumnNames.add(value)
                 }
             }
         }
@@ -1528,15 +1542,7 @@ class NCube<T>
                 {
                     columns.add(col)
                 }
-                else
-                {
-                    missingColumnNames.add(value)
-                }
             }
-        }
-        if (missingColumnNames)
-        {
-            log.warn("Column(s) do not exist on Cube: {}, Axis: {}, Columns: {}", name, axis.name, missingColumnNames)
         }
         return columns
     }
@@ -1591,10 +1597,10 @@ class NCube<T>
      */
     static RuleInfo getRuleInfo(Map output)
     {
-        RuleInfo ruleInfo
-        if (output.containsKey(RULE_EXEC_INFO))
-        {   // RULE_EXEC_INFO Map already exists, must be a recursive call.
-            return (RuleInfo) output.get(RULE_EXEC_INFO)
+        RuleInfo ruleInfo = (RuleInfo) output.get(RULE_EXEC_INFO)
+        if (ruleInfo != null)
+        {
+            return ruleInfo
         }
         // RULE_EXEC_INFO Map does not exist, create it.
         ruleInfo = new RuleInfo()
@@ -2162,12 +2168,12 @@ class NCube<T>
             {   // Already wrapped (called from 'inside' - a GroovyExpression or GroovyTemplate using at() ,go(), or use()
                 return coordinate
             }
-            return new TrackingMap(new CaseInsensitiveMap<>(wrapped, new LinkedHashMap<>(wrapped.size())))
+            return new TrackingMap(new CaseInsensitiveMap<>(wrapped, new HashMap<>(wrapped.size())))
         }
 
         // 1. Ensure the input coordinate Map is protected from overwrites.
         // 2. Ensure the input coordinate Map is case-insensitive.
-        return new TrackingMap(new CaseInsensitiveMap<>(coordinate, new LinkedHashMap<>(coordinate.size())))
+        return new TrackingMap(new CaseInsensitiveMap<>(coordinate, new HashMap<>(coordinate.size())))
     }
 
     /**
@@ -4004,7 +4010,7 @@ class NCube<T>
             }
             else if (value.class.array)
             {
-                int len = Array.getLength(value)
+                final int len = Array.getLength(value)
 
                 md.update(ARRAY_BYTES)
                 md.update(String.valueOf(len).bytes)

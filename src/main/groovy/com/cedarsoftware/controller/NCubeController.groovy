@@ -1214,7 +1214,7 @@ class NCubeController implements NCubeConstants
             throw new IllegalArgumentException("Could not paste cells, cube: ${cubeName} not found for app: ${appId}")
         }
 
-        int len = clipboard.length
+        final int len = clipboard.length
         for (int i=0; i < len; i++)
         {
             Object[] cell = clipboard[i] as Object[]

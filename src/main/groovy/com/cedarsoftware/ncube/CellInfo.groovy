@@ -323,7 +323,7 @@ class CellInfo
             RangeSet set = (RangeSet)cell
             isUrl = false
             StringBuilder builder = new StringBuilder()
-            int len = set.size()
+            final int len = set.size()
             for (int i = 0; i < len; i++)
             {
                 if (i != 0)

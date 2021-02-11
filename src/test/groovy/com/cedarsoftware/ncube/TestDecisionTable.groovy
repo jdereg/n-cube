@@ -3,6 +3,7 @@ package com.cedarsoftware.ncube
 import groovy.transform.CompileStatic
 import org.junit.Ignore
 import org.junit.Test
+import org.springframework.util.StopWatch
 
 import java.security.SecureRandom
 
@@ -35,6 +36,7 @@ class TestDecisionTable extends NCubeBaseTest
     @Test
     void testGetDecision()
     {
+        StopWatch watch = new StopWatch()
         Map input = [profitCenter: '2967',
                      producerCode: '50',
                      date: new Date(),
@@ -42,13 +44,13 @@ class TestDecisionTable extends NCubeBaseTest
         NCube ncube = createRuntimeCubeFromResource(ApplicationID.testAppId, 'decision-tables/commission.json')
         DecisionTable decisionTable = new DecisionTable(ncube)
 
-        for (int i=0; i < 1000; i++)
+        watch.start()
+        for (int i=0; i < 10000; i++)
         {
-            long start = System.nanoTime()
-            println decisionTable.getDecision(input)
-            long end = System.nanoTime()
-            println "took ${(end - start) / 1000000} ms"
+            decisionTable.getDecision(input)
         }
+        watch.stop()
+        println "${watch.getTotalTimeMillis()} ms"
     }
 
     @Ignore

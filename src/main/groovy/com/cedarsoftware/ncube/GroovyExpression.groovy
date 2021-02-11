@@ -209,7 +209,7 @@ class ${className} extends ${expClassName}
         }
 
         // If 'around' Advice has been added to n-cube, invoke it after calling Groovy expression's run() method
-        int len = advices.size()
+        final int len = advices.size()
         if (len > 0)
         {
             for (int i = len - 1i; i >= 0i; i--)

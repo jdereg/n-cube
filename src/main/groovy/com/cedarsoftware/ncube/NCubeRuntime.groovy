@@ -1181,7 +1181,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
         // Convert from LinkedList to direct access list
         List<?> stacks = new ArrayList<>(stackTraces)
         StringBuilder s = new StringBuilder()
-        int len = stacks.size()
+        final int len = stacks.size()
 
         for (int i=0; i < len; i++)
         {
@@ -1207,7 +1207,7 @@ class NCubeRuntime implements NCubeMutableClient, NCubeRuntimeClient, NCubeTestC
     private static String trace(StackTraceElement[] stackTrace, StackTraceElement[] nextStrackTrace)
     {
         StringBuilder s = new StringBuilder()
-        int len = stackTrace.length
+        final int len = stackTrace.length
         for (int i=0; i < len; i++)
         {
             s.append('&nbsp;&nbsp;')

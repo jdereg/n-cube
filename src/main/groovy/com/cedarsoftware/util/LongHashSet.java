@@ -121,8 +121,8 @@ public class LongHashSet implements Set<Long>
             return new Object[]{};
         }
 
-        long[] local = elems;
-        int len = local.length;
+        final long[] local = elems;
+        final int len = local.length;
         Object[] array = new Object[len];
 
         for (int i=0; i < len; i++)
@@ -168,8 +168,8 @@ public class LongHashSet implements Set<Long>
             return false;
         }
 
-        long[] local = elems;
-        int len = local.length;
+        final long[] local = elems;
+        final int len = local.length;
 
         for (int i=0; i < len; i++)
         {
@@ -278,7 +278,7 @@ public class LongHashSet implements Set<Long>
             return other.equals(this);
         }
 
-        int len = size();
+        final int len = size();
         LongHashSet that = (LongHashSet) other;
         if (that.size() != len)
         {
@@ -300,12 +300,12 @@ public class LongHashSet implements Set<Long>
     public int hashCode()
     {
         // This must be an order insensitive hash
+        final int len = size();
         int h = 0;
         long[] local = elems;
-        int len = size();
         for (int i=0; i < len; i++)
         {
-            long value = local[i];
+            final long value = local[i];
             h += (int)(value ^ (value >>> 32));
         }
         return h;

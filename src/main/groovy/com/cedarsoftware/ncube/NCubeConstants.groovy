@@ -122,6 +122,8 @@ interface NCubeConstants
     final String IGNORE = 'ignore'
     final String REQUIRED = 'required'
     final String DECISION_TABLE = 'decision_table'
+    final String DONT_TRACK_INPUT_KEYS_USED = 'NO_TRACK'
+    final String NO_STACKFRAME = 'NO_STACK'
 
     final String _OR_ = "_or_"
     final String _AND_ = "_and_"

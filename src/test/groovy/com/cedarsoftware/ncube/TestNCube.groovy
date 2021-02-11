@@ -2218,7 +2218,9 @@ class TestNCube extends NCubeBaseTest
         }
         catch (RuntimeException e)
         {
-            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a,axis2:${size1000}...")
+            String msg = e.message.toLowerCase()
+            assertContainsIgnoreCase(msg,"error occurred", "stackentrytest", "cell:stackentrytest", "axis1:a")
+            assertContainsIgnoreCase(msg, "error occurred", "stackentrytest", "cell:stackentrytest", "axis2:${size1000}")
         }
 
         //Test coordinate value that does not get abbreviated - size1000 (same length as max length)
@@ -2230,7 +2232,9 @@ class TestNCube extends NCubeBaseTest
         }
         catch (RuntimeException e)
         {
-            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a,axis2:${size1000}")
+            String msg = e.message.toLowerCase()
+            assertContainsIgnoreCase(msg, "error occurred", "stackentrytest", "cell:stackentrytest", "axis1:a")
+            assertContainsIgnoreCase(msg, "error occurred", "stackentrytest", "cell:stackentrytest", "axis2:${size1000}")
         }
 
         //Test coordinate value that does not get abbreviated - size999
@@ -2242,7 +2246,9 @@ class TestNCube extends NCubeBaseTest
         }
         catch (RuntimeException e)
         {
-            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a,axis2:${size999}")
+            String msg = e.message.toLowerCase()
+            assertContainsIgnoreCase(msg, "error occurred", "stackentrytest", "cell:stackentrytest", "axis1:a")
+            assertContainsIgnoreCase(msg, "error occurred", "stackentrytest", "cell:stackentrytest", "axis2:${size999}")
         }
 
         //Test coordinate value that does not get abbreviated - size1
@@ -2254,7 +2260,9 @@ class TestNCube extends NCubeBaseTest
         }
         catch (RuntimeException e)
         {
-            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a,axis2:${size1}")
+            String msg = e.message.toLowerCase()
+            assertContainsIgnoreCase(msg, "error occurred", "stackentrytest", "cell:stackentrytest", "axis1:a")
+            assertContainsIgnoreCase(msg, "error occurred", "stackentrytest", "cell:stackentrytest", "axis2:${size1}")
         }
 
         //Test coordinate value that does not get abbreviated - size0
@@ -2266,7 +2274,9 @@ class TestNCube extends NCubeBaseTest
         }
         catch (RuntimeException e)
         {
-            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a,axis2:")
+            String msg = e.message.toLowerCase()
+            assertContainsIgnoreCase(msg, "error occurred", "stackentrytest", "cell:stackentrytest", "axis1:a")
+            assertContainsIgnoreCase(msg, "error occurred", "stackentrytest", "cell:stackentrytest", "axis2:")
         }
 
         //Test coordinate value that does not get abbreviated - column default
@@ -2278,7 +2288,8 @@ class TestNCube extends NCubeBaseTest
         }
         catch (RuntimeException e)
         {
-            assert e.message.toLowerCase().contains("error occurred in cube: stackentrytest\n-> cell:stackentrytest:[axis1:a]")
+            String msg = e.message.toLowerCase()
+            assertContainsIgnoreCase(msg, "error occurred", "stackentrytest", "cell:stackentrytest", "[axis1:a]")
         }
     }
 
@@ -2365,13 +2376,16 @@ class TestNCube extends NCubeBaseTest
         cube.setDefaultCellValue(new GroovyExpression("throw new RuntimeException('test failed')"))
 
         // exclusions at the end
-        testOutputMessage(cube, [ one: "one", two: "two", oneService: "oneSvc", twoService: "twoSvc"], '[one:one,two:two]')
+        testOutputMessage(cube, [ one: "one", two: "two", oneService: "oneSvc", twoService: "twoSvc"], 'one:one')
+        testOutputMessage(cube, [ one: "one", two: "two", oneService: "oneSvc", twoService: "twoSvc"], 'two:two')
 
         // exclusions in the front
-        testOutputMessage(cube, [ oneService: "oneSvc", twoService: "twoSvc", one: "one", two: "two"], '[one:one,two:two]')
+        testOutputMessage(cube, [ oneService: "oneSvc", twoService: "twoSvc", one: "one", two: "two"], 'one:one')
+        testOutputMessage(cube, [ oneService: "oneSvc", twoService: "twoSvc", one: "one", two: "two"], 'two:two')
 
         // exclusions in the middle
-        testOutputMessage(cube, [ one: "one", oneService: "oneSvc", twoService: "twoSvc", two: "two"], '[one:one,two:two]')
+        testOutputMessage(cube, [ one: "one", oneService: "oneSvc", twoService: "twoSvc", two: "two"], 'one:one')
+        testOutputMessage(cube, [ one: "one", oneService: "oneSvc", twoService: "twoSvc", two: "two"], 'two:two')
 
         // single include, exclusions at end
         testOutputMessage(cube, [ one: "one", oneService: "oneSvc", twoService: "twoSvc"], '[one:one]')

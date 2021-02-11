@@ -13,7 +13,6 @@ import it.unimi.dsi.fastutil.ints.IntSet
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 
 import static com.cedarsoftware.ncube.NCubeConstants.*
-import static com.cedarsoftware.util.Converter.convert
 import static com.cedarsoftware.util.Converter.convertToBigDecimal
 import static com.cedarsoftware.util.Converter.convertToBoolean
 import static com.cedarsoftware.util.Converter.convertToDate
@@ -50,7 +49,7 @@ class DecisionTable
     private NCube decisionCube
     private String fieldAxisName = null
     private String rowAxisName = null
-    private Set<String> inputColumns = getLinkedHashSet()
+    private Set<String> inputColumns = getLinkedHashSet()       // All input columns (ranges map as one here - the 'named' input on the inbound map)
     private Set<String> inputKeys = getLinkedHashSet()
     private Set<String> outputColumns = getLinkedHashSet(4)
     private Set<String> rangeColumns = getLinkedHashSet(4)
@@ -59,7 +58,7 @@ class DecisionTable
     private Map<String, Range> inputVarNameToRangeColumns = new CaseInsensitiveMap<>(Collections.emptyMap(), new HashMap<>(4))
     private static final String BANG = '!'
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings()
-    private static List operators = [_OR_, _AND_, _NOR_, _NAND_, _NOT_]
+    private static List<String> operators = [_OR_, _AND_, _NOR_, _NAND_, _NOT_]
     
     protected DecisionTable(NCube decisionCube)
     {
@@ -91,12 +90,12 @@ class DecisionTable
         String dataType
     }
 
-    protected Set<String> getLinkedHashSet(Set source)
+    protected static Set<String> getLinkedHashSet(Set source)
     {
         return new CaseInsensitiveSet<String>(source, new CaseInsensitiveMap(Collections.emptyMap(), new LinkedHashMap<>(source.size())))
     }
 
-    protected Set<String> getLinkedHashSet(int initialSize = 16)
+    protected static Set<String> getLinkedHashSet(int initialSize = 16)
     {
         return new CaseInsensitiveSet<String>(Collections.emptySet(), new CaseInsensitiveMap(Collections.emptyMap(), new LinkedHashMap<>(initialSize)))
     }
@@ -1273,7 +1272,7 @@ class DecisionTable
      */
     private static boolean checkRowRangesForOverlap(BlowoutCell cell, String[] indexToRangeName, Map<String, Range> rowRanges, Map<List<Range>, List<Range>> internedLists)
     {
-        int len = cell.ranges.size()
+        final int len = cell.ranges.size()
         List existingRanges = cell.ranges
 
         for (int i=0; i < len; i++)

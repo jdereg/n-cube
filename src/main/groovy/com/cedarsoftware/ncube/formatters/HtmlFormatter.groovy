@@ -680,7 +680,7 @@ th.ncube-dead:hover { background: #76A7FF; }
         {
             return ''
         }
-        int len = s.length()
+        final int len = s.length()
         StringBuilder out = new StringBuilder(len)
 
         for (int i = 0; i < len; i++)
