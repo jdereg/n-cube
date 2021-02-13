@@ -962,7 +962,7 @@ class NCube<T>
         Deque<StackEntry> stackFrame = null
         try
         {
-            if (options == null || !options.get(NO_STACKFRAME))
+            if (!options?.containsKey(NO_STACKFRAME))
             {
                 stackFrame = (Deque<StackEntry>) executionStack.get()
                 // Form fully qualified cell lookup (NCube name + coordinate)
@@ -971,7 +971,6 @@ class NCube<T>
                 stackFrame.addFirst(entry)
                 pushed = true
             }
-            T cellValue
 
 // Handy trick for debugging a failed binding (like space after an input)
 //            if (coordinate.containsKey("debug"))
@@ -1002,7 +1001,7 @@ class NCube<T>
 //                log.info("  coord Map: " + coordinate)
 //            }
 
-            cellValue = cells.get(colIds)
+            T cellValue = cells.get(colIds)
             if (cellValue == null && !cells.containsKey(colIds))
             {   // No cell, look for default
                 cellValue = (T) getColumnDefault(colIds)
@@ -1026,7 +1025,7 @@ class NCube<T>
             }
             else
             {
-                if (options == null || !options.get(NCubeConstants.DONT_TRACK_INPUT_KEYS_USED))
+                if (!options?.containsKey(DONT_TRACK_INPUT_KEYS_USED))
                 {
                     trackInputKeysUsed(coordinate, output)
                 }
@@ -1365,7 +1364,7 @@ class NCube<T>
                     commandInput.put(axisName, column.valueThatMatches)
                     long colId = column.id
                     ids.add(colId)
-                    result.put(colValue, (Object)getCellById(ids, commandInput, output, defaultValue, shouldExecute))
+                    result.put(colValue, (Object)getCellById(ids, commandInput, output, defaultValue, shouldExecute, cellOptions))
                     ids.remove(colId)
                 }
                 matchingRows.put(key, result)
@@ -2093,7 +2092,7 @@ class NCube<T>
         }
         else
         {
-            safeCoord = (coordinate == null) ? new CaseInsensitiveMap<>(axisList.size()) : new CaseInsensitiveMap<>(coordinate, new LinkedHashMap<>(coordinate.size()))
+            safeCoord = (coordinate == null) ? new CaseInsensitiveMap<>(axisList.size()) : new CaseInsensitiveMap<>(coordinate, new HashMap<>(coordinate.size()))
         }
 
         Map<String, List<Column>> bindings = selectColumns(safeCoord, output, false)

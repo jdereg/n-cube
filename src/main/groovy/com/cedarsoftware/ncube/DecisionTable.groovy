@@ -927,7 +927,9 @@ class DecisionTable
         List<Column> rowColumns = rowAxis.columnsWithoutDefault
         Set<String> rangePlusOutputCols = new CaseInsensitiveSet<>(rangeColumns)
         rangePlusOutputCols.addAll(outputColumns)
-
+        Map<String, Object> cellOptions = new HashMap<>()
+        cellOptions.put(DONT_TRACK_INPUT_KEYS_USED, true)
+        cellOptions.put(NO_STACKFRAME, true)
         for (String colName : rangePlusOutputCols)
         {
             Column column = fieldAxis.findColumn(colName)
@@ -943,7 +945,7 @@ class DecisionTable
             {
                 coord.put(rowAxisName, row.value)
                 Set<Long> idCoord = new LongHashSet(column.id, row.id)
-                Object value = decisionCube.getCellById(idCoord, coord, [:], null, true)
+                Object value = decisionCube.getCellById(idCoord, coord, [:], null, true, cellOptions)
 
                 if (rangeColumns.contains(columnValue))
                 {   // Convert range column values, ensure their cell values are not null
@@ -998,6 +1000,9 @@ class DecisionTable
         {   // Nothing to do here
             return
         }
+        Map<String, Object> cellOptions = new HashMap<>()
+        cellOptions.put(DONT_TRACK_INPUT_KEYS_USED, true)
+        cellOptions.put(NO_STACKFRAME, true)
 
         for (Column row : rowAxis.columnsWithoutDefault)
         {
@@ -1007,7 +1012,7 @@ class DecisionTable
             {
                 coord.put(fieldAxisName, IGNORE)
                 Set<Long> idCoord = new LongHashSet(ignoreColId, row.id)
-                Object value = decisionCube.getCellById(idCoord, coord, [:])
+                Object value = decisionCube.getCellById(idCoord, coord, [:], null, true, cellOptions)
                 decisionCube.setCellById(convertToBoolean(value), idCoord, true)
             }
 
@@ -1015,7 +1020,7 @@ class DecisionTable
             {
                 Set<Long> idCoord = new LongHashSet(priorityColId, row.id)
                 coord.put(fieldAxisName, PRIORITY)
-                Integer intValue = convertToInteger(decisionCube.getCellById(idCoord, coord, [:]))
+                Integer intValue = convertToInteger(decisionCube.getCellById(idCoord, coord, [:], null, true, cellOptions))
                 if (intValue < 1)
                 {   // If priority is not specified, then it is the lowest priority of all
                     intValue = Integer.MAX_VALUE

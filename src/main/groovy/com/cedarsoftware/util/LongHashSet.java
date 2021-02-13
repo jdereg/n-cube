@@ -2,6 +2,9 @@ package com.cedarsoftware.util;
 
 import java.util.*;
 
+import static java.lang.System.arraycopy;
+import static java.util.Arrays.binarySearch;
+
 /**
  * Special Set instance that hashes the Set&lt;Long&gt; column IDs with excellent dispersion,
  * while at the same time, using only a single primitive long (8 bytes) per entry.
@@ -85,7 +88,7 @@ public class LongHashSet implements Set<Long>
             return false;
         }
 
-        return Arrays.binarySearch(elems, ((Number)item).longValue()) >= 0;
+        return binarySearch(elems, ((Number)item).longValue()) >= 0;
     }
 
     public Iterator<Long> iterator()
@@ -153,7 +156,7 @@ public class LongHashSet implements Set<Long>
             }
             int origSize = size();
             long[] newElems = new long[origSize + 1];
-            System.arraycopy(elems, 0, newElems, 0, origSize);
+            arraycopy(elems, 0, newElems, 0, origSize);
             newElems[origSize] = n;
             Arrays.sort(newElems);
             elems = newElems;
@@ -176,8 +179,8 @@ public class LongHashSet implements Set<Long>
             if (local[i] == ((Number)n).longValue())
             {
                 long[] newElems = new long[len - 1];
-                System.arraycopy(local, i + 1, local, i, len - i - 1);
-                System.arraycopy(local, 0, newElems, 0, len - 1);
+                arraycopy(local, i + 1, local, i, len - i - 1);
+                arraycopy(local, 0, newElems, 0, len - 1);
                 elems = newElems;
                 return true;
             }
@@ -229,7 +232,7 @@ public class LongHashSet implements Set<Long>
         for (Object item : col)
         {
             long n = ((Number)item).longValue();
-            if (Arrays.binarySearch(elems, n) >= 0)
+            if (binarySearch(elems, n) >= 0)
             {
                 keep.add(n);
             }
@@ -248,7 +251,7 @@ public class LongHashSet implements Set<Long>
     {
         for (Object n : col)
         {
-            if (Arrays.binarySearch(elems, ((Number)n).longValue()) < 0)
+            if (binarySearch(elems, ((Number)n).longValue()) < 0)
             {
                 return false;
             }
